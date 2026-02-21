@@ -1,29 +1,540 @@
-import { Wrench } from "lucide-react";
+import { useState } from "react";
+import {
+  Wrench,
+  Settings2,
+  Sparkles,
+  HeartPlus,
+  Ghost,
+  Gift,
+  Search,
+  ChevronRight,
+  ChevronsRight,
+  ChevronLeft,
+  ChevronsLeft,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
+
+type Tab =
+  | "qol"
+  | "combat"
+  | "cheats"
+  | "buffs"
+  | "healing"
+  | "spawning"
+  | "loot";
 
 export default function PatcherPage() {
+  const [activeTab, setActiveTab] = useState<Tab>("qol");
+
+  const qolSettings = [
+    {
+      id: "time",
+      label: "Display Time",
+      checked: true,
+      description:
+        "Shows the current in-game time accurately without needing a watch.",
+    },
+    {
+      id: "social",
+      label: "Functional Social Slots",
+      checked: false,
+      description:
+        "Accessories placed in social slots will grant their stats and effects.",
+    },
+    {
+      id: "range",
+      label: "Max Crafting Range",
+      checked: false,
+      description:
+        "Access all nearby crafting stations without having to stand right next to them.",
+    },
+    {
+      id: "pylon",
+      label: "Pylon Everywhere (No Restrictions)",
+      checked: true,
+      description:
+        "Use pylons regardless of NPC happiness or biome requirements.",
+    },
+    {
+      id: "angler",
+      label: "Remove Angler Quest Per Day Limit",
+      checked: false,
+      description:
+        "Complete as many fishing quests as you want per in-game day.",
+    },
+  ];
+
+  const combatSettings = [
+    {
+      id: "rod",
+      label: "Remove Rod of Discord Debuff",
+      checked: false,
+      description:
+        "Teleport infinitely without taking damage from Chaos State.",
+    },
+    {
+      id: "potion",
+      label: "Remove Potion Sickness Debuff",
+      checked: false,
+      description:
+        "Consume healing potions anytime without having to wait for cooldowns.",
+    },
+    {
+      id: "mana",
+      label: "Remove Mana Costs",
+      checked: true,
+      description: "Magic weapons and tools will not consume your mana.",
+    },
+    {
+      id: "drowning",
+      label: "Remove Drowning",
+      checked: false,
+      description: "Breathe underwater infinitely without taking damage.",
+    },
+  ];
+
+  const cheatSettings = [
+    {
+      id: "ohk",
+      label: "One Hit Kill",
+      checked: false,
+      description: "Instantly kill any enemy or boss with a single attack.",
+    },
+    {
+      id: "ammo",
+      label: "Infinite Ammo (by Ryan S)",
+      checked: true,
+      description: "Ranged weapons will never consume ammunition.",
+    },
+    {
+      id: "wings",
+      label: "Permanent Stardust Wings + Infinite Up Time",
+      checked: false,
+      description:
+        "Grants infinite flight time and optimal wing performance permanently.",
+    },
+    {
+      id: "cloud",
+      label: "Infinite Cloud Jumps",
+      checked: false,
+      description: "Jump infinitely in mid-air continuously.",
+    },
+  ];
+
+  const possibleBuffs = [
+    "[307]",
+    "[309]",
+    "[310]",
+    "[313]",
+    "[315]",
+    "[316]",
+    "[319]",
+    "[326]",
+    "[337]",
+    "[340]",
+    "[312] A Nice Buff",
+    "[335] Abigail",
+    "[70] Acid Venom",
+    "[302] Alien Skater",
+    "[93] Ammo Box",
+    "[112] Ammo Reservation",
+    "[16] Archery",
+    "[61] Baby Dinosaur",
+    "[45] Baby Eater",
+    "[154] Baby Face Monster",
+    "[216] Baby Finch",
+    "[92] Baby Grinch",
+    "[51] Baby Hornet",
+    "[261] Baby Imp",
+    "[303] Baby Ogre",
+  ];
+
+  const activeBuffs = ["[147] Banner", "[87] Cozy Fire", "[257] Lucky"];
+
+  const tabs = [
+    { id: "qol", label: "Quality of Life", icon: Settings2 },
+    { id: "combat", label: "Combat & Debuffs", icon: Settings2 },
+    { id: "cheats", label: "Overpowered / Cheats", icon: Settings2 },
+    { id: "buffs", label: "Persistent Buffs", icon: Sparkles },
+    { id: "healing", label: "Healing Rates", icon: HeartPlus },
+    { id: "spawning", label: "Spawning Tweaks", icon: Ghost },
+    { id: "loot", label: "Loot & Bags", icon: Gift },
+  ];
+
   return (
-    <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <Wrench className="h-5 w-5" />
-        </div>
+    <div className="h-full flex flex-col gap-6 animate-in fade-in duration-500 pb-4">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Patcher</h1>
-          <p className="text-sm text-muted-foreground">
-            Apply and manage patches for Terraria
+          <h1 className="text-2xl font-bold tracking-tight">
+            Game Modifications
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Configure standalone patches to apply directly to the Terraria
+            executable.
           </p>
         </div>
+        <Button className="gap-2 shrink-0">
+          <Wrench className="h-4 w-4" />
+          Patch & Save
+        </Button>
       </div>
 
-      <div className="rounded-xl border bg-card p-8 flex flex-col items-center justify-center text-center space-y-3 min-h-[300px]">
-        <Wrench className="h-12 w-12 text-muted-foreground/30" />
-        <h2 className="text-lg font-medium text-muted-foreground">
-          Patcher will be available soon
-        </h2>
-        <p className="text-sm text-muted-foreground/70 max-w-md">
-          This section will allow you to select your Terraria executable, choose
-          patches to apply, and manage your patched installations.
-        </p>
+      <div className="flex-1 flex flex-col md:flex-row gap-6 overflow-hidden">
+        {/* Navigation Sidebar */}
+        <div className="w-full md:w-64 flex flex-col gap-2 shrink-0">
+          <Card className="shadow-none border-muted bg-muted/20">
+            <CardContent className="p-2 flex flex-col gap-1">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as Tab)}
+                    className={cn(
+                      "flex items-center gap-3 w-full px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200",
+                      isActive
+                        ? "bg-background shadow-sm text-foreground"
+                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                    )}>
+                    <Icon
+                      className={cn("h-4 w-4", isActive ? "text-primary" : "")}
+                    />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-none border-muted bg-muted/20 mt-auto hidden md:block">
+            <CardContent className="p-4">
+              <p className="text-xs text-muted-foreground leading-relaxed text-center">
+                Make sure your Terraria path is correctly set in the{" "}
+                <strong className="text-foreground">Config</strong> page before
+                patching.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Dynamic Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 bg-card rounded-xl border shadow-sm">
+          {activeTab === "qol" && (
+            <div className="flex flex-col h-full animate-in slide-in-from-right-4 duration-300">
+              <div className="p-6 border-b">
+                <h3 className="text-lg font-semibold">Quality of Life</h3>
+                <p className="text-sm text-muted-foreground">
+                  Enhancements for standard gameplay flow.
+                </p>
+              </div>
+              <ScrollArea className="flex-1 p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {qolSettings.map((setting) => (
+                    <div
+                      key={setting.id}
+                      className="flex items-start space-x-3 p-4 border rounded-lg bg-muted/30">
+                      <Checkbox
+                        id={setting.id}
+                        defaultChecked={setting.checked}
+                        className="mt-1"
+                      />
+                      <div className="space-y-1.5 leading-none">
+                        <Label
+                          htmlFor={setting.id}
+                          className="text-sm font-medium cursor-pointer">
+                          {setting.label}
+                        </Label>
+                        <p className="text-xs text-muted-foreground leading-relaxed pr-2">
+                          {setting.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
+
+          {activeTab === "combat" && (
+            <div className="flex flex-col h-full animate-in slide-in-from-right-4 duration-300">
+              <div className="p-6 border-b">
+                <h3 className="text-lg font-semibold">Combat & Debuffs</h3>
+                <p className="text-sm text-muted-foreground">
+                  Modifications to combat mechanics and negative effects.
+                </p>
+              </div>
+              <ScrollArea className="flex-1 p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {combatSettings.map((setting) => (
+                    <div
+                      key={setting.id}
+                      className="flex items-start space-x-3 p-4 border rounded-lg bg-muted/30">
+                      <Checkbox
+                        id={setting.id}
+                        defaultChecked={setting.checked}
+                        className="mt-1"
+                      />
+                      <div className="space-y-1.5 leading-none">
+                        <Label
+                          htmlFor={setting.id}
+                          className="text-sm font-medium cursor-pointer">
+                          {setting.label}
+                        </Label>
+                        <p className="text-xs text-muted-foreground leading-relaxed pr-2">
+                          {setting.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
+
+          {activeTab === "cheats" && (
+            <div className="flex flex-col h-full animate-in slide-in-from-right-4 duration-300">
+              <div className="p-6 border-b">
+                <h3 className="text-lg font-semibold">Overpowered / Cheats</h3>
+                <p className="text-sm text-muted-foreground">
+                  Features that strongly alter game balance.
+                </p>
+              </div>
+              <ScrollArea className="flex-1 p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {cheatSettings.map((setting) => (
+                    <div
+                      key={setting.id}
+                      className="flex items-start space-x-3 p-4 border rounded-lg bg-muted/30">
+                      <Checkbox
+                        id={setting.id}
+                        defaultChecked={setting.checked}
+                        className="mt-1"
+                      />
+                      <div className="space-y-1.5 leading-none">
+                        <Label
+                          htmlFor={setting.id}
+                          className="text-sm font-medium cursor-pointer">
+                          {setting.label}
+                        </Label>
+                        <p className="text-xs text-muted-foreground leading-relaxed pr-2">
+                          {setting.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
+
+          {activeTab === "buffs" && (
+            <div className="flex flex-col h-full animate-in slide-in-from-right-4 duration-300">
+              <div className="p-6 border-b">
+                <h3 className="text-lg font-semibold">Persistent Buffs</h3>
+                <p className="text-sm text-muted-foreground">
+                  Select buffs that will be permanently active for your
+                  character.
+                </p>
+              </div>
+              <div className="flex-1 p-6 flex flex-col gap-4 min-h-[400px]">
+                {/* Search Bars */}
+                <div className="flex items-center gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search available buffs..."
+                      className="pl-9"
+                    />
+                  </div>
+                  <div className="w-12 shrink-0"></div>
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search active buffs..."
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+
+                {/* Dual Listbox Layout */}
+                <div className="flex flex-1 gap-4 h-full">
+                  <div className="flex-1 border rounded-lg flex flex-col overflow-hidden">
+                    <div className="bg-muted px-3 py-2 border-b text-xs font-medium text-muted-foreground tracking-wider uppercase">
+                      Available ({possibleBuffs.length})
+                    </div>
+                    <ScrollArea className="flex-1">
+                      <div className="p-2 space-y-0.5">
+                        {possibleBuffs.map((buff, i) => (
+                          <div
+                            key={i}
+                            className="text-sm px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer">
+                            {buff}
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </div>
+
+                  {/* Transfer Buttons */}
+                  <div className="flex flex-col justify-center gap-2 shrink-0">
+                    <Button variant="outline" size="icon" title="Add All">
+                      <ChevronsRight className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" title="Add Selected">
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      title="Remove Selected">
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" title="Remove All">
+                      <ChevronsLeft className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  <div className="flex-1 border rounded-lg flex flex-col overflow-hidden">
+                    <div className="bg-muted px-3 py-2 border-b text-xs font-medium text-primary tracking-wider uppercase flex justify-between">
+                      <span>Active</span>
+                      <span>{activeBuffs.length} / 22</span>
+                    </div>
+                    <ScrollArea className="flex-1">
+                      <div className="p-2 space-y-0.5">
+                        {activeBuffs.map((buff, i) => (
+                          <div
+                            key={i}
+                            className="text-sm px-2 py-1.5 rounded-md hover:bg-destructive/10 hover:text-destructive cursor-pointer transition-colors">
+                            {buff}
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "healing" && (
+            <div className="flex flex-col h-full animate-in slide-in-from-right-4 duration-300">
+              <div className="p-6 border-b">
+                <h3 className="text-lg font-semibold">Healing Rates</h3>
+                <p className="text-sm text-muted-foreground">
+                  Adjust the effectiveness of lifesteal items and armors.
+                </p>
+              </div>
+              <div className="p-6 max-w-xl space-y-6">
+                <div className="space-y-3">
+                  <Label className="text-base">
+                    Vampiric Knives Healing Rate
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Default is 7.5%.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <Input
+                      type="number"
+                      defaultValue={7.5}
+                      step={0.1}
+                      className="w-32"
+                    />
+                    <span className="text-sm font-medium">%</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-4 border-t">
+                  <Label className="text-base">
+                    Spectre Armor Healing Rate
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Default is 20.0%.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <Input
+                      type="number"
+                      defaultValue={20.0}
+                      step={0.1}
+                      className="w-32"
+                    />
+                    <span className="text-sm font-medium">%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "spawning" && (
+            <div className="flex flex-col h-full animate-in slide-in-from-right-4 duration-300">
+              <div className="p-6 border-b">
+                <h3 className="text-lg font-semibold">Spawning Tweaks</h3>
+                <p className="text-sm text-muted-foreground">
+                  Modify the spawn rates of specific enemies.
+                </p>
+              </div>
+              <div className="p-6 max-w-xl space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-base">Voodoo Demon Spawn Rate</Label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Controls how often a regular Demon is replaced by a Voodoo
+                      Demon. For example, 50% means 1 out of 2 demons will be a
+                      Voodoo Demon.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <Input
+                      type="number"
+                      defaultValue={15}
+                      min={0}
+                      max={100}
+                      className="w-32"
+                    />
+                    <span className="text-sm font-medium">%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "loot" && (
+            <div className="flex flex-col h-full animate-in slide-in-from-right-4 duration-300">
+              <div className="p-6 border-b">
+                <h3 className="text-lg font-semibold">Loot & Bags</h3>
+                <p className="text-sm text-muted-foreground">
+                  Configure item drops and boss reward modifications.
+                </p>
+              </div>
+              <div className="p-6">
+                <div className="flex items-start space-x-3 p-4 border rounded-lg bg-muted/30">
+                  <Checkbox
+                    id="boss-bags-loot"
+                    defaultChecked
+                    className="mt-1"
+                  />
+                  <div className="space-y-1 leading-none">
+                    <Label
+                      htmlFor="boss-bags-loot"
+                      className="text-base font-medium cursor-pointer">
+                      Treasure Bags always drop full loot table
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Opening a treasure bag will guarantee dropping every
+                      possible item instead of random selections.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
