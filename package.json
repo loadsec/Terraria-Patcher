@@ -90,9 +90,29 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      " ",
+      "-",
+      "a",
+      "b",
+      "c",
+      "d",
+      "e",
       "electron",
+      "electron-edge-js",
       "electron-winstaller",
-      "esbuild"
+      "esbuild",
+      "h",
+      "i",
+      "l",
+      "n",
+      "o",
+      "p",
+      "r",
+      "s",
+      "t",
+      "u",
+      "v",
+      "w"
     ]
   }
 }
