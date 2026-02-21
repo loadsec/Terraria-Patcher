@@ -1,75 +1,135 @@
-# React + TypeScript + Vite
+# 🔧 Terraria Patcher
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> A modern, cross-platform desktop application for patching and customizing your Terraria installation.  
+> Apply quality-of-life improvements, manage community plugins, and fine-tune game settings — all through a clean and intuitive UI.
 
-Currently, two official plugins are available:
+<br />
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blue?style=flat-square)](https://github.com)
+[![Electron](https://img.shields.io/badge/Electron-39-47848F?style=flat-square&logo=electron&logoColor=white)](https://www.electronjs.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=white)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](./LICENSE)
 
-## React Compiler
+---
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+## ✨ Features
 
-Note: This will impact Vite dev & build performances.
+### 🎮 Game Modifications
 
-## Expanding the ESLint configuration
+Apply standalone patches directly to the Terraria executable:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+| Category                    | Patches Available                                                                                      |
+| --------------------------- | ------------------------------------------------------------------------------------------------------ |
+| 🌟 **Quality of Life**      | Display Time, Functional Social Slots, Max Crafting Range, Pylon Everywhere, Remove Angler Daily Limit |
+| ⚔️ **Combat & Debuffs**     | Remove Rod of Discord Debuff, Remove Potion Sickness, Remove Mana Costs, Remove Drowning               |
+| 🃏 **Overpowered / Cheats** | One Hit Kill, Infinite Ammo, Infinite Wings, Infinite Cloud Jumps                                      |
+| ✨ **Persistent Buffs**     | Permanently activate any buff for your character                                                       |
+| 💊 **Healing Rates**        | Tune Vampire Knives & Spectre Armor life steal percentages                                             |
+| 👾 **Spawning Tweaks**      | Adjust Voodoo Demon spawn rate                                                                         |
+| 🎁 **Loot & Bags**          | Force Treasure Bags to always drop every possible item                                                 |
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### 🔌 Plugin System
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- Browse and manage community plugins in a dedicated tab
+- Enable or disable each plugin individually
+- **Auto-sync** support — apply plugin changes automatically
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### ⚙️ Configuration
+
+- Set your Terraria executable path
+- Enable third-party plugin loading from `\Plugins\*.cs`
+- Language selector with search support
+- Auto-save settings on change
+
+### 🌐 Internationalization
+
+- 🇺🇸 English
+- 🇧🇷 Português Brasileiro
+
+---
+
+## 🖥️ Tech Stack
+
+| Technology                                                              | Usage                                  |
+| ----------------------------------------------------------------------- | -------------------------------------- |
+| [Electron](https://www.electronjs.org/)                                 | Desktop application framework          |
+| [React 19](https://react.dev/)                                          | UI library                             |
+| [TypeScript](https://www.typescriptlang.org/)                           | Type safety across the entire codebase |
+| [electron-vite](https://electron-vite.org/) + [Vite](https://vite.dev/) | Fast build tooling & HMR               |
+| [Tailwind CSS v4](https://tailwindcss.com/)                             | Utility-first styling                  |
+| [shadcn/ui](https://ui.shadcn.com/)                                     | Component system built on Radix UI     |
+| [react-i18next](https://react.i18next.com/)                             | Internationalization                   |
+| [react-router-dom](https://reactrouter.com/)                            | Client-side routing                    |
+| [lucide-react](https://lucide.dev/)                                     | Icon library                           |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) `>= 18`
+- [pnpm](https://pnpm.io/) `>= 8`
+
+### Installation
+
+```bash
+git clone https://github.com/your-username/terraria-patcher.git
+cd terraria-patcher
+pnpm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Development
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+pnpm dev
 ```
+
+### Build
+
+```bash
+pnpm build           # Current platform
+pnpm build:win       # Windows (.exe)
+pnpm build:mac       # macOS (.dmg)
+pnpm build:linux     # Linux (.AppImage)
+```
+
+---
+
+## 📁 Project Structure
+
+```
+terraria-patcher/
+├── src/
+│   ├── main/               # Electron main process
+│   ├── preload/            # Electron preload scripts
+│   └── renderer/           # React frontend
+│       └── src/
+│           ├── components/ # Shared UI components
+│           ├── pages/      # App pages (Patcher, Config, About...)
+│           ├── locales/    # i18n translation files (en, pt-BR)
+│           └── i18n.ts     # i18n configuration
+├── build/                  # Electron Builder resources
+└── resources/              # App icons and static assets
+```
+
+---
+
+## 🙏 Credits
+
+This project is heavily inspired by the original **[Terraria Patcher](https://github.com/DougBenham/TerrariaPatcher)** created by **Doug Benham** — an incredible developer who laid the foundation for IL-based Terraria patching on Windows.
+
+Our goal is to build on that foundation with a modern UI and native cross-platform support.
+
+> ⚠️ **Note:** The app itself runs on all platforms, but patching functionality on **Linux and macOS** is still under development and not fully supported yet.
+
+---
+
+## 📄 License
+
+Released under the [MIT License](./LICENSE).
+
+---
+
+<p align="center">Made with ❤️ for the Terraria community</p>
