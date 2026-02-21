@@ -26,7 +26,7 @@
     "@tailwindcss/vite": "^4.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "edge-js": "^25.0.1",
+    "electron-edge-js": "^40.0.1",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.8.3",
     "fs-extra": "^11.3.3",
