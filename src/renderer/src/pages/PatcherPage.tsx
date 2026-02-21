@@ -665,16 +665,34 @@ export default function PatcherPage() {
 
           {activeTab === "plugins" && (
             <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
-              <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold">
-                  {t("plugins.title", "Plugins")}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {t(
-                    "plugins.subtitle",
-                    "Browse, enable, and configure plugins",
-                  )}
-                </p>
+              <div className="p-6 border-b flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">
+                    {t("plugins.title", "Plugins")}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {t(
+                      "plugins.subtitle",
+                      "Browse, enable, and configure plugins",
+                    )}
+                  </p>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <Checkbox id="autosync-plugins" className="mt-1" />
+                  <div className="space-y-1">
+                    <Label
+                      htmlFor="autosync-plugins"
+                      className="text-sm font-medium cursor-pointer">
+                      {t("plugins.autosync", "Auto-sync selected plugins")}
+                    </Label>
+                    <p className="text-sm text-muted-foreground max-w-[260px]">
+                      {t(
+                        "plugins.autosyncDesc",
+                        "Automatically apply plugin changes without clicking save.",
+                      )}
+                    </p>
+                  </div>
+                </div>
               </div>
               <div className="p-6 flex-1 flex flex-col items-center justify-center text-center space-y-3">
                 <Puzzle className="h-12 w-12 text-muted-foreground/30" />

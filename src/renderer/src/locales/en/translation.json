@@ -170,7 +170,9 @@
   },
   "plugins": {
     "title": "Plugins",
-    "subtitle": "Browse, enable, and configure plugins",
+    "subtitle": "Explore, enable, and tweak community plugins",
+    "autosync": "Auto-sync selected plugins",
+    "autosyncDesc": "Automatically apply plugin changes without clicking save.",
     "emptyState": {
       "title": "No plugins loaded",
       "desc": "This section will list all available plugins, allowing you to enable, disable, and configure each one individually."

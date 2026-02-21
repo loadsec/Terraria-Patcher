@@ -171,6 +171,8 @@
   "plugins": {
     "title": "Plugins",
     "subtitle": "Explore, ative e configure seus plugins",
+    "autosync": "Auto-sincronizar plugins selecionados",
+    "autosyncDesc": "Aplica automaticamente as alterações de botão liga/desliga no jogo.",
     "emptyState": {
       "title": "Nenhum plugin carregado",
       "desc": "Nesta seção você verá a lista de todos os plugins disponíveis. Podendo ligar, desligar e ajustar cada um individualmente."
