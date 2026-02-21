@@ -179,6 +179,7 @@
   "config": {
     "title": "Config",
     "subtitle": "Application settings and preferences",
+    "saveBtn": "Save Configuration",
     "gameDirectory": {
       "title": "Game Directory",
       "desc": "Configure the installation path for Terraria.",
@@ -191,6 +192,14 @@
       "desc": "General settings for the application.",
       "pluginLabel": "Enable Plugin Support",
       "pluginDesc": "Load third-party patches from the <1>\\Plugins\\*.cs</1> directory."
+    },
+    "language": {
+      "title": "Language",
+      "desc": "Select your preferred application language.",
+      "label": "Display Language",
+      "searchPlaceholder": "Search available languages...",
+      "en": "English",
+      "pt": "Brazilian Portuguese"
     }
   }
 }

@@ -1,14 +1,7 @@
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider, useTheme } from "@/components/theme-provider";
 import { useTranslation } from "react-i18next";
-import { Moon, Sun, Languages } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Moon, Sun } from "lucide-react";
 import {
   SidebarProvider,
   SidebarInset,
@@ -60,32 +53,6 @@ function ThemeToggleButton() {
   );
 }
 
-function LanguageToggleButton() {
-  const { i18n, t } = useTranslation();
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" title={t("header.toggleLanguage")}>
-          <Languages className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem
-          className={i18n.resolvedLanguage === "en" ? "bg-accent" : ""}
-          onClick={() => i18n.changeLanguage("en")}>
-          English
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          className={i18n.resolvedLanguage === "pt" ? "bg-accent" : ""}
-          onClick={() => i18n.changeLanguage("pt")}>
-          Português
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
 function App(): React.ReactElement {
   const { t } = useTranslation();
 
@@ -95,17 +62,16 @@ function App(): React.ReactElement {
         <TooltipProvider>
           <SidebarProvider>
             <AppSidebar />
-            <SidebarInset className="overflow-hidden">
+            <SidebarInset className="flex flex-col h-screen overflow-hidden">
               <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
                 <SidebarTrigger className="-ml-1" />
                 <Separator orientation="vertical" className="mr-2 !h-4" />
                 <span className="text-sm text-muted-foreground mr-auto">
                   {t("sidebar.title")}
                 </span>
-                <LanguageToggleButton />
                 <ThemeToggleButton />
               </header>
-              <main className="flex-1 p-6 overflow-auto">
+              <main className="flex-1 min-h-0 p-6 overflow-y-auto">
                 <Routes>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/patcher" element={<PatcherPage />} />

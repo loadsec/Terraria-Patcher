@@ -4,14 +4,14 @@ import LanguageDetector from "i18next-browser-languagedetector";
 
 // Import translation files
 import enTranslation from "./locales/en/translation.json";
-import ptTranslation from "./locales/pt/translation.json";
+import ptBRTranslation from "./locales/pt-BR/translation.json";
 
 const resources = {
   en: {
     translation: enTranslation,
   },
-  pt: {
-    translation: ptTranslation,
+  "pt-BR": {
+    translation: ptBRTranslation,
   },
 };
 
