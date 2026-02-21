@@ -1,4 +1,4 @@
-import { Home, Wrench, Puzzle, Settings, Info, FileText } from "lucide-react";
+import { Home, Wrench, Settings, Info, FileText } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import terrariaLogo from "../../../../resources/terraria-logo.png";
@@ -29,11 +29,6 @@ const toolsItems = [
     i18nKey: "patcher",
     icon: Wrench,
     path: "/patcher",
-  },
-  {
-    i18nKey: "plugins",
-    icon: Puzzle,
-    path: "/plugins",
   },
 ];
 

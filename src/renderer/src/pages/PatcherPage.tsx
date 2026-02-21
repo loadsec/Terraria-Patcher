@@ -12,6 +12,7 @@ import {
   ChevronsRight,
   ChevronLeft,
   ChevronsLeft,
+  Puzzle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +29,8 @@ type Tab =
   | "buffs"
   | "healing"
   | "spawning"
-  | "loot";
+  | "loot"
+  | "plugins";
 
 const ALL_POSSIBLE_BUFFS = [
   "[307]",
@@ -106,7 +108,7 @@ export default function PatcherPage() {
 
   const handleRemoveSelected = () => {
     setAvailableBuffs((prev) => [...prev, ...Array.from(selectedActive)]);
-    setActiveBuffs((prev) => prev.filter((b) => !selectedActive.has(b)));
+    setActiveBuffs((prev) => prev.filter((b) => !selectedActive.includes(b)));
     setSelectedActive(new Set());
   };
 
@@ -221,6 +223,10 @@ export default function PatcherPage() {
     { id: "loot", label: t("patcher.tabs.loot"), icon: Gift },
   ];
 
+  const pluginTabs = [
+    { id: "plugins", label: t("plugins.title", "Plugins"), icon: Puzzle },
+  ];
+
   return (
     <div className="h-[calc(100vh-6rem)] overflow-hidden flex flex-col gap-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between shrink-0">
@@ -246,6 +252,9 @@ export default function PatcherPage() {
         <div className="w-full md:w-64 flex flex-col gap-2 shrink-0">
           <Card className="shadow-none border-muted bg-muted/20">
             <CardContent className="p-2 flex flex-col gap-1">
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2 mt-2">
+                {t("patcher.title", "Modifications")}
+              </div>
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -254,15 +263,37 @@ export default function PatcherPage() {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as Tab)}
                     className={cn(
-                      "flex items-center gap-3 w-full px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200",
+                      "flex items-center gap-3 w-full px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200 outline-none",
                       isActive
-                        ? "bg-background shadow-sm text-foreground"
-                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                        ? "bg-foreground shadow-sm text-background"
+                        : "text-muted-foreground hover:bg-foreground hover:text-background",
                     )}>
-                    <Icon
-                      className={cn("h-4 w-4", isActive ? "text-primary" : "")}
-                    />
-                    {t(`patcher.tabs.${tab.id}`, tab.label)}
+                    <Icon className="h-4 w-4" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+
+              <div className="my-2 border-t border-muted/50" />
+
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2 mt-1">
+                {t("patcher.external", "External")}
+              </div>
+              {pluginTabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as Tab)}
+                    className={cn(
+                      "flex items-center gap-3 w-full px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200 outline-none",
+                      isActive
+                        ? "bg-foreground shadow-sm text-background"
+                        : "text-muted-foreground hover:bg-foreground hover:text-background",
+                    )}>
+                    <Icon className="h-4 w-4" />
+                    {tab.label}
                   </button>
                 );
               })}
@@ -628,6 +659,34 @@ export default function PatcherPage() {
                     </p>
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "plugins" && (
+            <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
+              <div className="p-6 border-b">
+                <h3 className="text-lg font-semibold">
+                  {t("plugins.title", "Plugins")}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {t(
+                    "plugins.subtitle",
+                    "Browse, enable, and configure plugins",
+                  )}
+                </p>
+              </div>
+              <div className="p-6 flex-1 flex flex-col items-center justify-center text-center space-y-3">
+                <Puzzle className="h-12 w-12 text-muted-foreground/30" />
+                <h2 className="text-lg font-medium text-muted-foreground">
+                  {t("plugins.emptyState.title", "No plugins loaded")}
+                </h2>
+                <p className="text-sm text-muted-foreground/70 max-w-md">
+                  {t(
+                    "plugins.emptyState.desc",
+                    "This section will list all available plugins, allowing you to enable, disable, and configure each one individually.",
+                  )}
+                </p>
               </div>
             </div>
           )}
