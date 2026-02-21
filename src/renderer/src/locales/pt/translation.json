@@ -92,6 +92,21 @@
         }
       }
     },
+    "healing": {
+      "desc": "Ajuste a eficácia de armaduras e itens de roubo de vida.",
+      "vampiric": "Taxa de Cura das Facas Vampíricas",
+      "spectre": "Taxa de Cura da Armadura Espectral",
+      "default": "O padrão é {{value}}%."
+    },
+    "spawning": {
+      "desc": "Modifique as taxas de geração de inimigos específicos.",
+      "voodooDesc": "Controla a frequência com que um Demônio comum é substituído por um Demônio Vodu. Por exemplo, 50% significa que 1 a cada 2 demônios será um Vodu."
+    },
+    "lootFeature": {
+      "desc": "Configure as modificações de prêmios de chefes e drops.",
+      "treasureBags": "Bolsas do Tesouro sempre soltam todos os itens",
+      "treasureBagsDesc": "Abrir uma bolsa do tesouro garantirá o drop de todos os itens possíveis na tabela, em vez de seleções aleatórias."
+    },
     "pathAlert": "Certifique-se de que o caminho do Terraria está configurado corretamente na página Configurações."
   },
   "home": {

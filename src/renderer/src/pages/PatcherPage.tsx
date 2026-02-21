@@ -212,18 +212,18 @@ export default function PatcherPage() {
   ];
 
   const tabs = [
-    { id: "qol", label: "Quality of Life", icon: Settings2 },
-    { id: "combat", label: "Combat & Debuffs", icon: Settings2 },
-    { id: "cheats", label: "Overpowered / Cheats", icon: Settings2 },
-    { id: "buffs", label: "Persistent Buffs", icon: Sparkles },
-    { id: "healing", label: "Healing Rates", icon: HeartPlus },
-    { id: "spawning", label: "Spawning Tweaks", icon: Ghost },
-    { id: "loot", label: "Loot & Bags", icon: Gift },
+    { id: "qol", label: t("patcher.tabs.qol"), icon: Settings2 },
+    { id: "combat", label: t("patcher.tabs.combat"), icon: Settings2 },
+    { id: "cheats", label: t("patcher.tabs.cheats"), icon: Settings2 },
+    { id: "buffs", label: t("patcher.tabs.buffs"), icon: Sparkles },
+    { id: "healing", label: t("patcher.tabs.healing"), icon: HeartPlus },
+    { id: "spawning", label: t("patcher.tabs.spawning"), icon: Ghost },
+    { id: "loot", label: t("patcher.tabs.loot"), icon: Gift },
   ];
 
   return (
-    <div className="h-full flex flex-col gap-6 animate-in fade-in duration-500 pb-4">
-      <div className="flex items-center justify-between">
+    <div className="h-[calc(100vh-6rem)] overflow-hidden flex flex-col gap-6 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
             {t("patcher.title", "Game Modifications")}
@@ -282,9 +282,9 @@ export default function PatcherPage() {
         </div>
 
         {/* Dynamic Content Area */}
-        <div className="flex-1 flex flex-col min-w-0 bg-card rounded-xl border shadow-sm">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden bg-card rounded-xl border shadow-sm">
           {activeTab === "qol" && (
-            <div className="flex flex-col h-full animate-in slide-in-from-right-4 duration-300">
+            <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
               <div className="p-6 border-b">
                 <h3 className="text-lg font-semibold">
                   {t("patcher.tabs.qol")}
@@ -322,7 +322,7 @@ export default function PatcherPage() {
           )}
 
           {activeTab === "combat" && (
-            <div className="flex flex-col h-full animate-in slide-in-from-right-4 duration-300">
+            <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
               <div className="p-6 border-b">
                 <h3 className="text-lg font-semibold">Combat & Debuffs</h3>
                 <p className="text-sm text-muted-foreground">
@@ -358,7 +358,7 @@ export default function PatcherPage() {
           )}
 
           {activeTab === "cheats" && (
-            <div className="flex flex-col h-full animate-in slide-in-from-right-4 duration-300">
+            <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
               <div className="p-6 border-b">
                 <h3 className="text-lg font-semibold">Overpowered / Cheats</h3>
                 <p className="text-sm text-muted-foreground">
@@ -394,7 +394,7 @@ export default function PatcherPage() {
           )}
 
           {activeTab === "buffs" && (
-            <div className="flex flex-col h-full animate-in slide-in-from-right-4 duration-300">
+            <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
               <div className="p-6 border-b">
                 <h3 className="text-lg font-semibold">
                   {t("patcher.tabs.buffs")}
@@ -404,7 +404,7 @@ export default function PatcherPage() {
                   character.
                 </p>
               </div>
-              <div className="flex-1 p-6 flex flex-col gap-4 min-h-[400px]">
+              <div className="flex-1 p-6 flex flex-col gap-4 min-h-0">
                 {/* Search Bars */}
                 <div className="flex items-center gap-4">
                   <div className="relative flex-1">
@@ -429,12 +429,12 @@ export default function PatcherPage() {
                 </div>
 
                 {/* Dual Listbox Layout */}
-                <div className="flex flex-1 gap-4 min-h-[200px]">
+                <div className="flex flex-1 gap-4 min-h-0">
                   <div className="flex-1 border rounded-lg flex flex-col overflow-hidden">
                     <div className="bg-muted px-3 py-2 border-b text-xs font-medium text-muted-foreground tracking-wider uppercase">
                       {t("patcher.tabs.available")} ({filteredAvailable.length})
                     </div>
-                    <ScrollArea className="flex-1 overflow-auto">
+                    <ScrollArea className="flex-1">
                       <div className="p-2 space-y-0.5">
                         {filteredAvailable.map((buff) => (
                           <div
@@ -492,7 +492,7 @@ export default function PatcherPage() {
                       <span>{t("patcher.tabs.buffsActive")}</span>
                       <span>{activeBuffs.length} / 22</span>
                     </div>
-                    <ScrollArea className="flex-1 overflow-auto">
+                    <ScrollArea className="flex-1">
                       <div className="p-2 space-y-0.5">
                         {filteredActive.map((buff) => (
                           <div
@@ -516,22 +516,22 @@ export default function PatcherPage() {
           )}
 
           {activeTab === "healing" && (
-            <div className="flex flex-col h-full animate-in slide-in-from-right-4 duration-300">
+            <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
               <div className="p-6 border-b">
                 <h3 className="text-lg font-semibold">
                   {t("patcher.tabs.healing")}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Adjust the effectiveness of lifesteal items and armors.
+                  {t("patcher.healing.desc")}
                 </p>
               </div>
               <div className="p-6 max-w-xl space-y-6">
                 <div className="space-y-3">
                   <Label className="text-base">
-                    Vampiric Knives Healing Rate
+                    {t("patcher.healing.vampiric")}
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    Default is 7.5%.
+                    {t("patcher.healing.default", { value: "7.5" })}
                   </p>
                   <div className="flex items-center gap-3">
                     <Input
@@ -546,10 +546,10 @@ export default function PatcherPage() {
 
                 <div className="space-y-3 pt-4 border-t">
                   <Label className="text-base">
-                    Spectre Armor Healing Rate
+                    {t("patcher.healing.spectre")}
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    Default is 20.0%.
+                    {t("patcher.healing.default", { value: "20.0" })}
                   </p>
                   <div className="flex items-center gap-3">
                     <Input
@@ -566,13 +566,13 @@ export default function PatcherPage() {
           )}
 
           {activeTab === "spawning" && (
-            <div className="flex flex-col h-full animate-in slide-in-from-right-4 duration-300">
+            <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
               <div className="p-6 border-b">
                 <h3 className="text-lg font-semibold">
                   {t("patcher.tabs.spawning")}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Modify the spawn rates of specific enemies.
+                  {t("patcher.spawning.desc")}
                 </p>
               </div>
               <div className="p-6 max-w-xl space-y-6">
@@ -582,9 +582,7 @@ export default function PatcherPage() {
                       {t("patcher.tabs.voodooDemon")}
                     </Label>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Controls how often a regular Demon is replaced by a Voodoo
-                      Demon. For example, 50% means 1 out of 2 demons will be a
-                      Voodoo Demon.
+                      {t("patcher.spawning.voodooDesc")}
                     </p>
                   </div>
                   <div className="flex items-center gap-4">
@@ -603,11 +601,13 @@ export default function PatcherPage() {
           )}
 
           {activeTab === "loot" && (
-            <div className="flex flex-col h-full animate-in slide-in-from-right-4 duration-300">
+            <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
               <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold">Loot & Bags</h3>
+                <h3 className="text-lg font-semibold">
+                  {t("patcher.tabs.loot")}
+                </h3>
                 <p className="text-sm text-muted-foreground">
-                  Configure item drops and boss reward modifications.
+                  {t("patcher.lootFeature.desc")}
                 </p>
               </div>
               <div className="p-6">
@@ -621,11 +621,10 @@ export default function PatcherPage() {
                     <Label
                       htmlFor="boss-bags-loot"
                       className="text-base font-medium cursor-pointer">
-                      Treasure Bags always drop full loot table
+                      {t("patcher.lootFeature.treasureBags")}
                     </Label>
                     <p className="text-sm text-muted-foreground">
-                      Opening a treasure bag will guarantee dropping every
-                      possible item instead of random selections.
+                      {t("patcher.lootFeature.treasureBagsDesc")}
                     </p>
                   </div>
                 </div>

@@ -92,6 +92,21 @@
         }
       }
     },
+    "healing": {
+      "desc": "Adjust the effectiveness of lifesteal items and armors.",
+      "vampiric": "Vampiric Knives Healing Rate",
+      "spectre": "Spectre Armor Healing Rate",
+      "default": "Default is {{value}}%."
+    },
+    "spawning": {
+      "desc": "Modify the spawn rates of specific enemies.",
+      "voodooDesc": "Controls how often a regular Demon is replaced by a Voodoo Demon. For example, 50% means 1 out of 2 demons will be a Voodoo Demon."
+    },
+    "lootFeature": {
+      "desc": "Configure item drops and boss reward modifications.",
+      "treasureBags": "Treasure Bags always drop full loot table",
+      "treasureBagsDesc": "Opening a treasure bag will guarantee dropping every possible item instead of random selections."
+    },
     "pathAlert": "Make sure your Terraria path is correctly set in the Config page before patching."
   },
   "home": {
