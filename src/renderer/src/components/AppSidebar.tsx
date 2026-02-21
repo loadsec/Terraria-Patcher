@@ -1,6 +1,8 @@
 import { Home, Wrench, Puzzle, Settings, Info, FileText } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import terrariaLogo from "../../../../resources/terraria-logo.png";
+import appInfo from "../../../../version.json";
 import {
   Sidebar,
   SidebarContent,
@@ -16,7 +18,7 @@ import {
 
 const navItems = [
   {
-    label: "Home",
+    i18nKey: "home",
     icon: Home,
     path: "/",
   },
@@ -24,12 +26,12 @@ const navItems = [
 
 const toolsItems = [
   {
-    label: "Patcher",
+    i18nKey: "patcher",
     icon: Wrench,
     path: "/patcher",
   },
   {
-    label: "Plugins",
+    i18nKey: "plugins",
     icon: Puzzle,
     path: "/plugins",
   },
@@ -37,16 +39,18 @@ const toolsItems = [
 
 const systemItems = [
   {
-    label: "Config",
+    i18nKey: "config",
     icon: Settings,
     path: "/config",
   },
   {
+    i18nKey: "changelog", // Fallback to label if translation missing
     label: "Changelog",
     icon: FileText,
     path: "/changelog",
   },
   {
+    i18nKey: "about", // Fallback to label if translation missing
     label: "About",
     icon: Info,
     path: "/about",
@@ -56,6 +60,7 @@ const systemItems = [
 export function AppSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
 
   return (
     <Sidebar collapsible="icon">
@@ -67,7 +72,7 @@ export function AppSidebar() {
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg object-contain"
           />
           <span className="text-sm font-semibold group-data-[collapsible=icon]:hidden">
-            Terraria Patcher
+            {t("sidebar.title")}
           </span>
         </div>
       </SidebarHeader>
@@ -81,9 +86,9 @@ export function AppSidebar() {
                 <SidebarMenuButton
                   isActive={location.pathname === item.path}
                   onClick={() => navigate(item.path)}
-                  tooltip={item.label}>
+                  tooltip={t(`sidebar.${item.i18nKey}`, item.label)}>
                   <item.icon className="h-4 w-4" />
-                  <span>{item.label}</span>
+                  <span>{t(`sidebar.${item.i18nKey}`, item.label)}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
@@ -94,16 +99,16 @@ export function AppSidebar() {
 
         {/* Tools */}
         <SidebarGroup>
-          <SidebarGroupLabel>Tools</SidebarGroupLabel>
+          <SidebarGroupLabel>{t("sidebar.tools")}</SidebarGroupLabel>
           <SidebarMenu>
             {toolsItems.map((item) => (
               <SidebarMenuItem key={item.path}>
                 <SidebarMenuButton
                   isActive={location.pathname === item.path}
                   onClick={() => navigate(item.path)}
-                  tooltip={item.label}>
+                  tooltip={t(`sidebar.${item.i18nKey}`, item.label)}>
                   <item.icon className="h-4 w-4" />
-                  <span>{item.label}</span>
+                  <span>{t(`sidebar.${item.i18nKey}`, item.label)}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
@@ -114,16 +119,16 @@ export function AppSidebar() {
 
         {/* System */}
         <SidebarGroup>
-          <SidebarGroupLabel>System</SidebarGroupLabel>
+          <SidebarGroupLabel>{t("sidebar.system")}</SidebarGroupLabel>
           <SidebarMenu>
             {systemItems.map((item) => (
               <SidebarMenuItem key={item.path}>
                 <SidebarMenuButton
                   isActive={location.pathname === item.path}
                   onClick={() => navigate(item.path)}
-                  tooltip={item.label}>
+                  tooltip={t(`sidebar.${item.i18nKey}`, item.label)}>
                   <item.icon className="h-4 w-4" />
-                  <span>{item.label}</span>
+                  <span>{t(`sidebar.${item.i18nKey}`, item.label)}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
@@ -133,7 +138,7 @@ export function AppSidebar() {
 
       <SidebarFooter className="p-4">
         <p className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden mt-4 text-center">
-          v1.0.0
+          v{appInfo.version}
         </p>
       </SidebarFooter>
     </Sidebar>

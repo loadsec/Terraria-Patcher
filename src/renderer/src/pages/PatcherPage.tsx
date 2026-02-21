@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Wrench,
   Settings2,
@@ -29,133 +30,186 @@ type Tab =
   | "spawning"
   | "loot";
 
+const ALL_POSSIBLE_BUFFS = [
+  "[307]",
+  "[309]",
+  "[310]",
+  "[313]",
+  "[315]",
+  "[316]",
+  "[319]",
+  "[326]",
+  "[337]",
+  "[340]",
+  "[312] A Nice Buff",
+  "[335] Abigail",
+  "[70] Acid Venom",
+  "[302] Alien Skater",
+  "[93] Ammo Box",
+  "[112] Ammo Reservation",
+  "[16] Archery",
+  "[61] Baby Dinosaur",
+  "[45] Baby Eater",
+  "[154] Baby Face Monster",
+  "[216] Baby Finch",
+  "[92] Baby Grinch",
+  "[51] Baby Hornet",
+  "[261] Baby Imp",
+  "[303] Baby Ogre",
+];
+
+const INITIAL_ACTIVE_BUFFS = ["[147] Banner", "[87] Cozy Fire", "[257] Lucky"];
+
 export default function PatcherPage() {
   const [activeTab, setActiveTab] = useState<Tab>("qol");
+  const { t } = useTranslation();
+
+  const [availableBuffs, setAvailableBuffs] = useState<string[]>(
+    ALL_POSSIBLE_BUFFS.filter((b) => !INITIAL_ACTIVE_BUFFS.includes(b)),
+  );
+  const [activeBuffs, setActiveBuffs] =
+    useState<string[]>(INITIAL_ACTIVE_BUFFS);
+
+  const [selectedAvailable, setSelectedAvailable] = useState<Set<string>>(
+    new Set(),
+  );
+  const [selectedActive, setSelectedActive] = useState<Set<string>>(new Set());
+  const [searchAvailable, setSearchAvailable] = useState("");
+  const [searchActive, setSearchActive] = useState("");
+
+  const toggleAvailable = (buff: string) => {
+    const newSet = new Set(selectedAvailable);
+    if (newSet.has(buff)) newSet.delete(buff);
+    else newSet.add(buff);
+    setSelectedAvailable(newSet);
+  };
+
+  const toggleActive = (buff: string) => {
+    const newSet = new Set(selectedActive);
+    if (newSet.has(buff)) newSet.delete(buff);
+    else newSet.add(buff);
+    setSelectedActive(newSet);
+  };
+
+  const filteredAvailable = availableBuffs.filter((b) =>
+    b.toLowerCase().includes(searchAvailable.toLowerCase()),
+  );
+  const filteredActive = activeBuffs.filter((b) =>
+    b.toLowerCase().includes(searchActive.toLowerCase()),
+  );
+
+  const handleAddSelected = () => {
+    setActiveBuffs((prev) => [...prev, ...Array.from(selectedAvailable)]);
+    setAvailableBuffs((prev) => prev.filter((b) => !selectedAvailable.has(b)));
+    setSelectedAvailable(new Set());
+  };
+
+  const handleRemoveSelected = () => {
+    setAvailableBuffs((prev) => [...prev, ...Array.from(selectedActive)]);
+    setActiveBuffs((prev) => prev.filter((b) => !selectedActive.has(b)));
+    setSelectedActive(new Set());
+  };
+
+  const handleAddAll = () => {
+    setActiveBuffs((prev) => [...prev, ...filteredAvailable]);
+    setAvailableBuffs((prev) =>
+      prev.filter((b) => !filteredAvailable.includes(b)),
+    );
+    setSelectedAvailable(new Set());
+  };
+
+  const handleRemoveAll = () => {
+    setAvailableBuffs((prev) => [...prev, ...filteredActive]);
+    setActiveBuffs((prev) => prev.filter((b) => !filteredActive.includes(b)));
+    setSelectedActive(new Set());
+  };
 
   const qolSettings = [
     {
       id: "time",
-      label: "Display Time",
+      label: t("patcher.features.qol.time.label"),
       checked: true,
-      description:
-        "Shows the current in-game time accurately without needing a watch.",
+      description: t("patcher.features.qol.time.desc"),
     },
     {
       id: "social",
-      label: "Functional Social Slots",
+      label: t("patcher.features.qol.social.label"),
       checked: false,
-      description:
-        "Accessories placed in social slots will grant their stats and effects.",
+      description: t("patcher.features.qol.social.desc"),
     },
     {
       id: "range",
-      label: "Max Crafting Range",
+      label: t("patcher.features.qol.range.label"),
       checked: false,
-      description:
-        "Access all nearby crafting stations without having to stand right next to them.",
+      description: t("patcher.features.qol.range.desc"),
     },
     {
       id: "pylon",
-      label: "Pylon Everywhere (No Restrictions)",
+      label: t("patcher.features.qol.pylon.label"),
       checked: true,
-      description:
-        "Use pylons regardless of NPC happiness or biome requirements.",
+      description: t("patcher.features.qol.pylon.desc"),
     },
     {
       id: "angler",
-      label: "Remove Angler Quest Per Day Limit",
+      label: t("patcher.features.qol.angler.label"),
       checked: false,
-      description:
-        "Complete as many fishing quests as you want per in-game day.",
+      description: t("patcher.features.qol.angler.desc"),
     },
   ];
 
   const combatSettings = [
     {
       id: "rod",
-      label: "Remove Rod of Discord Debuff",
+      label: t("patcher.features.combat.rod.label"),
       checked: false,
-      description:
-        "Teleport infinitely without taking damage from Chaos State.",
+      description: t("patcher.features.combat.rod.desc"),
     },
     {
       id: "potion",
-      label: "Remove Potion Sickness Debuff",
+      label: t("patcher.features.combat.potion.label"),
       checked: false,
-      description:
-        "Consume healing potions anytime without having to wait for cooldowns.",
+      description: t("patcher.features.combat.potion.desc"),
     },
     {
       id: "mana",
-      label: "Remove Mana Costs",
+      label: t("patcher.features.combat.mana.label"),
       checked: true,
-      description: "Magic weapons and tools will not consume your mana.",
+      description: t("patcher.features.combat.mana.desc"),
     },
     {
       id: "drowning",
-      label: "Remove Drowning",
+      label: t("patcher.features.combat.drowning.label"),
       checked: false,
-      description: "Breathe underwater infinitely without taking damage.",
+      description: t("patcher.features.combat.drowning.desc"),
     },
   ];
 
   const cheatSettings = [
     {
       id: "ohk",
-      label: "One Hit Kill",
+      label: t("patcher.features.cheats.ohk.label"),
       checked: false,
-      description: "Instantly kill any enemy or boss with a single attack.",
+      description: t("patcher.features.cheats.ohk.desc"),
     },
     {
       id: "ammo",
-      label: "Infinite Ammo (by Ryan S)",
+      label: t("patcher.features.cheats.ammo.label"),
       checked: true,
-      description: "Ranged weapons will never consume ammunition.",
+      description: t("patcher.features.cheats.ammo.desc"),
     },
     {
       id: "wings",
-      label: "Permanent Stardust Wings + Infinite Up Time",
+      label: t("patcher.features.cheats.wings.label"),
       checked: false,
-      description:
-        "Grants infinite flight time and optimal wing performance permanently.",
+      description: t("patcher.features.cheats.wings.desc"),
     },
     {
       id: "cloud",
-      label: "Infinite Cloud Jumps",
+      label: t("patcher.features.cheats.cloud.label"),
       checked: false,
-      description: "Jump infinitely in mid-air continuously.",
+      description: t("patcher.features.cheats.cloud.desc"),
     },
   ];
-
-  const possibleBuffs = [
-    "[307]",
-    "[309]",
-    "[310]",
-    "[313]",
-    "[315]",
-    "[316]",
-    "[319]",
-    "[326]",
-    "[337]",
-    "[340]",
-    "[312] A Nice Buff",
-    "[335] Abigail",
-    "[70] Acid Venom",
-    "[302] Alien Skater",
-    "[93] Ammo Box",
-    "[112] Ammo Reservation",
-    "[16] Archery",
-    "[61] Baby Dinosaur",
-    "[45] Baby Eater",
-    "[154] Baby Face Monster",
-    "[216] Baby Finch",
-    "[92] Baby Grinch",
-    "[51] Baby Hornet",
-    "[261] Baby Imp",
-    "[303] Baby Ogre",
-  ];
-
-  const activeBuffs = ["[147] Banner", "[87] Cozy Fire", "[257] Lucky"];
 
   const tabs = [
     { id: "qol", label: "Quality of Life", icon: Settings2 },
@@ -172,16 +226,18 @@ export default function PatcherPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            Game Modifications
+            {t("patcher.title", "Game Modifications")}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Configure standalone patches to apply directly to the Terraria
-            executable.
+            {t(
+              "patcher.description",
+              "Configure standalone patches to apply directly to the Terraria executable.",
+            )}
           </p>
         </div>
         <Button className="gap-2 shrink-0">
           <Wrench className="h-4 w-4" />
-          Patch & Save
+          {t("patcher.patchBtn", "Patch & Save")}
         </Button>
       </div>
 
@@ -206,7 +262,7 @@ export default function PatcherPage() {
                     <Icon
                       className={cn("h-4 w-4", isActive ? "text-primary" : "")}
                     />
-                    {tab.label}
+                    {t(`patcher.tabs.${tab.id}`, tab.label)}
                   </button>
                 );
               })}
@@ -216,9 +272,10 @@ export default function PatcherPage() {
           <Card className="shadow-none border-muted bg-muted/20 mt-auto hidden md:block">
             <CardContent className="p-4">
               <p className="text-xs text-muted-foreground leading-relaxed text-center">
-                Make sure your Terraria path is correctly set in the{" "}
-                <strong className="text-foreground">Config</strong> page before
-                patching.
+                {t(
+                  "patcher.pathAlert",
+                  "Make sure your Terraria path is correctly set in the Config page before patching.",
+                )}
               </p>
             </CardContent>
           </Card>
@@ -229,7 +286,9 @@ export default function PatcherPage() {
           {activeTab === "qol" && (
             <div className="flex flex-col h-full animate-in slide-in-from-right-4 duration-300">
               <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold">Quality of Life</h3>
+                <h3 className="text-lg font-semibold">
+                  {t("patcher.tabs.qol")}
+                </h3>
                 <p className="text-sm text-muted-foreground">
                   Enhancements for standard gameplay flow.
                 </p>
@@ -337,7 +396,9 @@ export default function PatcherPage() {
           {activeTab === "buffs" && (
             <div className="flex flex-col h-full animate-in slide-in-from-right-4 duration-300">
               <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold">Persistent Buffs</h3>
+                <h3 className="text-lg font-semibold">
+                  {t("patcher.tabs.buffs")}
+                </h3>
                 <p className="text-sm text-muted-foreground">
                   Select buffs that will be permanently active for your
                   character.
@@ -349,7 +410,9 @@ export default function PatcherPage() {
                   <div className="relative flex-1">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Search available buffs..."
+                      placeholder={t("patcher.tabs.searchAvailable")}
+                      value={searchAvailable}
+                      onChange={(e) => setSearchAvailable(e.target.value)}
                       className="pl-9"
                     />
                   </div>
@@ -357,24 +420,32 @@ export default function PatcherPage() {
                   <div className="relative flex-1">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Search active buffs..."
+                      placeholder={t("patcher.tabs.searchActive")}
+                      value={searchActive}
+                      onChange={(e) => setSearchActive(e.target.value)}
                       className="pl-9"
                     />
                   </div>
                 </div>
 
                 {/* Dual Listbox Layout */}
-                <div className="flex flex-1 gap-4 h-full">
+                <div className="flex flex-1 gap-4 min-h-[200px]">
                   <div className="flex-1 border rounded-lg flex flex-col overflow-hidden">
                     <div className="bg-muted px-3 py-2 border-b text-xs font-medium text-muted-foreground tracking-wider uppercase">
-                      Available ({possibleBuffs.length})
+                      {t("patcher.tabs.available")} ({filteredAvailable.length})
                     </div>
-                    <ScrollArea className="flex-1">
+                    <ScrollArea className="flex-1 overflow-auto">
                       <div className="p-2 space-y-0.5">
-                        {possibleBuffs.map((buff, i) => (
+                        {filteredAvailable.map((buff) => (
                           <div
-                            key={i}
-                            className="text-sm px-2 py-1.5 rounded-md hover:bg-accent cursor-pointer">
+                            key={buff}
+                            onClick={() => toggleAvailable(buff)}
+                            className={cn(
+                              "text-sm px-2 py-1.5 rounded-md cursor-pointer select-none transition-colors",
+                              selectedAvailable.has(buff)
+                                ? "bg-primary text-primary-foreground"
+                                : "hover:bg-accent text-foreground",
+                            )}>
                             {buff}
                           </div>
                         ))}
@@ -384,34 +455,55 @@ export default function PatcherPage() {
 
                   {/* Transfer Buttons */}
                   <div className="flex flex-col justify-center gap-2 shrink-0">
-                    <Button variant="outline" size="icon" title="Add All">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      title="Add All"
+                      onClick={handleAddAll}>
                       <ChevronsRight className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="icon" title="Add Selected">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      title="Add Selected"
+                      onClick={handleAddSelected}
+                      disabled={selectedAvailable.size === 0}>
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="outline"
                       size="icon"
-                      title="Remove Selected">
+                      title="Remove Selected"
+                      onClick={handleRemoveSelected}
+                      disabled={selectedActive.size === 0}>
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="icon" title="Remove All">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      title="Remove All"
+                      onClick={handleRemoveAll}>
                       <ChevronsLeft className="h-4 w-4" />
                     </Button>
                   </div>
 
                   <div className="flex-1 border rounded-lg flex flex-col overflow-hidden">
                     <div className="bg-muted px-3 py-2 border-b text-xs font-medium text-primary tracking-wider uppercase flex justify-between">
-                      <span>Active</span>
+                      <span>{t("patcher.tabs.buffsActive")}</span>
                       <span>{activeBuffs.length} / 22</span>
                     </div>
-                    <ScrollArea className="flex-1">
+                    <ScrollArea className="flex-1 overflow-auto">
                       <div className="p-2 space-y-0.5">
-                        {activeBuffs.map((buff, i) => (
+                        {filteredActive.map((buff) => (
                           <div
-                            key={i}
-                            className="text-sm px-2 py-1.5 rounded-md hover:bg-destructive/10 hover:text-destructive cursor-pointer transition-colors">
+                            key={buff}
+                            onClick={() => toggleActive(buff)}
+                            className={cn(
+                              "text-sm px-2 py-1.5 rounded-md cursor-pointer select-none transition-colors",
+                              selectedActive.has(buff)
+                                ? "bg-destructive text-destructive-foreground"
+                                : "hover:bg-destructive/10 hover:text-destructive text-foreground",
+                            )}>
                             {buff}
                           </div>
                         ))}
@@ -426,7 +518,9 @@ export default function PatcherPage() {
           {activeTab === "healing" && (
             <div className="flex flex-col h-full animate-in slide-in-from-right-4 duration-300">
               <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold">Healing Rates</h3>
+                <h3 className="text-lg font-semibold">
+                  {t("patcher.tabs.healing")}
+                </h3>
                 <p className="text-sm text-muted-foreground">
                   Adjust the effectiveness of lifesteal items and armors.
                 </p>
@@ -474,7 +568,9 @@ export default function PatcherPage() {
           {activeTab === "spawning" && (
             <div className="flex flex-col h-full animate-in slide-in-from-right-4 duration-300">
               <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold">Spawning Tweaks</h3>
+                <h3 className="text-lg font-semibold">
+                  {t("patcher.tabs.spawning")}
+                </h3>
                 <p className="text-sm text-muted-foreground">
                   Modify the spawn rates of specific enemies.
                 </p>
@@ -482,7 +578,9 @@ export default function PatcherPage() {
               <div className="p-6 max-w-xl space-y-6">
                 <div className="space-y-4">
                   <div>
-                    <Label className="text-base">Voodoo Demon Spawn Rate</Label>
+                    <Label className="text-base">
+                      {t("patcher.tabs.voodooDemon")}
+                    </Label>
                     <p className="text-sm text-muted-foreground mt-1">
                       Controls how often a regular Demon is replaced by a Voodoo
                       Demon. For example, 50% means 1 out of 2 demons will be a

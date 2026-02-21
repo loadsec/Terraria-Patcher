@@ -1,17 +1,18 @@
 import { Wrench, Puzzle, Settings, ArrowRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function HomePage() {
+  const { t } = useTranslation();
+
   return (
     <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in duration-500">
       {/* Hero */}
       <div className="space-y-3">
         <h1 className="text-3xl font-bold tracking-tight">
-          Welcome to Terraria Patcher
+          {t("home.welcome")}
         </h1>
         <p className="text-muted-foreground text-lg leading-relaxed">
-          A powerful desktop tool for patching and customizing your Terraria
-          experience. Apply patches, manage plugins, and configure your setup —
-          all in one place.
+          {t("home.description")}
         </p>
       </div>
 
@@ -19,34 +20,28 @@ export default function HomePage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <FeatureCard
           icon={<Wrench className="h-5 w-5" />}
-          title="Patcher"
-          description="Apply and manage game patches with ease."
+          title={t("home.features.patcher.title")}
+          description={t("home.features.patcher.desc")}
         />
         <FeatureCard
           icon={<Puzzle className="h-5 w-5" />}
-          title="Plugins"
-          description="Browse, enable, and configure plugins."
+          title={t("home.features.plugins.title")}
+          description={t("home.features.plugins.desc")}
         />
         <FeatureCard
           icon={<Settings className="h-5 w-5" />}
-          title="Config"
-          description="Customize application settings and preferences."
+          title={t("home.features.config.title")}
+          description={t("home.features.config.desc")}
         />
       </div>
 
       {/* Quick Start */}
       <div className="rounded-xl border bg-card p-6 space-y-3">
-        <h2 className="text-lg font-semibold">Quick Start</h2>
+        <h2 className="text-lg font-semibold">{t("home.quickStart.title")}</h2>
         <div className="space-y-2 text-sm text-muted-foreground">
-          <Step
-            number={1}
-            text="Navigate to the Patcher page to apply your patches."
-          />
-          <Step
-            number={2}
-            text="Head to Plugins to enable your favorite mods."
-          />
-          <Step number={3} text="Adjust your preferences in the Config page." />
+          <Step number={1} text={t("home.quickStart.step1")} />
+          <Step number={2} text={t("home.quickStart.step2")} />
+          <Step number={3} text={t("home.quickStart.step3")} />
         </div>
       </div>
     </div>
@@ -62,6 +57,7 @@ function FeatureCard({
   title: string;
   description: string;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="group rounded-xl border bg-card p-5 space-y-3 transition-all hover:shadow-md hover:border-primary/20 hover:-translate-y-0.5">
       <div className="flex items-center gap-3">
@@ -72,7 +68,7 @@ function FeatureCard({
       </div>
       <p className="text-sm text-muted-foreground">{description}</p>
       <div className="flex items-center gap-1 text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-        <span>Learn more</span>
+        <span>{t("home.learnMore")}</span>
         <ArrowRight className="h-3 w-3" />
       </div>
     </div>

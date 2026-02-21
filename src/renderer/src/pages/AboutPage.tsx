@@ -1,6 +1,9 @@
 import { Info, Heart, Github, Code2, MonitorSmartphone } from "lucide-react";
+import { useTranslation, Trans } from "react-i18next";
 
 export default function AboutPage() {
+  const { t } = useTranslation();
+
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500 pb-8">
       <div className="flex items-center gap-3">
@@ -8,10 +11,10 @@ export default function AboutPage() {
           <Info className="h-5 w-5" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">About</h1>
-          <p className="text-sm text-muted-foreground">
-            The story behind Terraria Patcher
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {t("about.title")}
+          </h1>
+          <p className="text-sm text-muted-foreground">{t("about.subtitle")}</p>
         </div>
       </div>
 
@@ -22,18 +25,20 @@ export default function AboutPage() {
             <div className="flex p-2 rounded-md bg-rose-500/10 text-rose-500">
               <Heart className="h-5 w-5" />
             </div>
-            <h2 className="font-semibold text-lg">Inspiration & Credits</h2>
+            <h2 className="font-semibold text-lg">
+              {t("about.inspiration.title")}
+            </h2>
           </div>
           <div className="flex-1 text-sm text-muted-foreground space-y-4 leading-relaxed mt-2 text-justify text-pretty">
             <p>
-              This project is heavily inspired by and based on an existing
-              project also called <strong>Terraria Patcher</strong>, created by
-              the wonderful developer Doug Benham.
+              <Trans i18nKey="about.inspiration.p1">
+                This project is heavily inspired by and based on an existing
+                project also called <strong>Terraria Patcher</strong>, created
+                by the wonderful developer Doug Benham.
+              </Trans>
             </p>
             <p>
-              We want to give a massive thank you to Doug for his amazing work
-              laying the foundation for Terraria patching. His original tool is
-              built 100% for Windows. You can find his original repository here:
+              {t("about.inspiration.p2")}
               <br />
               <a
                 href="https://github.com/dougbenham/TerrariaPatcher"
@@ -43,10 +48,7 @@ export default function AboutPage() {
                 <Github className="h-4 w-4" /> dougbenham/TerrariaPatcher
               </a>
             </p>
-            <p>
-              Our project aims to build upon his excellent foundation by
-              introducing a modern interface and new capabilities.
-            </p>
+            <p>{t("about.inspiration.p3")}</p>
           </div>
         </div>
 
@@ -56,23 +58,26 @@ export default function AboutPage() {
             <div className="flex p-2 rounded-md bg-blue-500/10 text-blue-500">
               <MonitorSmartphone className="h-5 w-5" />
             </div>
-            <h2 className="font-semibold text-lg">Our Vision</h2>
+            <h2 className="font-semibold text-lg">{t("about.vision.title")}</h2>
           </div>
           <div className="flex-1 text-sm text-muted-foreground space-y-4 leading-relaxed mt-2 text-justify text-pretty">
             <p>
-              While the original Patcher is Windows-only, our goal is to bring
-              this tool to everyone. Our platform is designed from the ground up
-              to run on <strong>Windows, Linux, and macOS</strong>.
+              <Trans i18nKey="about.vision.p1">
+                While the original Patcher is Windows-only, our goal is to bring
+                this tool to everyone. Our platform is designed from the ground
+                up to run on <strong>Windows, Linux, and macOS</strong>.
+              </Trans>
             </p>
             <p className="p-3 rounded-lg bg-muted text-muted-foreground border">
-              <em>Note:</em> Although the application itself runs across all
-              operating systems seamlessly, the actual Terraria patching
-              functionality for Linux and macOS is still under development and
-              not yet fully supported.
+              <Trans i18nKey="about.vision.note">
+                <em>Note:</em> Although the application itself runs across all
+                operating systems seamlessly, the actual Terraria patching
+                functionality for Linux and macOS is still under development and
+                not yet fully supported.
+              </Trans>
             </p>
             <p>
-              You can track our progress and contribute to our open-source
-              repository here:
+              {t("about.vision.p3")}
               <br />
               <a
                 href="https://github.com/loadsec/Terraria-Patcher"
@@ -91,11 +96,10 @@ export default function AboutPage() {
             <div className="flex p-2 rounded-md bg-emerald-500/10 text-emerald-500">
               <Code2 className="h-5 w-5" />
             </div>
-            <h2 className="font-semibold text-lg">Technology Stack</h2>
+            <h2 className="font-semibold text-lg">{t("about.stack.title")}</h2>
           </div>
           <p className="text-sm text-muted-foreground mb-6">
-            To achieve our cross-platform goals with a beautiful, responsive
-            user interface, we utilized the following modern web technologies:
+            {t("about.stack.desc")}
           </p>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <a
@@ -107,7 +111,7 @@ export default function AboutPage() {
                 Electron
               </span>
               <span className="text-xs text-muted-foreground mt-1">
-                Desktop Framework
+                {t("about.stack.electron")}
               </span>
             </a>
             <a
@@ -119,7 +123,7 @@ export default function AboutPage() {
                 React
               </span>
               <span className="text-xs text-muted-foreground mt-1">
-                UI Library
+                {t("about.stack.react")}
               </span>
             </a>
             <a
@@ -131,7 +135,7 @@ export default function AboutPage() {
                 Vite
               </span>
               <span className="text-xs text-muted-foreground mt-1">
-                Build Tool
+                {t("about.stack.vite")}
               </span>
             </a>
             <a
@@ -143,7 +147,7 @@ export default function AboutPage() {
                 shadcn/ui
               </span>
               <span className="text-xs text-muted-foreground mt-1">
-                Component System
+                {t("about.stack.shadcn")}
               </span>
             </a>
             <a
@@ -155,7 +159,7 @@ export default function AboutPage() {
                 MagicUI
               </span>
               <span className="text-xs text-muted-foreground mt-1">
-                Animations Library
+                {t("about.stack.magicui")}
               </span>
             </a>
             <a
@@ -167,7 +171,7 @@ export default function AboutPage() {
                 Animate UI
               </span>
               <span className="text-xs text-muted-foreground mt-1">
-                Motion Components
+                {t("about.stack.animateui")}
               </span>
             </a>
           </div>

@@ -1,7 +1,14 @@
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider, useTheme } from "@/components/theme-provider";
-import { Moon, Sun } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Moon, Sun, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   SidebarProvider,
   SidebarInset,
@@ -54,7 +61,35 @@ function ThemeToggleButton() {
   );
 }
 
+function LanguageToggleButton() {
+  const { i18n, t } = useTranslation();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" title={t("header.toggleLanguage")}>
+          <Languages className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem
+          className={i18n.resolvedLanguage === "en" ? "bg-accent" : ""}
+          onClick={() => i18n.changeLanguage("en")}>
+          English
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className={i18n.resolvedLanguage === "pt" ? "bg-accent" : ""}
+          onClick={() => i18n.changeLanguage("pt")}>
+          Português
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function App(): React.ReactElement {
+  const { t } = useTranslation();
+
   return (
     <ThemeProvider defaultTheme="dark" storageKey="terraria-patcher-theme">
       <HashRouter>
@@ -66,8 +101,9 @@ function App(): React.ReactElement {
                 <SidebarTrigger className="-ml-1" />
                 <Separator orientation="vertical" className="mr-2 !h-4" />
                 <span className="text-sm text-muted-foreground mr-auto">
-                  Terraria Patcher
+                  {t("sidebar.title")}
                 </span>
+                <LanguageToggleButton />
                 <ThemeToggleButton />
               </header>
               <main className="flex-1 p-6 overflow-auto">

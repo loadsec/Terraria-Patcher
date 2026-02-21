@@ -1,0 +1,181 @@
+{
+  "sidebar": {
+    "title": "Terraria Patcher",
+    "home": "Home",
+    "patcher": "Patcher",
+    "plugins": "Plugins",
+    "config": "Config",
+    "tools": "Tools",
+    "system": "System",
+    "changelog": "Changelog",
+    "about": "About"
+  },
+  "header": {
+    "toggleTheme": "Toggle Theme",
+    "toggleLanguage": "Change Language"
+  },
+  "patcher": {
+    "title": "Game Modifications",
+    "description": "Configure standalone patches to apply directly to the Terraria executable.",
+    "patchBtn": "Patch & Save",
+    "tabs": {
+      "qol": "Quality of Life",
+      "combat": "Combat & Debuffs",
+      "cheats": "Overpowered / Cheats",
+      "buffs": "Persistent Buffs",
+      "buffsActive": "Active",
+      "available": "Available",
+      "searchAvailable": "Search available buffs...",
+      "searchActive": "Search active buffs...",
+      "healing": "Healing Rates",
+      "spawning": "Spawning Tweaks",
+      "voodooDemon": "Voodoo Demon Spawn Rate",
+      "loot": "Loot & Bags"
+    },
+    "features": {
+      "qol": {
+        "time": {
+          "label": "Display Time",
+          "desc": "Shows the current in-game time accurately without needing a watch."
+        },
+        "social": {
+          "label": "Functional Social Slots",
+          "desc": "Accessories placed in social slots will grant their stats and effects."
+        },
+        "range": {
+          "label": "Max Crafting Range",
+          "desc": "Access all nearby crafting stations without having to stand right next to them."
+        },
+        "pylon": {
+          "label": "Pylon Everywhere (No Restrictions)",
+          "desc": "Use pylons regardless of NPC happiness or biome requirements."
+        },
+        "angler": {
+          "label": "Remove Angler Quest Per Day Limit",
+          "desc": "Complete as many fishing quests as you want per in-game day."
+        }
+      },
+      "combat": {
+        "rod": {
+          "label": "Remove Rod of Discord Debuff",
+          "desc": "Teleport infinitely without taking damage from Chaos State."
+        },
+        "potion": {
+          "label": "Remove Potion Sickness Debuff",
+          "desc": "Consume healing potions anytime without having to wait for cooldowns."
+        },
+        "mana": {
+          "label": "Remove Mana Costs",
+          "desc": "Magic weapons and tools will not consume your mana."
+        },
+        "drowning": {
+          "label": "Remove Drowning",
+          "desc": "Breathe underwater infinitely without taking damage."
+        }
+      },
+      "cheats": {
+        "ohk": {
+          "label": "One Hit Kill",
+          "desc": "Instantly kill any enemy or boss with a single attack."
+        },
+        "ammo": {
+          "label": "Infinite Ammo (by Ryan S)",
+          "desc": "Ranged weapons will never consume ammunition."
+        },
+        "wings": {
+          "label": "Permanent Stardust Wings + Infinite Up Time",
+          "desc": "Grants infinite flight time and optimal wing performance permanently."
+        },
+        "cloud": {
+          "label": "Infinite Cloud Jumps",
+          "desc": "Jump infinitely in mid-air continuously."
+        }
+      }
+    },
+    "pathAlert": "Make sure your Terraria path is correctly set in the Config page before patching."
+  },
+  "home": {
+    "welcome": "Welcome to Terraria Patcher",
+    "description": "A powerful desktop tool for patching and customizing your Terraria experience. Apply patches, manage plugins, and configure your setup — all in one place.",
+    "learnMore": "Learn more",
+    "features": {
+      "patcher": {
+        "title": "Patcher",
+        "desc": "Apply and manage game patches with ease."
+      },
+      "plugins": {
+        "title": "Plugins",
+        "desc": "Browse, enable, and configure plugins."
+      },
+      "config": {
+        "title": "Config",
+        "desc": "Customize application settings and preferences."
+      }
+    },
+    "quickStart": {
+      "title": "Quick Start",
+      "step1": "Navigate to the Patcher page to apply your patches.",
+      "step2": "Head to Plugins to enable your favorite mods.",
+      "step3": "Adjust your preferences in the Config page."
+    }
+  },
+  "about": {
+    "title": "About",
+    "subtitle": "The story behind Terraria Patcher",
+    "inspiration": {
+      "title": "Inspiration & Credits",
+      "p1": "This project is heavily inspired by and based on an existing project also called <1>Terraria Patcher</1>, created by the wonderful developer Doug Benham.",
+      "p2": "We want to give a massive thank you to Doug for his amazing work laying the foundation for Terraria patching. His original tool is built 100% for Windows. You can find his original repository here:",
+      "p3": "Our project aims to build upon his excellent foundation by introducing a modern interface and new capabilities."
+    },
+    "vision": {
+      "title": "Our Vision",
+      "p1": "While the original Patcher is Windows-only, our goal is to bring this tool to everyone. Our platform is designed from the ground up to run on <1>Windows, Linux, and macOS</1>.",
+      "note": "<0>Note:</0> Although the application itself runs across all operating systems seamlessly, the actual Terraria patching functionality for Linux and macOS is still under development and not yet fully supported.",
+      "p3": "You can follow our progress and help build the project through open source at:"
+    },
+    "stack": {
+      "title": "Technology Stack",
+      "desc": "To achieve our cross-platform goals with a beautiful, responsive user interface, we utilized the following modern web technologies:",
+      "electron": "Desktop Framework",
+      "react": "UI Library",
+      "vite": "Build Tool",
+      "shadcn": "Component System",
+      "magicui": "Animations Library",
+      "animateui": "Motion Components"
+    }
+  },
+  "changelog": {
+    "title": "Changelog",
+    "subtitle": "Recent updates and patch notes",
+    "emptyState": {
+      "title": "No Recent Changes",
+      "desc": "The changelog will display the history of versions and updates made to the application."
+    }
+  },
+  "plugins": {
+    "title": "Plugins",
+    "subtitle": "Browse, enable, and configure plugins",
+    "emptyState": {
+      "title": "No plugins loaded",
+      "desc": "This section will list all available plugins, allowing you to enable, disable, and configure each one individually."
+    }
+  },
+  "config": {
+    "title": "Config",
+    "subtitle": "Application settings and preferences",
+    "gameDirectory": {
+      "title": "Game Directory",
+      "desc": "Configure the installation path for Terraria.",
+      "label": "Terraria Executable Location",
+      "browse": "Browse...",
+      "help": "The patcher needs to locate your main game executable to apply modifications."
+    },
+    "appPreferences": {
+      "title": "App Preferences",
+      "desc": "General settings for the application.",
+      "pluginLabel": "Enable Plugin Support",
+      "pluginDesc": "Load third-party patches from the <1>\\Plugins\\*.cs</1> directory."
+    }
+  }
+}
