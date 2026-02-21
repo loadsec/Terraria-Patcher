@@ -132,7 +132,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-4">
-        <p className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
+        <p className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden mt-4 text-center">
           v1.0.0
         </p>
       </SidebarFooter>
