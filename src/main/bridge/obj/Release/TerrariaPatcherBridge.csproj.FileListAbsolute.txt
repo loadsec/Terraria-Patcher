@@ -1,0 +1,15 @@
+C:\Users\Louan\Documents\GitHub\Terraria-Patcher\src\main\bridge\obj\Release\TerrariaPatcherBridge.csproj.AssemblyReference.cache
+C:\Users\Louan\Documents\GitHub\Terraria-Patcher\src\main\bridge\obj\Release\TerrariaPatcherBridge.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Louan\Documents\GitHub\Terraria-Patcher\src\main\bridge\obj\Release\TerrariaPatcherBridge.AssemblyInfoInputs.cache
+C:\Users\Louan\Documents\GitHub\Terraria-Patcher\src\main\bridge\obj\Release\TerrariaPatcherBridge.AssemblyInfo.cs
+C:\Users\Louan\Documents\GitHub\Terraria-Patcher\src\main\bridge\obj\Release\TerrariaPatcherBridge.csproj.CoreCompileInputs.cache
+C:\Users\Louan\Documents\GitHub\Terraria-Patcher\src\main\bridge\obj\Release\TerrariaPatcherBridge.sourcelink.json
+C:\Users\Louan\Documents\GitHub\Terraria-Patcher\src\main\bridge\bin\Release\TerrariaPatcherBridge.dll
+C:\Users\Louan\Documents\GitHub\Terraria-Patcher\src\main\bridge\bin\Release\TerrariaPatcherBridge.pdb
+C:\Users\Louan\Documents\GitHub\Terraria-Patcher\src\main\bridge\bin\Release\Mono.Cecil.dll
+C:\Users\Louan\Documents\GitHub\Terraria-Patcher\src\main\bridge\bin\Release\Mono.Cecil.Rocks.dll
+C:\Users\Louan\Documents\GitHub\Terraria-Patcher\src\main\bridge\bin\Release\Mono.Cecil.pdb
+C:\Users\Louan\Documents\GitHub\Terraria-Patcher\src\main\bridge\bin\Release\Mono.Cecil.Rocks.pdb
+C:\Users\Louan\Documents\GitHub\Terraria-Patcher\src\main\bridge\obj\Release\Terraria.E6E9E802.Up2Date
+C:\Users\Louan\Documents\GitHub\Terraria-Patcher\src\main\bridge\obj\Release\TerrariaPatcherBridge.dll
+C:\Users\Louan\Documents\GitHub\Terraria-Patcher\src\main\bridge\obj\Release\TerrariaPatcherBridge.pdb

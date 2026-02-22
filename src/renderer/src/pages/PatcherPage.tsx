@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Wrench,
@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronsLeft,
   Puzzle,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 type Tab =
@@ -33,45 +42,438 @@ type Tab =
   | "plugins";
 
 const ALL_POSSIBLE_BUFFS = [
+  "[1] Obsidian Skin",
+  "[2] Regeneration",
+  "[3] Swiftness",
+  "[4] Gills",
+  "[5] Ironskin",
+  "[6] Mana Regeneration",
+  "[7] Magic Power",
+  "[8] Featherfall",
+  "[9] Spelunker",
+  "[10] Invisibility",
+  "[11] Shine",
+  "[12] Night Owl",
+  "[13] Battle",
+  "[14] Thorns",
+  "[15] Water Walking",
+  "[16] Archery",
+  "[17] Hunter",
+  "[18] Gravitation",
+  "[19] Shadow Orb",
+  "[20] Poisoned",
+  "[21] Potion Sickness",
+  "[22] Darkness",
+  "[23] Cursed",
+  "[24] On Fire!",
+  "[25] Tipsy",
+  "[26] Well Fed",
+  "[27] Fairy (Blue)",
+  "[28] Werewolf",
+  "[29] Clairvoyance",
+  "[30] Bleeding",
+  "[31] Confused",
+  "[32] Slow",
+  "[33] Weak",
+  "[34] Merfolk",
+  "[35] Silenced",
+  "[36] Broken Armor",
+  "[37] Horrified",
+  "[38] The Tongue",
+  "[39] Cursed Inferno",
+  "[40] Pet Bunny",
+  "[41] Baby Penguin",
+  "[42] Pet Turtle",
+  "[43] Paladin's Shield",
+  "[44] Frostburn",
+  "[45] Baby Eater",
+  "[46] Chilled",
+  "[47] Frozen",
+  "[48] Honey",
+  "[49] Pygmies",
+  "[50] Baby Skeletron Head",
+  "[51] Baby Hornet",
+  "[52] Tiki Spirit",
+  "[53] Pet Lizard",
+  "[54] Pet Parrot",
+  "[55] Baby Truffle",
+  "[56] Pet Sapling",
+  "[57] Wisp",
+  "[58] Rapid Healing",
+  "[59] Holy Protection",
+  "[60] Leaf Crystal",
+  "[61] Baby Dinosaur",
+  "[62] Ice Barrier",
+  "[63] Panic!",
+  "[64] Baby Slime",
+  "[65] Eyeball Spring",
+  "[66] Baby Snowman",
+  "[67] Burning",
+  "[68] Suffocation",
+  "[69] Ichor",
+  "[70] Acid Venom",
+  "[71] Weapon Imbue: Acid Venom",
+  "[72] Midas",
+  "[73] Weapon Imbue: Cursed Flames",
+  "[74] Weapon Imbue: Fire",
+  "[75] Weapon Imbue: Gold",
+  "[76] Weapon Imbue: Ichor",
+  "[77] Weapon Imbue: Nanites",
+  "[78] Weapon Imbue: Confetti",
+  "[79] Weapon Imbue: Poison",
+  "[80] Blackout",
+  "[81] Pet Spider",
+  "[82] Squashling",
+  "[83] Ravens",
+  "[84] Black Cat",
+  "[85] Cursed Sapling",
+  "[86] Water Candle",
+  "[87] Cozy Fire",
+  "[88] Chaos State",
+  "[89] Heart Lamp",
+  "[90] Rudolph",
+  "[91] Puppy",
+  "[92] Baby Grinch",
+  "[93] Ammo Box",
+  "[94] Mana Sickness",
+  "[95] Beetle Endurance (15%)",
+  "[96] Beetle Endurance (30%)",
+  "[97] Beetle Endurance (45%)",
+  "[98] Beetle Might (10%)",
+  "[99] Beetle Might (20%)",
+  "[100] Beetle Might (30%)",
+  "[101] Fairy (Red)",
+  "[102] Fairy (Green)",
+  "[103] Wet",
+  "[104] Mining",
+  "[105] Heartreach",
+  "[106] Calm",
+  "[107] Builder",
+  "[108] Titan",
+  "[109] Flipper",
+  "[110] Summoning",
+  "[111] Dangersense",
+  "[112] Ammo Reservation",
+  "[113] Lifeforce",
+  "[114] Endurance",
+  "[115] Rage",
+  "[116] Inferno",
+  "[117] Wrath",
+  "[118] Minecart (Left)",
+  "[119] Lovestruck",
+  "[120] Stinky",
+  "[121] Fishing",
+  "[122] Sonar",
+  "[123] Crate",
+  "[124] Warmth",
+  "[125] Hornet",
+  "[126] Imp",
+  "[127] Zephyr Fish",
+  "[128] Bunny Mount",
+  "[129] Pigron Mount",
+  "[130] Slime Mount",
+  "[131] Turtle Mount",
+  "[132] Bee Mount",
+  "[133] Spider",
+  "[134] Twins",
+  "[135] Pirate",
+  "[136] Mini Minotaur",
+  "[137] Slime",
+  "[138] Minecart (Right)",
+  "[139] Sharknado",
+  "[140] UFO",
+  "[141] UFO Mount",
+  "[142] Drill Mount",
+  "[143] Scutlix Mount",
+  "[144] Electrified",
+  "[145] Moon Bite",
+  "[146] Happy!",
+  "[147] Banner",
+  "[148] Feral Bite",
+  "[149] Webbed",
+  "[150] Bewitched",
+  "[151] Life Drain",
+  "[152] Magic Lantern",
+  "[153] Shadowflame",
+  "[154] Baby Face Monster",
+  "[155] Crimson Heart",
+  "[156] Stoned",
+  "[157] Peace Candle",
+  "[158] Star in a Bottle",
+  "[159] Sharpened",
+  "[160] Dazed",
+  "[161] Deadly Sphere",
+  "[162] Unicorn Mount",
+  "[163] Obstructed",
+  "[164] Distorted",
+  "[165] Dryad's Blessing",
+  "[166] Minecart (Mechanical (Right))",
+  "[167] Minecart (Mechanical (Left))",
+  "[168] Cute Fishron Mount",
+  "[169] Penetrated",
+  "[170] Solar Blaze (1 stack)",
+  "[171] Solar Blaze (2 stacks)",
+  "[172] Solar Blaze (3 stacks)",
+  "[173] Life Nebula (1 stack)",
+  "[174] Life Nebula (2 stacks)",
+  "[175] Life Nebula (3 stacks)",
+  "[176] Mana Nebula (1 stack)",
+  "[177] Mana Nebula (2 stacks)",
+  "[178] Mana Nebula (3 stacks)",
+  "[179] Damage Nebula (1 stack)",
+  "[180] Damage Nebula (2 stacks)",
+  "[181] Damage Nebula (3 stacks)",
+  "[182] Stardust Cell (Stardust Minion)",
+  "[183] Celled",
+  "[184] Minecart (Wooden (Right))",
+  "[185] Minecart (Wooden (Left))",
+  "[186] Dryad's Bane",
+  "[187] Stardust Guardian",
+  "[188] Stardust Dragon",
+  "[189] Daybroken",
+  "[190] Suspicious Looking Eye",
+  "[191] Companion Cube",
+  "[192] Sugar Rush",
+  "[193] Basilisk Mount",
+  "[194] Mighty Wind",
+  "[195] Withered Armor",
+  "[196] Withered Weapon",
+  "[197] Oozed",
+  "[198] Striking Moment",
+  "[199] Creative Shock",
+  "[200] Propeller Gato",
+  "[201] Flickerwick",
+  "[202] Hoardagron",
+  "[203] Betsy's Curse",
+  "[204] Oiled",
+  "[205] Ballista Panic!",
+  "[206] Plenty Satisfied",
+  "[207] Exquisitely Stuffed",
+  "[208] Minecart (Desert (Right))",
+  "[209] Minecart (Desert (Left))",
+  "[210] Minecart (Minecarp (Right))",
+  "[211] Minecart (Minecarp (Left))",
+  "[212] Golf Cart",
+  "[213] Sanguine Bat",
+  "[214] Vampire Frog",
+  "[215] The Bast Defense",
+  "[216] Baby Finch",
+  "[217] Estee",
+  "[218] Sugar Glider",
+  "[219] Shark Pup",
+  "[220] Minecart (Bee (Right))",
+  "[221] Minecart (Bee (Left))",
+  "[222] Minecart (Ladybug (Right))",
+  "[223] Minecart (Ladybug (Left))",
+  "[224] Minecart (Pigron (Right))",
+  "[225] Minecart (Pigron (Left))",
+  "[226] Minecart (Sunflower (Right))",
+  "[227] Minecart (Sunflower (Left))",
+  "[228] Minecart (Demonic Hellcart (Right))",
+  "[229] Minecart (Demonic Hellcart (Left))",
+  "[230] Witch's Broom",
+  "[231] Minecart (Shroom (Right))",
+  "[232] Minecart (Shroom (Left))",
+  "[233] Minecart (Amethyst (Right))",
+  "[234] Minecart (Amethyst (Left))",
+  "[235] Minecart (Topaz (Right))",
+  "[236] Minecart (Topaz (Left))",
+  "[237] Minecart (Sapphire (Right))",
+  "[238] Minecart (Sapphire (Left))",
+  "[239] Minecart (Emerald (Right))",
+  "[240] Minecart (Emerald (Left))",
+  "[241] Minecart (Ruby (Right))",
+  "[242] Minecart (Ruby (Left))",
+  "[243] Minecart (Diamond (Right))",
+  "[244] Minecart (Diamond (Left))",
+  "[245] Minecart (Amber (Right))",
+  "[246] Minecart (Amber (Left))",
+  "[247] Minecart (Beetle (Right))",
+  "[248] Minecart (Beetle (Left))",
+  "[249] Minecart (Meowmere (Right))",
+  "[250] Minecart (Meowmere (Left))",
+  "[251] Minecart (Party (Right))",
+  "[252] Minecart (Party (Left))",
+  "[253] Minecart (The Dutchman (Right))",
+  "[254] Minecart (The Dutchman (Left))",
+  "[255] Minecart (Steampunk (Right))",
+  "[256] Minecart (Steampunk (Left))",
+  "[257] Lucky",
+  "[258] Lil' Harpy",
+  "[259] Fennec Fox",
+  "[260] Glittery Butterfly",
+  "[261] Baby Imp",
+  "[262] Baby Red Panda",
+  "[263] Desert Tiger",
+  "[264] Plantero",
+  "[265] Flamingo",
+  "[266] Dynamite Kitten",
+  "[267] Baby Werewolf",
+  "[268] Shadow Mimic",
+  "[269] Minecart (Coffin (Right))",
+  "[270] Minecart (Coffin (Left))",
+  "[271] Enchanted Daggers",
+  "[272] Digging Molecart (Left)",
+  "[273] Digging Molecart (Right)",
+  "[274] Volt Bunny",
+  "[275] Painted Horse Mount",
+  "[276] Majestic Horse Mount",
+  "[277] Dark Horse Mount",
+  "[278] Pogo Stick Mount",
+  "[279] Pirate Ship Mount",
+  "[280] Tree Mount",
+  "[281] Santank Mount",
+  "[282] Goat Mount",
+  "[283] Book Mount",
+  "[284] Slime Prince",
+  "[285] Suspicious Eye",
+  "[286] Eater of Worms",
+  "[287] Spider Brain",
+  "[288] Skeletron Jr.",
+  "[289] Honey Bee",
+  "[290] Destroyer-Lite",
+  "[291] Rez and Spaz",
+  "[292] Mini Prime",
+  "[293] Plantera Seedling",
+  "[294] Toy Golem",
+  "[295] Tiny Fishron",
+  "[296] Phantasmal Dragon",
+  "[297] Moonling",
+  "[298] Fairy Princess",
+  "[299] Jack 'O Lantern",
+  "[300] Everscream Sapling",
+  "[301] Ice Queen",
+  "[302] Alien Skater",
+  "[303] Baby Ogre",
+  "[304] Itsy Betsy",
+  "[305] Lava Shark Mount",
+  "[306] Titanium Barrier",
   "[307]",
+  "[308] Durendal's Blessing",
   "[309]",
   "[310]",
+  "[311] Harvest Time",
+  "[312] A Nice Buff",
   "[313]",
+  "[314] Jungle's Fury",
   "[315]",
   "[316]",
+  "[317] Slime Princess",
+  "[318] Winged Slime Mount",
   "[319]",
+  "[320] Sparkle Slime",
+  "[321] Cerebral Mindtrick",
+  "[322] Terraprisma",
+  "[323] Hellfire",
+  "[324] Frostbite",
+  "[325] Flinx",
   "[326]",
-  "[337]",
-  "[340]",
-  "[312] A Nice Buff",
+  "[327] Bernie",
+  "[328] Glommer",
+  "[329] Tiny Deerclops",
+  "[330] Pig",
+  "[331] Chester",
+  "[332] Peckish",
+  "[333] Hungry",
+  "[334] Starving",
   "[335] Abigail",
-  "[70] Acid Venom",
-  "[302] Alien Skater",
-  "[93] Ammo Box",
-  "[112] Ammo Reservation",
-  "[16] Archery",
-  "[61] Baby Dinosaur",
-  "[45] Baby Eater",
-  "[154] Baby Face Monster",
-  "[216] Baby Finch",
-  "[92] Baby Grinch",
-  "[51] Baby Hornet",
-  "[261] Baby Imp",
-  "[303] Baby Ogre",
+  "[336] Hearty Meal",
+  "[337]",
+  "[338] Fart Kart",
+  "[339] Fart Kart",
+  "[340]",
+  "[341] Slime Royals",
+  "[342] Blessing of the Moon",
+  "[343] Biome Sight",
+  "[344] Blood Butchered",
+  "[345] Junimo",
+  "[346] Terra Fart Kart",
+  "[347] Terra Fart Kart",
+  "[348] Strategist",
+  "[349] Blue Chicken",
+  "[350] Shadow Candle",
+  "[351] Spiffo",
+  "[352] Caveling Gardener",
+  "[353] Shimmering",
+  "[354] The Dirtiest Block",
 ];
 
-const INITIAL_ACTIVE_BUFFS = ["[147] Banner", "[87] Cozy Fire", "[257] Lucky"];
+interface PatchOptionsState {
+  time: boolean;
+  social: boolean;
+  range: boolean;
+  pylon: boolean;
+  angler: boolean;
+  rod: boolean;
+  potion: boolean;
+  mana: boolean;
+  drowning: boolean;
+  ohk: boolean;
+  ammo: boolean;
+  wings: boolean;
+  cloud: boolean;
+  bossBagsLoot: boolean;
+  vampiricHealing: number;
+  spectreHealing: number;
+  spawnRateVoodoo: number;
+  activeBuffs: string[];
+}
+
+const DEFAULT_OPTIONS: PatchOptionsState = {
+  time: true,
+  social: false,
+  range: false,
+  pylon: true,
+  angler: false,
+  rod: false,
+  potion: false,
+  mana: true,
+  drowning: false,
+  ohk: false,
+  ammo: true,
+  wings: false,
+  cloud: false,
+  bossBagsLoot: true,
+  vampiricHealing: 7.5,
+  spectreHealing: 20.0,
+  spawnRateVoodoo: 15,
+  activeBuffs: ["[147] Banner", "[87] Cozy Fire", "[257] Lucky"],
+};
 
 export default function PatcherPage() {
   const [activeTab, setActiveTab] = useState<Tab>("qol");
   const { t } = useTranslation();
 
-  const [availableBuffs, setAvailableBuffs] = useState<string[]>(
-    ALL_POSSIBLE_BUFFS.filter((b) => !INITIAL_ACTIVE_BUFFS.includes(b)),
-  );
-  const [activeBuffs, setActiveBuffs] =
-    useState<string[]>(INITIAL_ACTIVE_BUFFS);
+  // Main patch options state
+  const [options, setOptions] = useState<PatchOptionsState>(DEFAULT_OPTIONS);
+  const [isPatching, setIsPatching] = useState(false);
 
+  // workflow state for patching dialog
+  const [patchStage, setPatchStage] = useState<
+    | "idle"
+    | "checking"
+    | "restorePrompt"
+    | "backupPrompt"
+    | "patching"
+    | "done"
+    | "error"
+  >("idle");
+  const [patchError, setPatchError] = useState<string | null>(null);
+
+  // information about existing backup (used in restorePrompt warning)
+  const [backupInfo, setBackupInfo] = useState<{
+    hasBackup: boolean;
+    exeVersion: string | null;
+    bakVersion: string | null;
+  } | null>(null);
+
+  const [patchMessage, setPatchMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+
+  // Buff selection state (derived from options.activeBuffs)
+  const [availableBuffs, setAvailableBuffs] = useState<string[]>([]);
   const [selectedAvailable, setSelectedAvailable] = useState<Set<string>>(
     new Set(),
   );
@@ -79,6 +481,199 @@ export default function PatcherPage() {
   const [searchAvailable, setSearchAvailable] = useState("");
   const [searchActive, setSearchActive] = useState("");
 
+  // Load config from store
+  useEffect(() => {
+    const loadOptions = async () => {
+      try {
+        const stored = (await window.api.config.get(
+          "patchOptions",
+        )) as PatchOptionsState | null;
+        if (stored) {
+          setOptions({ ...DEFAULT_OPTIONS, ...stored });
+          const active = stored.activeBuffs || DEFAULT_OPTIONS.activeBuffs;
+          setAvailableBuffs(
+            ALL_POSSIBLE_BUFFS.filter((b) => !active.includes(b)),
+          );
+        } else {
+          setAvailableBuffs(
+            ALL_POSSIBLE_BUFFS.filter(
+              (b) => !DEFAULT_OPTIONS.activeBuffs.includes(b),
+            ),
+          );
+        }
+      } catch (err) {
+        console.error("Failed to load patch options:", err);
+        setAvailableBuffs(
+          ALL_POSSIBLE_BUFFS.filter(
+            (b) => !DEFAULT_OPTIONS.activeBuffs.includes(b),
+          ),
+        );
+      }
+    };
+    loadOptions();
+  }, []);
+
+  // Persist options to store whenever they change
+  const persistOptions = useCallback(async (newOptions: PatchOptionsState) => {
+    try {
+      await window.api.config.set("patchOptions", newOptions);
+    } catch (err) {
+      console.error("Failed to persist options:", err);
+    }
+  }, []);
+
+  // Helper to update a single boolean option
+  const setOption = useCallback(
+    (key: keyof PatchOptionsState, value: boolean | number | string[]) => {
+      setOptions((prev) => {
+        const updated = { ...prev, [key]: value };
+        persistOptions(updated);
+        return updated;
+      });
+    },
+    [persistOptions],
+  );
+
+  // Extract buff IDs from strings like "[147] Banner" -> 147
+  const extractBuffIds = (buffStrings: string[]): number[] => {
+    return buffStrings
+      .map((s) => {
+        const match = s.match(/^\[(\d+)\]/);
+        return match ? parseInt(match[1], 10) : null;
+      })
+      .filter((id): id is number => id !== null);
+  };
+
+  // Patch handler
+  const handlePatch = async () => {
+    setPatchStage("checking");
+    setPatchMessage(null);
+    setPatchError(null);
+
+    try {
+      const terrariaPath = (await window.api.config.get(
+        "terrariaPath",
+      )) as string;
+      if (!terrariaPath) {
+        setPatchStage("error");
+        setPatchError(
+          t(
+            "patcher.errors.noPath",
+            "No Terraria path configured. Go to Config to set it.",
+          ),
+        );
+        return;
+      }
+
+      // Check for backup
+      const checkResult = await window.api.patcher.checkBackup(terrariaPath);
+      setBackupInfo(checkResult);
+
+      if (checkResult.hasBackup) {
+        setPatchStage("restorePrompt");
+      } else {
+        setPatchStage("backupPrompt");
+      }
+    } catch (err) {
+      setPatchStage("error");
+      setPatchError(String(err));
+    }
+  };
+
+  const handleRestoreBackup = async (restore: boolean) => {
+    try {
+      if (restore) {
+        setPatchStage("checking"); // Show checking while restoring
+        const terrariaPath = (await window.api.config.get(
+          "terrariaPath",
+        )) as string;
+        const result = await window.api.patcher.restoreBackup(terrariaPath);
+        if (!result.success) {
+          setPatchStage("error");
+          setPatchError(
+            result.key ? t(result.key, result.args) : "Restore failed",
+          );
+          return;
+        }
+      }
+      setPatchStage("backupPrompt");
+    } catch (err) {
+      setPatchStage("error");
+      setPatchError(String(err));
+    }
+  };
+
+  const handleCreateBackup = async (createBackup: boolean) => {
+    try {
+      const terrariaPath = (await window.api.config.get(
+        "terrariaPath",
+      )) as string;
+      if (createBackup) {
+        setPatchStage("patching"); // Let UI show patching/backup
+        const backupResult = await window.api.patcher.backup(terrariaPath);
+        if (!backupResult.success) {
+          setPatchStage("error");
+          setPatchError(
+            backupResult.key
+              ? t(backupResult.key, backupResult.args)
+              : "Backup failed",
+          );
+          return;
+        }
+      }
+
+      // Proceed to patch
+      setPatchStage("patching");
+
+      const patcherInput = {
+        terrariaPath,
+        options: {
+          DisplayTime: options.time,
+          FunctionalSocialSlots: options.social,
+          MaxCraftingRange: options.range,
+          PylonEverywhere: options.pylon,
+          RemoveAnglerQuestLimit: options.angler,
+          RemoveDiscordBuff: options.rod,
+          RemovePotionSickness: options.potion,
+          RemoveManaCost: options.mana,
+          RemoveDrowning: options.drowning,
+          OneHitKill: options.ohk,
+          InfiniteAmmo: options.ammo,
+          PermanentWings: options.wings,
+          InfiniteCloudJumps: options.cloud,
+          BossBagsDropAllLoot: options.bossBagsLoot,
+          VampiricHealing: options.vampiricHealing,
+          SpectreHealing: options.spectreHealing,
+          SpawnRateVoodoo: options.spawnRateVoodoo,
+          PermanentBuffs: extractBuffIds(options.activeBuffs),
+        },
+      };
+
+      const result = await window.api.patcher.run(patcherInput);
+      if (result.success) {
+        setPatchStage("done");
+        setPatchMessage({
+          type: "success",
+          text: result.key ? t(result.key, result.args) : "Success",
+        });
+      } else {
+        setPatchStage("error");
+        setPatchError(
+          result.key ? t(result.key, result.args) : "Unknown patch error",
+        );
+      }
+    } catch (err) {
+      setPatchStage("error");
+      const msg = err instanceof Error ? err.message : String(err);
+      setPatchError(BaseErrorMessage(msg));
+    }
+  };
+
+  function BaseErrorMessage(msg: string) {
+    return t("patcher.errors.unexpected", "Unexpected error: ") + msg;
+  }
+
+  // Buff transfer handlers
   const toggleAvailable = (buff: string) => {
     const newSet = new Set(selectedAvailable);
     if (newSet.has(buff)) newSet.delete(buff);
@@ -96,119 +691,116 @@ export default function PatcherPage() {
   const filteredAvailable = availableBuffs.filter((b) =>
     b.toLowerCase().includes(searchAvailable.toLowerCase()),
   );
-  const filteredActive = activeBuffs.filter((b) =>
+  const filteredActive = options.activeBuffs.filter((b) =>
     b.toLowerCase().includes(searchActive.toLowerCase()),
   );
 
   const handleAddSelected = () => {
-    setActiveBuffs((prev) => [...prev, ...Array.from(selectedAvailable)]);
+    const newActive = [
+      ...options.activeBuffs,
+      ...Array.from(selectedAvailable),
+    ];
     setAvailableBuffs((prev) => prev.filter((b) => !selectedAvailable.has(b)));
     setSelectedAvailable(new Set());
+    setOption("activeBuffs", newActive);
   };
 
   const handleRemoveSelected = () => {
     setAvailableBuffs((prev) => [...prev, ...Array.from(selectedActive)]);
-    setActiveBuffs((prev) => prev.filter((b) => !selectedActive.includes(b)));
+    const newActive = options.activeBuffs.filter((b) => !selectedActive.has(b));
     setSelectedActive(new Set());
+    setOption("activeBuffs", newActive);
   };
 
   const handleAddAll = () => {
-    setActiveBuffs((prev) => [...prev, ...filteredAvailable]);
+    const newActive = [...options.activeBuffs, ...filteredAvailable];
     setAvailableBuffs((prev) =>
       prev.filter((b) => !filteredAvailable.includes(b)),
     );
     setSelectedAvailable(new Set());
+    setOption("activeBuffs", newActive);
   };
 
   const handleRemoveAll = () => {
     setAvailableBuffs((prev) => [...prev, ...filteredActive]);
-    setActiveBuffs((prev) => prev.filter((b) => !filteredActive.includes(b)));
+    const newActive = options.activeBuffs.filter(
+      (b) => !filteredActive.includes(b),
+    );
     setSelectedActive(new Set());
+    setOption("activeBuffs", newActive);
   };
 
+  // Settings arrays with controlled checked state
   const qolSettings = [
     {
-      id: "time",
+      id: "time" as const,
       label: t("patcher.features.qol.time.label"),
-      checked: true,
       description: t("patcher.features.qol.time.desc"),
     },
     {
-      id: "social",
+      id: "social" as const,
       label: t("patcher.features.qol.social.label"),
-      checked: false,
       description: t("patcher.features.qol.social.desc"),
     },
     {
-      id: "range",
+      id: "range" as const,
       label: t("patcher.features.qol.range.label"),
-      checked: false,
       description: t("patcher.features.qol.range.desc"),
     },
     {
-      id: "pylon",
+      id: "pylon" as const,
       label: t("patcher.features.qol.pylon.label"),
-      checked: true,
       description: t("patcher.features.qol.pylon.desc"),
     },
     {
-      id: "angler",
+      id: "angler" as const,
       label: t("patcher.features.qol.angler.label"),
-      checked: false,
       description: t("patcher.features.qol.angler.desc"),
     },
   ];
 
   const combatSettings = [
     {
-      id: "rod",
+      id: "rod" as const,
       label: t("patcher.features.combat.rod.label"),
-      checked: false,
       description: t("patcher.features.combat.rod.desc"),
     },
     {
-      id: "potion",
+      id: "potion" as const,
       label: t("patcher.features.combat.potion.label"),
-      checked: false,
       description: t("patcher.features.combat.potion.desc"),
     },
     {
-      id: "mana",
+      id: "mana" as const,
       label: t("patcher.features.combat.mana.label"),
-      checked: true,
       description: t("patcher.features.combat.mana.desc"),
     },
     {
-      id: "drowning",
+      id: "drowning" as const,
       label: t("patcher.features.combat.drowning.label"),
-      checked: false,
       description: t("patcher.features.combat.drowning.desc"),
     },
   ];
 
   const cheatSettings = [
     {
-      id: "ohk",
+      id: "ohk" as const,
       label: t("patcher.features.cheats.ohk.label"),
-      checked: false,
       description: t("patcher.features.cheats.ohk.desc"),
     },
     {
-      id: "ammo",
+      id: "ammo" as const,
       label: t("patcher.features.cheats.ammo.label"),
-      checked: true,
       description: t("patcher.features.cheats.ammo.desc"),
     },
     {
-      id: "wings",
+      id: "wings" as const,
       label: t("patcher.features.cheats.wings.label"),
-      checked: false,
       description: t("patcher.features.cheats.wings.desc"),
     },
     {
-      id: "cloud",
+      id: "cloud" as const,
       label: t("patcher.features.cheats.cloud.label"),
-      checked: false,
       description: t("patcher.features.cheats.cloud.desc"),
     },
   ];
@@ -227,6 +819,36 @@ export default function PatcherPage() {
     { id: "plugins", label: t("plugins.title", "Plugins"), icon: Puzzle },
   ];
 
+  // Reusable setting checkbox component
+  const SettingCheckbox = ({
+    setting,
+  }: {
+    setting: {
+      id: keyof PatchOptionsState;
+      label: string;
+      description: string;
+    };
+  }) => (
+    <div className="flex items-start space-x-3 p-4 border rounded-lg bg-muted/30">
+      <Checkbox
+        id={setting.id}
+        checked={options[setting.id] as boolean}
+        onCheckedChange={(checked) => setOption(setting.id, checked === true)}
+        className="mt-1"
+      />
+      <div className="space-y-1.5 leading-none">
+        <Label
+          htmlFor={setting.id}
+          className="text-sm font-medium cursor-pointer">
+          {setting.label}
+        </Label>
+        <p className="text-xs text-muted-foreground leading-relaxed pr-2">
+          {setting.description}
+        </p>
+      </div>
+    </div>
+  );
+
   return (
     <div className="h-[calc(100vh-6rem)] overflow-hidden flex flex-col gap-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between shrink-0">
@@ -241,10 +863,29 @@ export default function PatcherPage() {
             )}
           </p>
         </div>
-        <Button className="gap-2 shrink-0">
-          <Wrench className="h-4 w-4" />
-          {t("patcher.patchBtn", "Patch & Save")}
-        </Button>
+        <div className="flex items-center gap-3 shrink-0">
+          {patchMessage && (
+            <span
+              className={cn(
+                "text-sm max-w-xs truncate animate-in fade-in duration-300",
+                patchMessage.type === "success"
+                  ? "text-emerald-500"
+                  : "text-destructive",
+              )}>
+              {patchMessage.text}
+            </span>
+          )}
+          <Button className="gap-2" onClick={handlePatch} disabled={isPatching}>
+            {isPatching ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Wrench className="h-4 w-4" />
+            )}
+            {isPatching
+              ? t("patcher.patching", "Patching...")
+              : t("patcher.patchBtn", "Patch & Save")}
+          </Button>
+        </div>
       </div>
 
       <div className="flex-1 flex flex-col md:flex-row gap-6 overflow-hidden">
@@ -327,25 +968,7 @@ export default function PatcherPage() {
               <ScrollArea className="flex-1 p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {qolSettings.map((setting) => (
-                    <div
-                      key={setting.id}
-                      className="flex items-start space-x-3 p-4 border rounded-lg bg-muted/30">
-                      <Checkbox
-                        id={setting.id}
-                        defaultChecked={setting.checked}
-                        className="mt-1"
-                      />
-                      <div className="space-y-1.5 leading-none">
-                        <Label
-                          htmlFor={setting.id}
-                          className="text-sm font-medium cursor-pointer">
-                          {setting.label}
-                        </Label>
-                        <p className="text-xs text-muted-foreground leading-relaxed pr-2">
-                          {setting.description}
-                        </p>
-                      </div>
-                    </div>
+                    <SettingCheckbox key={setting.id} setting={setting} />
                   ))}
                 </div>
               </ScrollArea>
@@ -363,25 +986,7 @@ export default function PatcherPage() {
               <ScrollArea className="flex-1 p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {combatSettings.map((setting) => (
-                    <div
-                      key={setting.id}
-                      className="flex items-start space-x-3 p-4 border rounded-lg bg-muted/30">
-                      <Checkbox
-                        id={setting.id}
-                        defaultChecked={setting.checked}
-                        className="mt-1"
-                      />
-                      <div className="space-y-1.5 leading-none">
-                        <Label
-                          htmlFor={setting.id}
-                          className="text-sm font-medium cursor-pointer">
-                          {setting.label}
-                        </Label>
-                        <p className="text-xs text-muted-foreground leading-relaxed pr-2">
-                          {setting.description}
-                        </p>
-                      </div>
-                    </div>
+                    <SettingCheckbox key={setting.id} setting={setting} />
                   ))}
                 </div>
               </ScrollArea>
@@ -399,25 +1004,7 @@ export default function PatcherPage() {
               <ScrollArea className="flex-1 p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {cheatSettings.map((setting) => (
-                    <div
-                      key={setting.id}
-                      className="flex items-start space-x-3 p-4 border rounded-lg bg-muted/30">
-                      <Checkbox
-                        id={setting.id}
-                        defaultChecked={setting.checked}
-                        className="mt-1"
-                      />
-                      <div className="space-y-1.5 leading-none">
-                        <Label
-                          htmlFor={setting.id}
-                          className="text-sm font-medium cursor-pointer">
-                          {setting.label}
-                        </Label>
-                        <p className="text-xs text-muted-foreground leading-relaxed pr-2">
-                          {setting.description}
-                        </p>
-                      </div>
-                    </div>
+                    <SettingCheckbox key={setting.id} setting={setting} />
                   ))}
                 </div>
               </ScrollArea>
@@ -521,7 +1108,7 @@ export default function PatcherPage() {
                   <div className="flex-1 border rounded-lg flex flex-col overflow-hidden">
                     <div className="bg-muted px-3 py-2 border-b text-xs font-medium text-primary tracking-wider uppercase flex justify-between">
                       <span>{t("patcher.tabs.buffsActive")}</span>
-                      <span>{activeBuffs.length} / 22</span>
+                      <span>{options.activeBuffs.length} / 22</span>
                     </div>
                     <ScrollArea className="flex-1">
                       <div className="p-2 space-y-0.5">
@@ -567,9 +1154,15 @@ export default function PatcherPage() {
                   <div className="flex items-center gap-3">
                     <Input
                       type="number"
-                      defaultValue={7.5}
+                      value={options.vampiricHealing}
                       step={0.1}
                       className="w-32"
+                      onChange={(e) =>
+                        setOption(
+                          "vampiricHealing",
+                          parseFloat(e.target.value) || 7.5,
+                        )
+                      }
                     />
                     <span className="text-sm font-medium">%</span>
                   </div>
@@ -585,9 +1178,15 @@ export default function PatcherPage() {
                   <div className="flex items-center gap-3">
                     <Input
                       type="number"
-                      defaultValue={20.0}
+                      value={options.spectreHealing}
                       step={0.1}
                       className="w-32"
+                      onChange={(e) =>
+                        setOption(
+                          "spectreHealing",
+                          parseFloat(e.target.value) || 20.0,
+                        )
+                      }
                     />
                     <span className="text-sm font-medium">%</span>
                   </div>
@@ -619,10 +1218,16 @@ export default function PatcherPage() {
                   <div className="flex items-center gap-4">
                     <Input
                       type="number"
-                      defaultValue={15}
+                      value={options.spawnRateVoodoo}
                       min={0}
                       max={100}
                       className="w-32"
+                      onChange={(e) =>
+                        setOption(
+                          "spawnRateVoodoo",
+                          parseInt(e.target.value, 10) || 15,
+                        )
+                      }
                     />
                     <span className="text-sm font-medium">%</span>
                   </div>
@@ -645,7 +1250,10 @@ export default function PatcherPage() {
                 <div className="flex items-start space-x-3 p-4 border rounded-lg bg-muted/30">
                   <Checkbox
                     id="boss-bags-loot"
-                    defaultChecked
+                    checked={options.bossBagsLoot}
+                    onCheckedChange={(checked) =>
+                      setOption("bossBagsLoot", checked === true)
+                    }
                     className="mt-1"
                   />
                   <div className="space-y-1 leading-none">
@@ -710,6 +1318,137 @@ export default function PatcherPage() {
           )}
         </div>
       </div>
+
+      {/* Patching Workflow Modal */}
+      <Dialog
+        open={patchStage !== "idle"}
+        onOpenChange={(open) => !open && setPatchStage("idle")}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {t("patcher.modal.title", "Patching Terraria")}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            {patchStage === "checking" && (
+              <div className="flex items-center gap-3">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <p>{t("patcher.modal.stepCheck", "Checking files...")}</p>
+              </div>
+            )}
+
+            {patchStage === "restorePrompt" && (
+              <div className="space-y-4">
+                <p className="text-sm">
+                  {t(
+                    "patcher.modal.stepRestorePrompt",
+                    "A backup (Terraria.exe.bak) was found. Would you like to restore it before patching?",
+                  )}
+                </p>
+                {backupInfo?.exeVersion &&
+                  backupInfo?.bakVersion &&
+                  backupInfo.exeVersion !== backupInfo.bakVersion && (
+                    <p className="text-sm text-amber-500 bg-amber-500/10 p-2 rounded border border-amber-500/20">
+                      {t("patcher.modal.stepRestoreWarning", {
+                        exeVersion: backupInfo.exeVersion,
+                        bakVersion: backupInfo.bakVersion,
+                        defaultValue: `Warning: The current version (${backupInfo.exeVersion}) differs from the backup version (${backupInfo.bakVersion}).`,
+                      })}
+                    </p>
+                  )}
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleRestoreBackup(false)}>
+                    {t("patcher.modal.btnSkipRestore", "Skip Restore")}
+                  </Button>
+                  <Button onClick={() => handleRestoreBackup(true)}>
+                    {t("patcher.modal.btnRestore", "Restore Backup")}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {patchStage === "backupPrompt" && (
+              <div className="space-y-4">
+                <p className="text-sm">
+                  {t(
+                    "patcher.modal.stepBackupPrompt",
+                    "Would you like to create a backup of the current executable before applying new patches?",
+                  )}
+                </p>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => handleCreateBackup(false)}>
+                    {t("patcher.modal.btnSkipBackup", "Skip Backup")}
+                  </Button>
+                  <Button onClick={() => handleCreateBackup(true)}>
+                    {t("patcher.modal.btnBackup", "Create Backup")}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {patchStage === "patching" && (
+              <div className="flex items-center gap-3">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <p>{t("patcher.modal.stepPatching", "Applying patches...")}</p>
+              </div>
+            )}
+
+            {patchStage === "done" && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-emerald-500">
+                  <Sparkles className="h-5 w-5" />
+                  <p className="font-medium">
+                    {t("patcher.modal.successTitle", "Success!")}
+                  </p>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {patchMessage?.text ||
+                    t(
+                      "patcher.modal.successDesc",
+                      "Terraria was patched successfully.",
+                    )}
+                </p>
+                <div className="flex justify-end pt-2">
+                  <Button onClick={() => setPatchStage("idle")}>
+                    {t("patcher.modal.btnClose", "Close")}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {patchStage === "error" && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-destructive">
+                  <Wrench className="h-5 w-5" />
+                  <p className="font-medium">
+                    {t("patcher.modal.errorTitle", "Error")}
+                  </p>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {t(
+                    "patcher.modal.errorDesc",
+                    "An error occurred during patching:",
+                  )}
+                </p>
+                <pre className="text-xs bg-muted p-2 rounded border overflow-auto whitespace-pre-wrap break-all max-h-[50vh] text-destructive/80">
+                  {patchError}
+                </pre>
+                <div className="flex justify-end pt-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setPatchStage("idle")}>
+                    {t("patcher.modal.btnClose", "Close")}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

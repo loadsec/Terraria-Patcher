@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useTranslation, Trans } from "react-i18next";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const AVAILABLE_LANGUAGES = [
   { id: "en", label: "English" },
@@ -16,18 +16,66 @@ const AVAILABLE_LANGUAGES = [
 export default function ConfigPage() {
   const { t, i18n } = useTranslation();
 
-  // Local state for the selected language before saving
   const [selectedLang, setSelectedLang] = useState(
     i18n.resolvedLanguage || "en",
   );
   const [searchQuery, setSearchQuery] = useState("");
+  const [terrariaPath, setTerrariaPath] = useState("");
+  const [pluginSupport, setPluginSupport] = useState(true);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  // Load persisted config on mount
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const path = (await window.api.config.get("terrariaPath")) as string;
+        if (path) setTerrariaPath(path);
+
+        const lang = (await window.api.config.get("language")) as string;
+        if (lang) {
+          setSelectedLang(lang);
+          i18n.changeLanguage(lang);
+        }
+
+        const plugins = (await window.api.config.get(
+          "pluginSupport",
+        )) as boolean;
+        if (typeof plugins === "boolean") setPluginSupport(plugins);
+      } catch (err) {
+        console.error("Failed to load config:", err);
+      }
+    };
+    loadConfig();
+  }, []);
 
   const filteredLanguages = AVAILABLE_LANGUAGES.filter((lang) =>
     lang.label.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const handleSaveConfig = () => {
-    i18n.changeLanguage(selectedLang);
+  const handleBrowse = async () => {
+    try {
+      const result = await window.api.dialog.openFile();
+      if (result) {
+        setTerrariaPath(result);
+      }
+    } catch (err) {
+      console.error("Failed to open file dialog:", err);
+    }
+  };
+
+  const handleSaveConfig = async () => {
+    try {
+      await window.api.config.set("terrariaPath", terrariaPath);
+      await window.api.config.set("language", selectedLang);
+      await window.api.config.set("pluginSupport", pluginSupport);
+      i18n.changeLanguage(selectedLang);
+      setSaveMessage(t("config.saved", "Configuration saved!"));
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (err) {
+      console.error("Failed to save config:", err);
+      setSaveMessage(t("config.saveFailed", "Failed to save configuration."));
+      setTimeout(() => setSaveMessage(null), 3000);
+    }
   };
 
   return (
@@ -46,10 +94,17 @@ export default function ConfigPage() {
             </p>
           </div>
         </div>
-        <Button onClick={handleSaveConfig} className="gap-2 shrink-0">
-          <Save className="h-4 w-4" />
-          {t("config.saveBtn", "Save Configuration")}
-        </Button>
+        <div className="flex items-center gap-3">
+          {saveMessage && (
+            <span className="text-sm text-emerald-500 animate-in fade-in duration-300">
+              {saveMessage}
+            </span>
+          )}
+          <Button onClick={handleSaveConfig} className="gap-2 shrink-0">
+            <Save className="h-4 w-4" />
+            {t("config.saveBtn", "Save Configuration")}
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-6">
@@ -142,11 +197,17 @@ export default function ConfigPage() {
               <div className="flex gap-2">
                 <input
                   id="terraria-path"
-                  defaultValue="E:\SteamLibrary\steamapps\common\Terraria\Terraria.exe"
+                  value={terrariaPath}
                   readOnly
+                  placeholder={t(
+                    "config.gameDirectory.placeholder",
+                    "Select Terraria.exe...",
+                  )}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
-                <button className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 h-9 px-4 py-2">
+                <button
+                  onClick={handleBrowse}
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 h-9 px-4 py-2">
                   {t("config.gameDirectory.browse")}
                 </button>
               </div>
@@ -171,7 +232,10 @@ export default function ConfigPage() {
             <div className="flex items-start space-x-3 group">
               <Checkbox
                 id="plugin-support"
-                defaultChecked={true}
+                checked={pluginSupport}
+                onCheckedChange={(checked) =>
+                  setPluginSupport(checked === true)
+                }
                 className="mt-0.5"
               />
               <div className="space-y-1 leading-none">

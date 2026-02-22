@@ -18,6 +18,33 @@
     "title": "Modificações do Jogo",
     "description": "Configure patches independentes para aplicar direto no executável do Terraria.",
     "patchBtn": "Aplicar & Salvar",
+    "messages": {
+      "success": "Terraria modificado com sucesso!",
+      "error": "Falha na modificação: {{error}}",
+      "backupSuccess": "Backup criado: {{path}}",
+      "backupFailed": "Falha ao criar backup: {{error}}",
+      "notFound": "O executável Terraria.exe não foi encontrado em: {{path}}",
+      "backupNotFound": "O arquivo de backup (Terraria.exe.bak) não foi encontrado.",
+      "restoreSuccess": "Backup restaurado com sucesso.",
+      "restoreFailed": "Falha ao restaurar: {{error}}"
+    },
+    "modal": {
+      "title": "Modificando o Terraria",
+      "stepCheck": "Verificando arquivos...",
+      "stepRestorePrompt": "Um backup (Terraria.exe.bak) foi encontrado. Gostaria de restaurá-lo antes de aplicar novos patches?",
+      "stepRestoreWarning": "Aviso: A versão atual ({{exeVersion}}) difere da versão do backup ({{bakVersion}}). Restaurar um backup mais antigo não é recomendado.",
+      "btnRestore": "Restaurar Backup",
+      "btnSkipRestore": "Pular Restauração",
+      "stepBackupPrompt": "Gostaria de criar um backup do executável antes de modificar o arquivo?",
+      "btnBackup": "Criar Backup",
+      "btnSkipBackup": "Pular Backup",
+      "stepPatching": "Aplicando patches...",
+      "successTitle": "Sucesso!",
+      "successDesc": "O Terraria foi modificado com sucesso.",
+      "errorTitle": "Erro ao Modificar",
+      "errorDesc": "Ocorreu um erro durante a modificação:",
+      "btnClose": "Fechar"
+    },
     "tabs": {
       "qol": "Qualidade de Vida",
       "combat": "Combate e Debuffs",

@@ -1,8 +1,77 @@
 import { ElectronAPI } from "@electron-toolkit/preload";
 
+export interface PatcherOptions {
+  terrariaPath: string;
+  options: {
+    DisplayTime: boolean;
+    FunctionalSocialSlots: boolean;
+    MaxCraftingRange: boolean;
+    PylonEverywhere: boolean;
+    RemoveAnglerQuestLimit: boolean;
+    RemoveDiscordBuff: boolean;
+    RemovePotionSickness: boolean;
+    RemoveManaCost: boolean;
+    RemoveDrowning: boolean;
+    OneHitKill: boolean;
+    InfiniteAmmo: boolean;
+    PermanentWings: boolean;
+    InfiniteCloudJumps: boolean;
+    BossBagsDropAllLoot: boolean;
+    VampiricHealing: number;
+    SpectreHealing: number;
+    SpawnRateVoodoo: number;
+    PermanentBuffs: number[];
+  };
+}
+
+export interface PatchResult {
+  success: boolean;
+  key?: string;
+  args?: Record<string, string>;
+}
+
+export interface PatchOptions {
+  time: boolean;
+  social: boolean;
+  range: boolean;
+  pylon: boolean;
+  angler: boolean;
+  rod: boolean;
+  potion: boolean;
+  mana: boolean;
+  drowning: boolean;
+  ohk: boolean;
+  ammo: boolean;
+  wings: boolean;
+  cloud: boolean;
+  bossBagsLoot: boolean;
+  vampiricHealing: number;
+  spectreHealing: number;
+  spawnRateVoodoo: number;
+  activeBuffs: string[];
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI;
-    api: unknown;
+    api: {
+      config: {
+        get: (key: string) => Promise<unknown>;
+        set: (key: string, value: unknown) => Promise<void>;
+      };
+      dialog: {
+        openFile: () => Promise<string | null>;
+      };
+      patcher: {
+        run: (options: PatcherOptions) => Promise<PatchResult>;
+        backup: (terrariaPath: string) => Promise<PatchResult>;
+        checkBackup: (terrariaPath: string) => Promise<{
+          hasBackup: boolean;
+          exeVersion: string | null;
+          bakVersion: string | null;
+        }>;
+        restoreBackup: (terrariaPath: string) => Promise<PatchResult>;
+      };
+    };
   }
 }

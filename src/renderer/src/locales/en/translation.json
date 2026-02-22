@@ -18,6 +18,33 @@
     "title": "Game Modifications",
     "description": "Configure standalone patches to apply directly to the Terraria executable.",
     "patchBtn": "Patch & Save",
+    "messages": {
+      "success": "Terraria patched successfully!",
+      "error": "Patch failed: {{error}}",
+      "backupSuccess": "Backup created: {{path}}",
+      "backupFailed": "Backup failed: {{error}}",
+      "notFound": "Terraria.exe not found at: {{path}}",
+      "backupNotFound": "Backup file (Terraria.exe.bak) not found.",
+      "restoreSuccess": "Backup restored successfully.",
+      "restoreFailed": "Restore failed: {{error}}"
+    },
+    "modal": {
+      "title": "Patching Terraria",
+      "stepCheck": "Checking files...",
+      "stepRestorePrompt": "A backup (Terraria.exe.bak) was found. Would you like to restore it before patching?",
+      "stepRestoreWarning": "Warning: The current version ({{exeVersion}}) differs from the backup version ({{bakVersion}}). Restoring an older backup is not recommended.",
+      "btnRestore": "Restore Backup",
+      "btnSkipRestore": "Skip Restore",
+      "stepBackupPrompt": "Would you like to create a backup of the current executable before applying new patches?",
+      "btnBackup": "Create Backup",
+      "btnSkipBackup": "Skip Backup",
+      "stepPatching": "Applying patches...",
+      "successTitle": "Success!",
+      "successDesc": "Terraria was patched successfully.",
+      "errorTitle": "Error Parsing or Patching",
+      "errorDesc": "An error occurred during patching:",
+      "btnClose": "Close"
+    },
     "tabs": {
       "qol": "Quality of Life",
       "combat": "Combat & Debuffs",
