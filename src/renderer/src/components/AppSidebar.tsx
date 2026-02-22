@@ -16,6 +16,18 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 
+type AppVersionInfo = {
+  version?: string;
+  app?: {
+    name?: string;
+    version?: string;
+  };
+  terraria?: {
+    version?: string;
+    supportedRange?: string;
+  };
+};
+
 type SidebarNavItem = {
   i18nKey: string;
   icon: typeof Home;
@@ -69,6 +81,11 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
+  const versionInfo = appInfo as AppVersionInfo;
+  const appVersion = versionInfo.app?.version || versionInfo.version || "0.0.0";
+  const appLabel = versionInfo.app?.name || t("sidebar.appVersionLabel", "Terraria Patch");
+  const terrariaVersion = versionInfo.terraria?.version || "Unknown";
+  const terrariaRange = versionInfo.terraria?.supportedRange;
   const navLabel = (item: SidebarNavItem) =>
     t(`sidebar.${item.i18nKey}`, item.label ?? item.i18nKey);
 
@@ -147,9 +164,20 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-4">
-        <p className="text-xs text-muted-foreground group-data-[collapsible=icon]:hidden mt-4 text-center">
-          v{appInfo.version}
-        </p>
+        <div className="group-data-[collapsible=icon]:hidden mt-4 space-y-1 rounded-lg border border-border/60 bg-muted/30 p-3">
+          <p className="text-xs font-medium text-foreground/90">
+            {appLabel}: <span className="text-primary">v{appVersion}</span>
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {terrariaRange
+              ? t("sidebar.terrariaVersionWithSupport", {
+                  defaultValue: "Terraria: {{version}} ({{range}})",
+                  version: terrariaVersion,
+                  range: terrariaRange,
+                })
+              : `${t("sidebar.terrariaVersionLabel", "Terraria")}: ${terrariaVersion}`}
+          </p>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

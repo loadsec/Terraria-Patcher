@@ -73,7 +73,7 @@ function App(): React.ReactElement {
                 </span>
                 <ThemeToggleButton />
               </header>
-              <main className="flex-1 min-h-0 p-6 overflow-y-auto">
+              <main className="flex-1 min-h-0 p-6 overflow-x-hidden overflow-y-auto">
                 <Routes>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/patcher" element={<PatcherPage />} />

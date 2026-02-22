@@ -1,0 +1,27 @@
+{
+  "page": {
+    "title": "Changelog",
+    "subtitle": "Histórico de versões e notas de atualização do Terraria Patcher.",
+    "currentVersionTitle": "Versão Atual",
+    "currentVersionDesc": "Você está executando esta versão do aplicativo.",
+    "releaseHistoryTitle": "Histórico de Versões",
+    "latestBadge": "Mais recente",
+    "terrariaVersionLabel": "Versão alvo do Terraria",
+    "supportedRangeLabel": "Faixa suportada",
+    "noEntriesTitle": "Ainda não há entradas no changelog",
+    "noEntriesDesc": "Adicione versões no version.json e traduções no changelog.json."
+  },
+  "releases": {
+    "v1_0_0": {
+      "title": "Primeira Versão Pública",
+      "summary": "Primeira versão pública com patch funcional, suporte a plugins e persistência de configurações.",
+      "changes": [
+        "Implementado o patching via bridge Electron -> edge-js -> C# com Mono.Cecil.",
+        "Adicionado suporte a plugins para Terraria 1.4.5.x com sincronização de recursos e hooks.",
+        "Adicionado editor de Plugins.ini com campos tipados (hotkey, booleano, número e texto).",
+        "Adicionado import/export de perfil para preferências de patch e configuração.",
+        "Melhorado o empacotamento para incluir DLLs da bridge, recursos de plugins e traduções do processo main."
+      ]
+    }
+  }
+}

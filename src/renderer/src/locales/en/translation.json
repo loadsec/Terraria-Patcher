@@ -10,7 +10,11 @@
     "tools": "Tools",
     "system": "System",
     "changelog": "Changelog",
-    "about": "About"
+    "about": "About",
+    "appVersionLabel": "Terraria Patch",
+    "terrariaVersionLabel": "Terraria",
+    "terrariaSupportLabel": "Supported",
+    "terrariaVersionWithSupport": "Terraria: {{version}} ({{range}})"
   },
   "header": {
     "toggleTheme": "Toggle Theme",

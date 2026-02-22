@@ -5,13 +5,17 @@ import LanguageDetector from "i18next-browser-languagedetector";
 // Import translation files
 import enTranslation from "./locales/en/translation.json";
 import ptBRTranslation from "./locales/pt-BR/translation.json";
+import enChangelog from "./locales/en/changelog.json";
+import ptBRChangelog from "./locales/pt-BR/changelog.json";
 
 const resources = {
   en: {
     translation: enTranslation,
+    changelog: enChangelog,
   },
   "pt-BR": {
     translation: ptBRTranslation,
+    changelog: ptBRChangelog,
   },
 };
 
@@ -23,6 +27,8 @@ i18n
   // Initialize i18next
   .init({
     resources,
+    ns: ["translation", "changelog"],
+    defaultNS: "translation",
     fallbackLng: "en",
     debug: false,
     interpolation: {
