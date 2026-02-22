@@ -193,8 +193,8 @@ export default function ChangelogPage() {
                     <div
                       className={
                         isLatest
-                          ? "absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-emerald-400 via-emerald-500/70 to-emerald-500/20"
-                          : "absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-[#5865F2] via-[#5865F2]/65 to-[#5865F2]/20"
+                          ? "absolute inset-y-0 left-0 w-1 bg-emerald-400"
+                          : "absolute inset-y-0 left-0 w-1 bg-[#5865F2]"
                       }
                     />
                     <CardHeader className="gap-2 pb-2">

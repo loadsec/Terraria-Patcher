@@ -79,10 +79,10 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  --scrollbar-track: rgba(15, 23, 42, 0.06);
-  --scrollbar-thumb: rgba(88, 101, 242, 0.42);
-  --scrollbar-thumb-hover: rgba(88, 101, 242, 0.6);
-  --scrollbar-thumb-active: rgba(88, 101, 242, 0.72);
+  --scrollbar-track: rgba(0, 0, 0, 0.08);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.32);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.48);
+  --scrollbar-thumb-active: rgba(0, 0, 0, 0.62);
 }
 
 .dark {
@@ -117,10 +117,10 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
-  --scrollbar-track: rgba(255, 255, 255, 0.06);
-  --scrollbar-thumb: rgba(88, 101, 242, 0.58);
-  --scrollbar-thumb-hover: rgba(88, 101, 242, 0.76);
-  --scrollbar-thumb-active: rgba(88, 101, 242, 0.88);
+  --scrollbar-track: rgba(255, 255, 255, 0.08);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.34);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.52);
+  --scrollbar-thumb-active: rgba(255, 255, 255, 0.68);
 }
 
 @layer base {
