@@ -557,6 +557,7 @@ export default function ConfigPage() {
                 {t("config.updates.installBtn", "Install & Restart")}
               </Button>
             </div>
+
           </div>
         </div>
 

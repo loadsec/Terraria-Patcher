@@ -151,6 +151,8 @@ type UpdaterState = {
   lastCheckedAt?: string;
 };
 
+type UpdaterDebugMockMode = "available" | "downloading" | "downloaded" | "reset";
+
 type MainLocaleDict = Record<string, unknown>;
 
 let mainLocalesCache: Record<string, MainLocaleDict> | null = null;
@@ -531,6 +533,90 @@ function initializeAutoUpdater(): void {
   });
 }
 
+function applyUpdaterDebugMock(mode: UpdaterDebugMockMode): void {
+  if (app.isPackaged) return;
+
+  const currentVersion = app.getVersion();
+  const latestVersion = "1.0.1";
+
+  if (mode === "reset") {
+    updaterState = createInitialUpdaterState();
+    broadcastUpdaterState();
+    return;
+  }
+
+  if (mode === "available") {
+    setUpdaterState({
+      supported: true,
+      phase: "available",
+      currentVersion,
+      latestVersion,
+      releaseName: "Test Update Preview",
+      releaseDate: new Date().toISOString(),
+      releaseNotes:
+        "This is a local development mock update.\nUse it to preview the update banner/UI.",
+      checking: false,
+      downloading: false,
+      downloaded: false,
+      updateAvailable: true,
+      percent: undefined,
+      error: undefined,
+      message: "Mock update available (dev).",
+      lastCheckedAt: new Date().toISOString(),
+    });
+    return;
+  }
+
+  if (mode === "downloading") {
+    setUpdaterState({
+      supported: true,
+      phase: "downloading",
+      currentVersion,
+      latestVersion,
+      releaseName: "Test Update Preview",
+      releaseDate: new Date().toISOString(),
+      releaseNotes:
+        "This is a local development mock update.\nUse it to preview the update banner/UI.",
+      checking: false,
+      downloading: true,
+      downloaded: false,
+      updateAvailable: true,
+      percent: 47,
+      transferred: 4_700_000,
+      total: 10_000_000,
+      bytesPerSecond: 1_200_000,
+      error: undefined,
+      message: "Mock update downloading (dev).",
+      lastCheckedAt: new Date().toISOString(),
+    });
+    return;
+  }
+
+  if (mode === "downloaded") {
+    setUpdaterState({
+      supported: true,
+      phase: "downloaded",
+      currentVersion,
+      latestVersion,
+      releaseName: "Test Update Preview",
+      releaseDate: new Date().toISOString(),
+      releaseNotes:
+        "This is a local development mock update.\nUse it to preview the update banner/UI.",
+      checking: false,
+      downloading: false,
+      downloaded: true,
+      updateAvailable: true,
+      percent: 100,
+      transferred: 10_000_000,
+      total: 10_000_000,
+      bytesPerSecond: 0,
+      error: undefined,
+      message: "Mock update downloaded (dev).",
+      lastCheckedAt: new Date().toISOString(),
+    });
+  }
+}
+
 function scheduleSilentStartupUpdateCheck(): void {
   if (!app.isPackaged) return;
   if (startupUpdateCheckScheduled) return;
@@ -667,6 +753,27 @@ function setupIpcHandlers(): void {
     });
 
     return { success: true };
+  });
+
+  ipcMain.handle("updater:debugMock", async (_event, mode: UpdaterDebugMockMode) => {
+    initializeAutoUpdater();
+
+    if (app.isPackaged) {
+      return { success: false, unsupported: true, state: updaterState };
+    }
+
+    const allowed: UpdaterDebugMockMode[] = [
+      "available",
+      "downloading",
+      "downloaded",
+      "reset",
+    ];
+    if (!allowed.includes(mode)) {
+      return { success: false, error: "Invalid debug mock mode.", state: updaterState };
+    }
+
+    applyUpdaterDebugMock(mode);
+    return { success: true, state: updaterState };
   });
 
   // Config

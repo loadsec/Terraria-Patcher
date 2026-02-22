@@ -90,6 +90,8 @@ export interface UpdaterActionResult {
   state?: UpdaterState;
 }
 
+export type UpdaterDebugMockMode = "available" | "downloading" | "downloaded" | "reset";
+
 export interface PatchOptions {
   time: boolean;
   social: boolean;
@@ -139,6 +141,7 @@ declare global {
         check: () => Promise<UpdaterActionResult>;
         download: () => Promise<UpdaterActionResult>;
         quitAndInstall: () => Promise<UpdaterActionResult>;
+        debugMock: (mode: UpdaterDebugMockMode) => Promise<UpdaterActionResult>;
         onStateChange: (callback: (state: UpdaterState) => void) => () => void;
       };
       plugins: {

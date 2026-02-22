@@ -84,6 +84,14 @@ const api = {
       notReady?: boolean;
       state?: UpdaterState;
     }> => ipcRenderer.invoke("updater:quitAndInstall"),
+    debugMock: (
+      mode: "available" | "downloading" | "downloaded" | "reset",
+    ): Promise<{
+      success: boolean;
+      unsupported?: boolean;
+      error?: string;
+      state?: UpdaterState;
+    }> => ipcRenderer.invoke("updater:debugMock", mode),
     onStateChange: (callback: (state: UpdaterState) => void): (() => void) => {
       const listener = (_event: unknown, state: UpdaterState) => callback(state);
       ipcRenderer.on("updater:state", listener);

@@ -7,6 +7,7 @@ import {
   DownloadCloud,
   Rocket,
   CircleAlert,
+  X,
   Loader2,
   ArrowRight,
 } from "lucide-react";
@@ -17,8 +18,9 @@ import {
 } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { AppSidebar } from "@/components/AppSidebar";
-import Alert08 from "@/components/shadcn-studio/alert/alert-08";
 import HomePage from "@/pages/HomePage";
 import PatcherPage from "@/pages/PatcherPage";
 import PluginsIniPage from "@/pages/PluginsIniPage";
@@ -92,11 +94,17 @@ function HeaderUpdateNotice() {
 
   useEffect(() => {
     let disposed = false;
+    const isActionablePhase = (phase?: HeaderUpdaterState["phase"]) =>
+      phase === "available" || phase === "downloading" || phase === "downloaded";
 
     const load = async () => {
       try {
         const state = await window.api.updater.getState();
-        if (!disposed) setUpdaterState(state);
+        if (disposed) return;
+        if (!isActionablePhase(state.phase)) {
+          setDismissedVersion(null);
+        }
+        setUpdaterState(state);
       } catch {
         // Ignore updater availability issues in header.
       }
@@ -104,7 +112,11 @@ function HeaderUpdateNotice() {
 
     load();
     const unsubscribe = window.api.updater.onStateChange((state) => {
-      if (!disposed) setUpdaterState(state);
+      if (disposed) return;
+      if (!isActionablePhase(state.phase)) {
+        setDismissedVersion(null);
+      }
+      setUpdaterState(state);
     });
 
     return () => {
@@ -112,6 +124,13 @@ function HeaderUpdateNotice() {
       unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!updaterState) return;
+    if (!["available", "downloading", "downloaded"].includes(updaterState.phase)) {
+      setDismissedVersion(null);
+    }
+  }, [updaterState?.phase, updaterState?.supported]);
 
   if (!updaterState) return null;
   if (location.pathname === "/config") return null;
@@ -133,14 +152,37 @@ function HeaderUpdateNotice() {
     try {
       setIsRunningAction(true);
       if (isDownloaded) {
-        await window.api.updater.quitAndInstall();
+        const result = await window.api.updater.quitAndInstall();
+        if (!result.success && !updaterState.supported) {
+          // Dev preview mode: keep the mock visible and redirect to Config if needed.
+          navigate("/config");
+        }
         return;
       }
       if (isDownloading) {
+        if (!updaterState.supported) {
+          // Dev preview mode: jump to the "downloaded" state so the alert flow can be tested end-to-end.
+          await window.api.updater.debugMock("downloaded");
+          return;
+        }
         navigate("/config");
         return;
       }
-      await window.api.updater.download();
+
+      if (!updaterState.supported) {
+        // Dev preview mode: simulate a real click flow (available -> downloading -> downloaded).
+        await window.api.updater.debugMock("downloading");
+        setTimeout(() => {
+          void window.api.updater.debugMock("downloaded");
+        }, 900);
+        return;
+      }
+
+      const result = await window.api.updater.download();
+      if (!result.success) {
+        // If something fails, open Config so the user can see detailed updater status.
+        navigate("/config");
+      }
     } catch (error) {
       console.error("Updater banner action failed:", error);
     } finally {
@@ -170,73 +212,82 @@ function HeaderUpdateNotice() {
         });
 
   return (
-    <Alert08
-      className={
-        isDownloaded
-          ? "mb-4 border-emerald-500/20 bg-card text-card-foreground shadow-sm relative overflow-hidden before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-emerald-500"
-          : "mb-4 border-blue-500/20 bg-card text-card-foreground shadow-sm relative overflow-hidden before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-blue-500"
-      }
-      contentClassName="pr-7"
-      actionsClassName="pt-1"
-      icon={
-        <CircleAlert
-          className={
-            isDownloaded ? "text-emerald-500 mt-0.5" : "text-blue-500 mt-0.5"
-          }
-        />
-      }
-      title={
-        <span className="flex flex-wrap items-center gap-2">
-          <span>{title}</span>
-          {updaterState.latestVersion ? (
-            <span
-              className={
-                isDownloaded
-                  ? "inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-semibold text-emerald-500"
-                  : "inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[11px] font-semibold text-blue-600 dark:text-blue-400"
-              }>
-              v{updaterState.latestVersion}
-            </span>
-          ) : null}
-        </span>
-      }
-      description={
-        <div>
-          <p>{description}</p>
-          {updaterState.releaseName ? (
-            <p className="text-xs text-muted-foreground/90">{updaterState.releaseName}</p>
-          ) : null}
+    <div className="pointer-events-none fixed inset-x-4 bottom-4 z-50 md:inset-x-auto md:right-6 md:top-16 md:bottom-auto md:w-[520px]">
+      <Alert className="pointer-events-auto relative flex justify-between gap-3 rounded-xl border-none bg-card text-card-foreground pr-10 shadow-2xl ring-1 ring-border/70 dark:shadow-black/50">
+        <CircleAlert className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+
+        <div className="flex flex-1 min-w-0 flex-col gap-3">
+          <div className="min-w-0">
+            <AlertTitle className="line-clamp-none flex flex-wrap items-center gap-2 text-sm">
+              <span>{title}</span>
+              {updaterState.latestVersion ? (
+                <span className="inline-flex items-center rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  v{updaterState.latestVersion}
+                </span>
+              ) : null}
+            </AlertTitle>
+
+            <AlertDescription className="mt-1 text-sm text-muted-foreground">
+              <p>{description}</p>
+              {updaterState.releaseName ? (
+                <p className="mt-1 text-xs text-muted-foreground/90 line-clamp-1">
+                  {updaterState.releaseName}
+                </p>
+              ) : null}
+            </AlertDescription>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="h-8 rounded-md px-2 bg-secondary/70 hover:bg-secondary"
+              onClick={() => setDismissedVersion(dismissKey)}>
+              {t("header.dismissUpdate", "Skip this update")}
+            </Button>
+
+            <Button
+              type="button"
+              size="sm"
+              variant="default"
+              className="h-8 rounded-md px-2"
+              onClick={handlePrimaryAction}
+              disabled={isRunningAction}>
+              <span className="inline-flex items-center gap-1.5">
+                {isRunningAction ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : isDownloaded ? (
+                  <Rocket className="h-3.5 w-3.5" />
+                ) : isDownloading ? (
+                  <ArrowRight className="h-3.5 w-3.5" />
+                ) : (
+                  <DownloadCloud className="h-3.5 w-3.5" />
+                )}
+                <span>
+                  {isDownloaded
+                    ? t("header.installNow", "Install now")
+                    : isDownloading
+                      ? t("header.openUpdates", "Open updates in Config")
+                      : t("header.downloadNow", "Download now")}
+                </span>
+              </span>
+            </Button>
+          </div>
         </div>
-      }
-      secondaryActionLabel={t("header.dismissUpdate", "Skip this update")}
-      onSecondaryAction={() => setDismissedVersion(dismissKey)}
-      secondaryActionVariant="ghost"
-      primaryActionLabel={
-        <span className="inline-flex items-center gap-2">
-          {isRunningAction ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : isDownloaded ? (
-            <Rocket className="h-3.5 w-3.5" />
-          ) : isDownloading ? (
-            <ArrowRight className="h-3.5 w-3.5" />
-          ) : (
-            <DownloadCloud className="h-3.5 w-3.5" />
-          )}
-          <span>
-            {isDownloaded
-              ? t("header.installNow", "Install now")
-              : isDownloading
-                ? t("header.openUpdates", "Open updates in Config")
-                : t("header.downloadNow", "Download now")}
+
+        <button
+          type="button"
+          className="absolute right-3 top-3 inline-flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          onClick={() => setDismissedVersion(dismissKey)}
+          title={t("header.closeUpdateBanner", "Close update notice")}>
+          <X className="size-4" />
+          <span className="sr-only">
+            {t("header.closeUpdateBanner", "Close update notice")}
           </span>
-        </span>
-      }
-      onPrimaryAction={handlePrimaryAction}
-      primaryActionVariant={isDownloaded ? "default" : "secondary"}
-      primaryActionDisabled={isRunningAction}
-      closeLabel={t("header.closeUpdateBanner", "Close update notice")}
-      onClose={() => setDismissedVersion(dismissKey)}
-    />
+        </button>
+      </Alert>
+    </div>
   );
 }
 
@@ -259,7 +310,6 @@ function App(): React.ReactElement {
                 <ThemeToggleButton />
               </header>
               <main className="flex-1 min-h-0 p-6 overflow-x-hidden overflow-y-auto">
-                <HeaderUpdateNotice />
                 <Routes>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/patcher" element={<PatcherPage />} />
@@ -268,6 +318,7 @@ function App(): React.ReactElement {
                   <Route path="/about" element={<AboutPage />} />
                   <Route path="/changelog" element={<ChangelogPage />} />
                 </Routes>
+                <HeaderUpdateNotice />
               </main>
             </SidebarInset>
           </SidebarProvider>
