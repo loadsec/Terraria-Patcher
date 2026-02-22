@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
 import { join, dirname } from "path";
+import { spawn } from "child_process";
 import { autoUpdater, type ProgressInfo, type UpdateInfo } from "electron-updater";
 import icon from "../../resources/terraria-logo.png?asset";
 import * as fse from "fs-extra";
@@ -120,6 +121,14 @@ type RuntimeDependencyCheck = {
   details?: string[];
 };
 
+type DotNetFrameworkCheck = {
+  ok: boolean;
+  requiredRelease: number;
+  detectedRelease?: number;
+  source?: "registry" | "unknown";
+  error?: string;
+};
+
 type UpdaterPhase =
   | "idle"
   | "unsupported"
@@ -158,6 +167,113 @@ type MainLocaleDict = Record<string, unknown>;
 let mainLocalesCache: Record<string, MainLocaleDict> | null = null;
 const PREREQS_RELEASE_URL =
   "https://github.com/loadsec/Terraria-Patcher-Prereqs/releases/tag/dotnet472-prereqs";
+const MICROSOFT_DOTNET472_DOWNLOAD_URL =
+  "https://dotnet.microsoft.com/en-us/download/dotnet-framework/net472";
+const DOTNET_472_MIN_RELEASE = 461808;
+let devBridgeBuildRunning = false;
+
+function getProjectRootDir(): string {
+  return join(__dirname, "..", "..");
+}
+
+function getBridgeProjectPath(): string {
+  return join(getProjectRootDir(), "src", "main", "bridge", "TerrariaPatcherBridge.csproj");
+}
+
+function parseRegistryReleaseValue(output: string): number | null {
+  const line = output
+    .split(/\r?\n/)
+    .map((v) => v.trim())
+    .find((v) => /\bRelease\b/i.test(v) && /\bREG_DWORD\b/i.test(v));
+  if (!line) return null;
+
+  const parts = line.split(/\s+/);
+  const raw = parts[parts.length - 1];
+  if (!raw) return null;
+
+  if (/^0x/i.test(raw)) {
+    const parsedHex = Number.parseInt(raw.replace(/^0x/i, ""), 16);
+    return Number.isFinite(parsedHex) ? parsedHex : null;
+  }
+
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+async function detectWindowsDotNetFramework472(): Promise<DotNetFrameworkCheck> {
+  const base: DotNetFrameworkCheck = {
+    ok: process.platform !== "win32",
+    requiredRelease: DOTNET_472_MIN_RELEASE,
+    source: "unknown",
+  };
+
+  if (process.platform !== "win32") {
+    return base;
+  }
+
+  const args = [
+    "query",
+    "HKLM\\SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v4\\Full",
+    "/v",
+    "Release",
+  ];
+
+  try {
+    const result = await new Promise<{ code: number; stdout: string; stderr: string }>(
+      (resolve) => {
+        let stdout = "";
+        let stderr = "";
+        const child = spawn("reg", args, {
+          windowsHide: true,
+        });
+
+        child.stdout.on("data", (chunk) => {
+          stdout += String(chunk);
+        });
+        child.stderr.on("data", (chunk) => {
+          stderr += String(chunk);
+        });
+        child.on("error", (err) => {
+          stderr += `${err instanceof Error ? err.message : String(err)}\n`;
+          resolve({ code: 1, stdout, stderr });
+        });
+        child.on("close", (code) => {
+          resolve({ code: code ?? 1, stdout, stderr });
+        });
+      },
+    );
+
+    if (result.code !== 0) {
+      return {
+        ...base,
+        ok: false,
+        error: (result.stderr || result.stdout || "Failed to query .NET Framework registry.").trim(),
+      };
+    }
+
+    const release = parseRegistryReleaseValue(result.stdout);
+    if (typeof release !== "number") {
+      return {
+        ...base,
+        ok: false,
+        error: "Unable to read .NET Framework v4 Full Release value from registry.",
+      };
+    }
+
+    return {
+      ok: release >= DOTNET_472_MIN_RELEASE,
+      requiredRelease: DOTNET_472_MIN_RELEASE,
+      detectedRelease: release,
+      source: "registry",
+    };
+  } catch (err) {
+    return {
+      ...base,
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
 
 function getBridgeRuntimeDir(): string {
   if (app.isPackaged) {
@@ -776,6 +892,119 @@ function setupIpcHandlers(): void {
     return { success: true, state: updaterState };
   });
 
+  // Dev Tools
+  ipcMain.handle("dev:getStatus", async () => {
+    initializeAutoUpdater();
+
+    const language = (() => {
+      try {
+        return _store?.get?.("language") || app.getLocale();
+      } catch {
+        return app.getLocale();
+      }
+    })();
+
+    const deps = validateRuntimeDependencies(String(language || ""));
+    const dotnetFramework = await detectWindowsDotNetFramework472();
+    return {
+      success: true,
+      devMode: !app.isPackaged,
+      platform: process.platform,
+      appVersion: app.getVersion(),
+      paths: {
+        projectRoot: getProjectRootDir(),
+        bridgeProject: getBridgeProjectPath(),
+        bridgeRuntimeDir: getBridgeRuntimeDir(),
+        bridgeDll: getBridgeDllPath(),
+        pluginsResourcesDir: getPluginsResourcesDir(),
+      },
+      runtimeDeps: deps,
+      dotnetFramework,
+      prereqLinks: {
+        microsoft: MICROSOFT_DOTNET472_DOWNLOAD_URL,
+        github: PREREQS_RELEASE_URL,
+      },
+      updaterState,
+      bridgeBuildRunning: devBridgeBuildRunning,
+    };
+  });
+
+  ipcMain.handle("dev:buildBridge", async () => {
+    if (app.isPackaged) {
+      return { success: false, unsupported: true, error: "Dev Tools are unavailable in packaged builds." };
+    }
+
+    if (devBridgeBuildRunning) {
+      return { success: false, busy: true, error: "Bridge build is already running." };
+    }
+
+    devBridgeBuildRunning = true;
+    const startedAt = Date.now();
+    const projectPath = getBridgeProjectPath();
+    const cwd = getProjectRootDir();
+
+    try {
+      const result = await new Promise<{
+        code: number;
+        stdout: string;
+        stderr: string;
+      }>((resolve) => {
+        let stdout = "";
+        let stderr = "";
+
+        const child = spawn("dotnet", ["build", projectPath, "-c", "Release"], {
+          cwd,
+          windowsHide: true,
+        });
+
+        child.stdout.on("data", (chunk) => {
+          stdout += String(chunk);
+        });
+
+        child.stderr.on("data", (chunk) => {
+          stderr += String(chunk);
+        });
+
+        child.on("error", (err) => {
+          stderr += `${err instanceof Error ? err.message : String(err)}\n`;
+          resolve({ code: 1, stdout, stderr });
+        });
+
+        child.on("close", (code) => {
+          resolve({ code: code ?? 1, stdout, stderr });
+        });
+      });
+
+      return {
+        success: result.code === 0,
+        code: result.code,
+        stdout: result.stdout,
+        stderr: result.stderr,
+        durationMs: Date.now() - startedAt,
+      };
+    } finally {
+      devBridgeBuildRunning = false;
+    }
+  });
+
+  ipcMain.handle("dev:openPrereqLink", async (_event, source: "microsoft" | "github") => {
+    if (app.isPackaged) {
+      return { success: false, unsupported: true, error: "Dev Tools are unavailable in packaged builds." };
+    }
+
+    const target =
+      source === "microsoft" ? MICROSOFT_DOTNET472_DOWNLOAD_URL : PREREQS_RELEASE_URL;
+    try {
+      await shell.openExternal(target);
+      return { success: true };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  });
+
   // Config
   ipcMain.handle("config:get", async (_event, key: string) => {
     const store = await getStore();
@@ -1373,6 +1602,89 @@ app.whenReady().then(async () => {
         // Ignore browser launch failures and continue quitting the app.
       }
     }
+    app.quit();
+    return;
+  }
+
+  const dotnetCheck = await detectWindowsDotNetFramework472();
+  if (process.platform === "win32" && !dotnetCheck.ok) {
+    const detectedReleaseText =
+      typeof dotnetCheck.detectedRelease === "number"
+        ? String(dotnetCheck.detectedRelease)
+        : tMain("main.dotnetPrereq.notDetected", {
+            lang: startupLanguage,
+            defaultValue: "Not detected",
+          });
+
+    const result = await dialog.showMessageBox({
+      type: "warning",
+      title: tMain("main.dotnetPrereq.title", {
+        lang: startupLanguage,
+        defaultValue: ".NET Framework 4.7.2+ Required",
+      }),
+      message: tMain("main.dotnetPrereq.message", {
+        lang: startupLanguage,
+        defaultValue:
+          "Terraria Patcher requires .NET Framework 4.7.2 or newer to run the C# bridge.",
+      }),
+      detail: [
+        tMain("main.dotnetPrereq.detectedRelease", {
+          lang: startupLanguage,
+          defaultValue: "Detected Release value: {{value}}",
+          args: { value: detectedReleaseText },
+        }),
+        tMain("main.dotnetPrereq.requiredRelease", {
+          lang: startupLanguage,
+          defaultValue: "Required minimum Release value: {{value}} (.NET Framework 4.7.2)",
+          args: { value: dotnetCheck.requiredRelease },
+        }),
+        "",
+        tMain("main.dotnetPrereq.recommendOfficial", {
+          lang: startupLanguage,
+          defaultValue: "Recommended: download/install from Microsoft first.",
+        }),
+        tMain("main.dotnetPrereq.recommendMirror", {
+          lang: startupLanguage,
+          defaultValue:
+            "If the Microsoft download is unavailable, use the GitHub prerequisites mirror.",
+        }),
+        "",
+        `Microsoft: ${MICROSOFT_DOTNET472_DOWNLOAD_URL}`,
+        `GitHub: ${PREREQS_RELEASE_URL}`,
+      ].join("\n"),
+      buttons: [
+        tMain("main.dotnetPrereq.closeButton", {
+          lang: startupLanguage,
+          defaultValue: "Close",
+        }),
+        tMain("main.dotnetPrereq.microsoftButton", {
+          lang: startupLanguage,
+          defaultValue: "Open Microsoft",
+        }),
+        tMain("main.dotnetPrereq.githubButton", {
+          lang: startupLanguage,
+          defaultValue: "Open GitHub Mirror",
+        }),
+      ],
+      defaultId: 1,
+      cancelId: 0,
+      noLink: true,
+    });
+
+    if (result.response === 1) {
+      try {
+        await shell.openExternal(MICROSOFT_DOTNET472_DOWNLOAD_URL);
+      } catch {
+        // ignore
+      }
+    } else if (result.response === 2) {
+      try {
+        await shell.openExternal(PREREQS_RELEASE_URL);
+      } catch {
+        // ignore
+      }
+    }
+
     app.quit();
     return;
   }

@@ -37,6 +37,46 @@
   "devTools": {
     "title": "Dev Tools",
     "subtitle": "Development-only testing utilities. Hidden in packaged builds.",
+    "bridge": {
+      "title": "Bridge & Runtime",
+      "desc": "Build the C# bridge and inspect local runtime dependency paths used by the patcher in development.",
+      "buildBtn": "Build C# Bridge",
+      "busy": "Bridge build is already running.",
+      "buildSuccess": "Bridge compiled successfully.",
+      "buildFailed": "Bridge build failed.",
+      "output": "Bridge Build Output",
+      "outputSuccess": "Build succeeded in {{duration}}s",
+      "outputFailed": "Build failed (exit code: {{code}})",
+      "outputEmpty": "No build output yet. Click “Build C# Bridge” to compile the bridge from this page."
+    },
+    "runtime": {
+      "refreshBtn": "Refresh Status",
+      "refreshed": "Dev status refreshed.",
+      "refreshFailed": "Failed to refresh dev status.",
+      "dependencies": "Runtime dependencies",
+      "ok": "OK",
+      "missing": "Missing files",
+      "environment": "Environment",
+      "mode": "Mode: {{mode}}",
+      "devMode": "Development",
+      "packagedMode": "Packaged",
+      "paths": "Runtime Paths",
+      "details": "Missing Dependency Details"
+    },
+    "dotnet": {
+      "title": ".NET Framework 4.7.2+",
+      "detected": "Detected (compatible)",
+      "missing": "Missing or incompatible",
+      "nonWindows": "Not applicable on this platform",
+      "requiredRelease": "Required Release",
+      "detectedRelease": "Detected Release",
+      "notDetected": "Not detected",
+      "recommendation": "Recommendation: try the official Microsoft download first. If it is unavailable, use the GitHub prerequisites mirror.",
+      "microsoftBtn": "Open Microsoft",
+      "githubBtn": "Open GitHub Mirror",
+      "openFailed": "Failed to open prerequisites link.",
+      "errorPrefix": "Detection error"
+    },
     "updater": {
       "title": "Updater Simulation",
       "desc": "Simulate updater states to test the floating update alert and Config update UI during pnpm run dev.",
@@ -56,6 +96,18 @@
     }
   },
   "main": {
+    "dotnetPrereq": {
+      "title": ".NET Framework 4.7.2+ Required",
+      "message": "Terraria Patcher requires .NET Framework 4.7.2 or newer to run the C# bridge.",
+      "notDetected": "Not detected",
+      "detectedRelease": "Detected Release value: {{value}}",
+      "requiredRelease": "Required minimum Release value: {{value}} (.NET Framework 4.7.2)",
+      "recommendOfficial": "Recommended: download/install from Microsoft first.",
+      "recommendMirror": "If the Microsoft download is unavailable, use the GitHub prerequisites mirror.",
+      "closeButton": "Close",
+      "microsoftButton": "Open Microsoft",
+      "githubButton": "Open GitHub Mirror"
+    },
     "runtimeDeps": {
       "title": "Missing Runtime Files",
       "packagedMessage": "This packaged build is missing required patcher runtime files (bridge/plugins). Reinstall the app or download a complete build.",

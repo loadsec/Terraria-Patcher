@@ -29,6 +29,13 @@ type UpdaterState = {
   lastCheckedAt?: string;
 };
 
+type RuntimeDependencyCheck = {
+  ok: boolean;
+  title?: string;
+  message?: string;
+  details?: string[];
+};
+
 const api = {
   config: {
     get: (key: string): Promise<unknown> =>
@@ -99,6 +106,41 @@ const api = {
         ipcRenderer.removeListener("updater:state", listener);
       };
     },
+  },
+  dev: {
+    getStatus: (): Promise<{
+      success: boolean;
+      devMode: boolean;
+      platform: string;
+      appVersion: string;
+      bridgeBuildRunning: boolean;
+      paths: {
+        projectRoot: string;
+        bridgeProject: string;
+        bridgeRuntimeDir: string;
+        bridgeDll: string;
+        pluginsResourcesDir: string;
+      };
+      runtimeDeps: RuntimeDependencyCheck;
+      updaterState: UpdaterState;
+    }> => ipcRenderer.invoke("dev:getStatus"),
+    buildBridge: (): Promise<{
+      success: boolean;
+      unsupported?: boolean;
+      busy?: boolean;
+      error?: string;
+      code?: number;
+      stdout?: string;
+      stderr?: string;
+      durationMs?: number;
+    }> => ipcRenderer.invoke("dev:buildBridge"),
+    openPrereqLink: (
+      source: "microsoft" | "github",
+    ): Promise<{
+      success: boolean;
+      unsupported?: boolean;
+      error?: string;
+    }> => ipcRenderer.invoke("dev:openPrereqLink", source),
   },
   plugins: {
     list: (): Promise<string[]> => ipcRenderer.invoke("plugins:list"),

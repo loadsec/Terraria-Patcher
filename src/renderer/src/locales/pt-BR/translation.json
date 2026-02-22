@@ -37,6 +37,46 @@
   "devTools": {
     "title": "Ferramentas Dev",
     "subtitle": "Utilitários de teste para desenvolvimento. Ocultos em builds empacotadas.",
+    "bridge": {
+      "title": "Bridge e Runtime",
+      "desc": "Compile a bridge em C# e inspecione os caminhos locais de dependências de runtime usados pelo patcher no desenvolvimento.",
+      "buildBtn": "Compilar Bridge C#",
+      "busy": "A compilação da bridge já está em execução.",
+      "buildSuccess": "Bridge compilada com sucesso.",
+      "buildFailed": "Falha ao compilar a bridge.",
+      "output": "Saída da Compilação da Bridge",
+      "outputSuccess": "Compilação concluída em {{duration}}s",
+      "outputFailed": "Falha na compilação (código de saída: {{code}})",
+      "outputEmpty": "Ainda não há saída de compilação. Clique em “Compilar Bridge C#” para compilar a bridge por esta página."
+    },
+    "runtime": {
+      "refreshBtn": "Atualizar Status",
+      "refreshed": "Status dev atualizado.",
+      "refreshFailed": "Falha ao atualizar status dev.",
+      "dependencies": "Dependências de runtime",
+      "ok": "OK",
+      "missing": "Arquivos ausentes",
+      "environment": "Ambiente",
+      "mode": "Modo: {{mode}}",
+      "devMode": "Desenvolvimento",
+      "packagedMode": "Empacotado",
+      "paths": "Caminhos de Runtime",
+      "details": "Detalhes das Dependências Ausentes"
+    },
+    "dotnet": {
+      "title": ".NET Framework 4.7.2+",
+      "detected": "Detectado (compatível)",
+      "missing": "Ausente ou incompatível",
+      "nonWindows": "Não se aplica nesta plataforma",
+      "requiredRelease": "Release Mínimo",
+      "detectedRelease": "Release Detectado",
+      "notDetected": "Não detectado",
+      "recommendation": "Recomendação: tente primeiro o download oficial da Microsoft. Se não estiver disponível, use o mirror de pré-requisitos no GitHub.",
+      "microsoftBtn": "Abrir Microsoft",
+      "githubBtn": "Abrir Mirror GitHub",
+      "openFailed": "Falha ao abrir link de pré-requisitos.",
+      "errorPrefix": "Erro de detecção"
+    },
     "updater": {
       "title": "Simulação do Updater",
       "desc": "Simule estados do updater para testar o alerta flutuante de atualização e a UI de updates da Config durante o pnpm run dev.",
@@ -56,6 +96,18 @@
     }
   },
   "main": {
+    "dotnetPrereq": {
+      "title": ".NET Framework 4.7.2+ Necessário",
+      "message": "O Terraria Patcher precisa do .NET Framework 4.7.2 ou mais novo para executar a bridge em C#.",
+      "notDetected": "Não detectado",
+      "detectedRelease": "Valor Release detectado: {{value}}",
+      "requiredRelease": "Valor Release mínimo necessário: {{value}} (.NET Framework 4.7.2)",
+      "recommendOfficial": "Recomendado: baixe/instale primeiro pelo site da Microsoft.",
+      "recommendMirror": "Se o download da Microsoft estiver indisponível, use o mirror de pré-requisitos no GitHub.",
+      "closeButton": "Fechar",
+      "microsoftButton": "Abrir Microsoft",
+      "githubButton": "Abrir Mirror GitHub"
+    },
     "runtimeDeps": {
       "title": "Arquivos de Runtime Ausentes",
       "packagedMessage": "Esta build empacotada está sem arquivos obrigatórios do patcher (bridge/plugins). Reinstale o app ou baixe uma build completa.",

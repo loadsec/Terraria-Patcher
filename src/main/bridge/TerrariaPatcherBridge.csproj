@@ -10,11 +10,11 @@
 
   <ItemGroup>
     <Reference Include="Mono.Cecil">
-      <HintPath>C:\Users\Louan\Documents\GitHub\TerrariaPatcher\bin\Debug\Mono.Cecil.dll</HintPath>
+      <HintPath>$(MSBuildThisFileDirectory)bin\Release\Mono.Cecil.dll</HintPath>
       <Private>true</Private>
     </Reference>
     <Reference Include="Mono.Cecil.Rocks">
-      <HintPath>C:\Users\Louan\Documents\GitHub\TerrariaPatcher\bin\Debug\Mono.Cecil.Rocks.dll</HintPath>
+      <HintPath>$(MSBuildThisFileDirectory)bin\Release\Mono.Cecil.Rocks.dll</HintPath>
       <Private>true</Private>
     </Reference>
   </ItemGroup>

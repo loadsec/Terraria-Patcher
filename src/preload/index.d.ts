@@ -92,6 +92,52 @@ export interface UpdaterActionResult {
 
 export type UpdaterDebugMockMode = "available" | "downloading" | "downloaded" | "reset";
 
+export interface RuntimeDependencyCheck {
+  ok: boolean;
+  title?: string;
+  message?: string;
+  details?: string[];
+}
+
+export interface DevStatusResult {
+  success: boolean;
+  devMode: boolean;
+  platform: string;
+  appVersion: string;
+  bridgeBuildRunning: boolean;
+  paths: {
+    projectRoot: string;
+    bridgeProject: string;
+    bridgeRuntimeDir: string;
+    bridgeDll: string;
+    pluginsResourcesDir: string;
+  };
+  runtimeDeps: RuntimeDependencyCheck;
+  dotnetFramework: {
+    ok: boolean;
+    requiredRelease: number;
+    detectedRelease?: number;
+    source?: "registry" | "unknown";
+    error?: string;
+  };
+  prereqLinks: {
+    microsoft: string;
+    github: string;
+  };
+  updaterState: UpdaterState;
+}
+
+export interface DevBuildBridgeResult {
+  success: boolean;
+  unsupported?: boolean;
+  busy?: boolean;
+  error?: string;
+  code?: number;
+  stdout?: string;
+  stderr?: string;
+  durationMs?: number;
+}
+
 export interface PatchOptions {
   time: boolean;
   social: boolean;
@@ -143,6 +189,17 @@ declare global {
         quitAndInstall: () => Promise<UpdaterActionResult>;
         debugMock: (mode: UpdaterDebugMockMode) => Promise<UpdaterActionResult>;
         onStateChange: (callback: (state: UpdaterState) => void) => () => void;
+      };
+      dev: {
+        getStatus: () => Promise<DevStatusResult>;
+        buildBridge: () => Promise<DevBuildBridgeResult>;
+        openPrereqLink: (
+          source: "microsoft" | "github",
+        ) => Promise<{
+          success: boolean;
+          unsupported?: boolean;
+          error?: string;
+        }>;
       };
       plugins: {
         list: () => Promise<string[]>;
