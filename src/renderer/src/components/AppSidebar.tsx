@@ -1,4 +1,4 @@
-import { Home, Wrench, Settings, Info, FileText } from "lucide-react";
+import { Home, Wrench, Settings, Info, FileText, FlaskConical } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import terrariaLogo from "../../../../resources/terraria-logo.png";
@@ -77,6 +77,15 @@ const systemItems: SidebarNavItem[] = [
   },
 ];
 
+const devItems: SidebarNavItem[] = [
+  {
+    i18nKey: "devTools",
+    label: "Dev Tools",
+    icon: FlaskConical,
+    path: "/dev-tools",
+  },
+];
+
 export function AppSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -88,6 +97,7 @@ export function AppSidebar() {
   const terrariaRange = versionInfo.terraria?.supportedRange;
   const navLabel = (item: SidebarNavItem) =>
     t(`sidebar.${item.i18nKey}`, item.label ?? item.i18nKey);
+  const isDevMode = import.meta.env.DEV;
 
   return (
     <Sidebar collapsible="icon">
@@ -161,6 +171,28 @@ export function AppSidebar() {
             ))}
           </SidebarMenu>
         </SidebarGroup>
+
+        {isDevMode ? (
+          <>
+            <SidebarSeparator />
+            <SidebarGroup>
+              <SidebarGroupLabel>{t("sidebar.developer", "Developer")}</SidebarGroupLabel>
+              <SidebarMenu>
+                {devItems.map((item) => (
+                  <SidebarMenuItem key={item.path}>
+                    <SidebarMenuButton
+                      isActive={location.pathname === item.path}
+                      onClick={() => navigate(item.path)}
+                      tooltip={navLabel(item)}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{navLabel(item)}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroup>
+          </>
+        ) : null}
       </SidebarContent>
 
       <SidebarFooter className="p-4">

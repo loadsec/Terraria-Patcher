@@ -27,6 +27,7 @@ import PluginsIniPage from "@/pages/PluginsIniPage";
 import ConfigPage from "@/pages/ConfigPage";
 import AboutPage from "@/pages/AboutPage";
 import ChangelogPage from "@/pages/ChangelogPage";
+import DevToolsPage from "@/pages/DevToolsPage";
 import { useEffect, useState } from "react";
 
 type HeaderUpdaterState = {
@@ -293,6 +294,7 @@ function HeaderUpdateNotice() {
 
 function App(): React.ReactElement {
   const { t } = useTranslation();
+  const isDevMode = import.meta.env.DEV;
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="terraria-patcher-theme">
@@ -317,6 +319,7 @@ function App(): React.ReactElement {
                   <Route path="/config" element={<ConfigPage />} />
                   <Route path="/about" element={<AboutPage />} />
                   <Route path="/changelog" element={<ChangelogPage />} />
+                  {isDevMode ? <Route path="/dev-tools" element={<DevToolsPage />} /> : null}
                 </Routes>
                 <HeaderUpdateNotice />
               </main>

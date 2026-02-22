@@ -9,8 +9,10 @@
     "config": "Config",
     "tools": "Tools",
     "system": "System",
+    "developer": "Developer",
     "changelog": "Changelog",
     "about": "About",
+    "devTools": "Dev Tools",
     "appVersionLabel": "Terraria Patch",
     "terrariaVersionLabel": "Terraria",
     "terrariaSupportLabel": "Supported",
@@ -31,6 +33,27 @@
     "downloadNow": "Download now",
     "installNow": "Install now",
     "closeUpdateBanner": "Close update notice"
+  },
+  "devTools": {
+    "title": "Dev Tools",
+    "subtitle": "Development-only testing utilities. Hidden in packaged builds.",
+    "updater": {
+      "title": "Updater Simulation",
+      "desc": "Simulate updater states to test the floating update alert and Config update UI during pnpm run dev.",
+      "loading": "Loading...",
+      "currentPhase": "Current phase",
+      "latestVersion": "Latest mock version",
+      "none": "None",
+      "progress": "Progress: {{percent}}%",
+      "available": "Simulate Available",
+      "downloading": "Simulate Downloading",
+      "downloaded": "Simulate Ready",
+      "reset": "Clear Simulation",
+      "tip": "Tip: after simulating, open Home/Patcher/About/Changelog to preview the floating update alert.",
+      "mockApplied": "Updater simulation: {{state}}",
+      "mockReset": "Updater simulation cleared.",
+      "mockFailed": "Failed to apply updater mock state."
+    }
   },
   "main": {
     "runtimeDeps": {

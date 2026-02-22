@@ -9,8 +9,10 @@
     "config": "Configurações",
     "tools": "Ferramentas",
     "system": "Sistema",
+    "developer": "Desenvolvedor",
     "changelog": "Changelog",
     "about": "Sobre",
+    "devTools": "Ferramentas Dev",
     "appVersionLabel": "Terraria Patch",
     "terrariaVersionLabel": "Terraria",
     "terrariaSupportLabel": "Compatível",
@@ -31,6 +33,27 @@
     "downloadNow": "Baixar agora",
     "installNow": "Instalar agora",
     "closeUpdateBanner": "Fechar aviso de atualização"
+  },
+  "devTools": {
+    "title": "Ferramentas Dev",
+    "subtitle": "Utilitários de teste para desenvolvimento. Ocultos em builds empacotadas.",
+    "updater": {
+      "title": "Simulação do Updater",
+      "desc": "Simule estados do updater para testar o alerta flutuante de atualização e a UI de updates da Config durante o pnpm run dev.",
+      "loading": "Carregando...",
+      "currentPhase": "Fase atual",
+      "latestVersion": "Última versão simulada",
+      "none": "Nenhuma",
+      "progress": "Progresso: {{percent}}%",
+      "available": "Simular Disponível",
+      "downloading": "Simular Baixando",
+      "downloaded": "Simular Pronto",
+      "reset": "Limpar Simulação",
+      "tip": "Dica: depois de simular, abra Início/Patcher/Sobre/Changelog para visualizar o alerta flutuante de update.",
+      "mockApplied": "Simulação do updater: {{state}}",
+      "mockReset": "Simulação do updater limpa.",
+      "mockFailed": "Falha ao aplicar estado simulado do updater."
+    }
   },
   "main": {
     "runtimeDeps": {
