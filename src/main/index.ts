@@ -112,6 +112,17 @@ type ProfileConfigData = {
   activePlugins?: string[];
 };
 
+type RuntimeDependencyCheck = {
+  ok: boolean;
+  title?: string;
+  message?: string;
+  details?: string[];
+};
+
+type MainLocaleDict = Record<string, unknown>;
+
+let mainLocalesCache: Record<string, MainLocaleDict> | null = null;
+
 function getBridgeRuntimeDir(): string {
   if (app.isPackaged) {
     return join(process.resourcesPath, "patcher-bridge");
@@ -139,6 +150,171 @@ function getPluginsResourcesDir(): string {
   }
 
   return join(__dirname, "..", "..", "resources", "plugins");
+}
+
+function getMainLocalesDir(): string {
+  if (app.isPackaged) {
+    return join(process.resourcesPath, "patcher-locales");
+  }
+
+  return join(__dirname, "..", "..", "src", "renderer", "src", "locales");
+}
+
+function loadMainLocalesSync(): Record<string, MainLocaleDict> {
+  if (mainLocalesCache) return mainLocalesCache;
+
+  const base = getMainLocalesDir();
+  const readLocale = (lang: string): MainLocaleDict => {
+    try {
+      return fse.readJsonSync(join(base, lang, "translation.json"));
+    } catch {
+      return {};
+    }
+  };
+
+  mainLocalesCache = {
+    en: readLocale("en"),
+    "pt-BR": readLocale("pt-BR"),
+  };
+
+  return mainLocalesCache;
+}
+
+function getNestedLocaleValue(obj: unknown, key: string): unknown {
+  let current: unknown = obj;
+  for (const part of key.split(".")) {
+    if (!current || typeof current !== "object") return undefined;
+    current = (current as Record<string, unknown>)[part];
+  }
+  return current;
+}
+
+function interpolateMainText(
+  text: string,
+  args?: Record<string, string | number>,
+): string {
+  if (!args) return text;
+  return text.replace(/\{\{(\w+)\}\}/g, (_m, key) =>
+    args[key] !== undefined ? String(args[key]) : `{{${key}}}`,
+  );
+}
+
+function normalizeMainLanguage(input?: string | null): "en" | "pt-BR" {
+  const value = (input || "").toLowerCase();
+  if (value.startsWith("pt")) return "pt-BR";
+  return "en";
+}
+
+function tMain(
+  key: string,
+  options?: {
+    lang?: string | null;
+    defaultValue?: string;
+    args?: Record<string, string | number>;
+  },
+): string {
+  const lang = normalizeMainLanguage(options?.lang);
+  const locales = loadMainLocalesSync();
+  const localized = getNestedLocaleValue(locales[lang], key);
+  const fallback = getNestedLocaleValue(locales["en"], key);
+
+  const resolved =
+    (typeof localized === "string" && localized) ||
+    (typeof fallback === "string" && fallback) ||
+    options?.defaultValue ||
+    key;
+
+  return interpolateMainText(resolved, options?.args);
+}
+
+function validateRuntimeDependencies(language?: string | null): RuntimeDependencyCheck {
+  const missing: string[] = [];
+  const bridgeDir = getBridgeRuntimeDir();
+  const bridgeDll = getBridgeDllPath();
+  const pluginsDir = getPluginsResourcesDir();
+
+  const requiredBridgeFiles = [
+    bridgeDll,
+    join(bridgeDir, "Mono.Cecil.dll"),
+    join(bridgeDir, "Mono.Cecil.Rocks.dll"),
+  ];
+
+  for (const file of requiredBridgeFiles) {
+    if (!existsSync(file)) missing.push(file);
+  }
+
+  if (!existsSync(pluginsDir)) {
+    missing.push(pluginsDir);
+  } else {
+    const requiredPluginFiles = [
+      join(pluginsDir, "PluginLoader.XNA.dll"),
+      join(pluginsDir, "Shared"),
+    ];
+    for (const file of requiredPluginFiles) {
+      if (!existsSync(file)) missing.push(file);
+    }
+  }
+
+  if (missing.length === 0) {
+    return { ok: true };
+  }
+
+  const isPackaged = app.isPackaged;
+  return {
+    ok: false,
+    title: tMain("main.runtimeDeps.title", {
+      lang: language,
+      defaultValue: "Missing Runtime Files",
+    }),
+    message: isPackaged
+      ? tMain("main.runtimeDeps.packagedMessage", {
+          lang: language,
+          defaultValue:
+            "This packaged build is missing required patcher runtime files (bridge/plugins). Reinstall the app or download a complete build.",
+        })
+      : tMain("main.runtimeDeps.devMessage", {
+          lang: language,
+          defaultValue:
+            "Required runtime files are missing for local development. Build the C# bridge and ensure plugin resources exist.",
+        }),
+    details: [
+      ...(isPackaged
+        ? [
+            tMain("main.runtimeDeps.expectedBridgeFolder", {
+              lang: language,
+              defaultValue: "Expected bridge folder: {{path}}",
+              args: { path: bridgeDir },
+            }),
+            tMain("main.runtimeDeps.expectedPluginsFolder", {
+              lang: language,
+              defaultValue: "Expected plugins folder: {{path}}",
+              args: { path: pluginsDir },
+            }),
+          ]
+        : [
+            tMain("main.runtimeDeps.devTip", {
+              lang: language,
+              defaultValue:
+                "Tip: run `pnpm run build:bridge` before starting the app.",
+            }),
+            tMain("main.runtimeDeps.bridgeFolder", {
+              lang: language,
+              defaultValue: "Bridge folder: {{path}}",
+              args: { path: bridgeDir },
+            }),
+            tMain("main.runtimeDeps.pluginsFolder", {
+              lang: language,
+              defaultValue: "Plugins folder: {{path}}",
+              args: { path: pluginsDir },
+            }),
+          ]),
+      tMain("main.runtimeDeps.missingEntries", {
+        lang: language,
+        defaultValue: "Missing entries:",
+      }),
+      ...missing.map((m) => `- ${m}`),
+    ],
+  };
 }
 
 // ─── Edge.js Bridge ──────────────────────────────────────────────────────────
@@ -728,7 +904,26 @@ function createWindow(): void {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  let startupLanguage: string | null = null;
+  try {
+    const store = await getStore();
+    startupLanguage = (store.get("language") as string) || app.getLocale();
+  } catch {
+    startupLanguage = app.getLocale();
+  }
+
+  const depsCheck = validateRuntimeDependencies(startupLanguage);
+  if (!depsCheck.ok) {
+    const details = (depsCheck.details || []).join("\n");
+    dialog.showErrorBox(
+      depsCheck.title || "Startup Error",
+      `${depsCheck.message || "Required files are missing."}\n\n${details}`,
+    );
+    app.quit();
+    return;
+  }
+
   setupIpcHandlers();
   createWindow();
 

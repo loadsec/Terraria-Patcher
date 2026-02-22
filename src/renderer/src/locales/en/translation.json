@@ -16,6 +16,19 @@
     "toggleTheme": "Toggle Theme",
     "toggleLanguage": "Change Language"
   },
+  "main": {
+    "runtimeDeps": {
+      "title": "Missing Runtime Files",
+      "packagedMessage": "This packaged build is missing required patcher runtime files (bridge/plugins). Reinstall the app or download a complete build.",
+      "devMessage": "Required runtime files are missing for local development. Build the C# bridge and ensure plugin resources exist.",
+      "expectedBridgeFolder": "Expected bridge folder: {{path}}",
+      "expectedPluginsFolder": "Expected plugins folder: {{path}}",
+      "devTip": "Tip: run `pnpm run build:bridge` before starting the app.",
+      "bridgeFolder": "Bridge folder: {{path}}",
+      "pluginsFolder": "Plugins folder: {{path}}",
+      "missingEntries": "Missing entries:"
+    }
+  },
   "patcher": {
     "title": "Game Modifications",
     "description": "Configure standalone patches to apply directly to the Terraria executable.",

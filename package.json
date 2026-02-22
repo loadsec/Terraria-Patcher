@@ -88,6 +88,13 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": "src/renderer/src/locales",
+        "to": "patcher-locales",
+        "filter": [
+          "**/*.json"
+        ]
       }
     ],
     "win": {

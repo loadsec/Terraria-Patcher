@@ -16,6 +16,19 @@
     "toggleTheme": "Alternar Tema",
     "toggleLanguage": "Mudar Idioma"
   },
+  "main": {
+    "runtimeDeps": {
+      "title": "Arquivos de Runtime Ausentes",
+      "packagedMessage": "Esta build empacotada está sem arquivos obrigatórios do patcher (bridge/plugins). Reinstale o app ou baixe uma build completa.",
+      "devMessage": "Arquivos obrigatórios de runtime estão ausentes no ambiente local. Compile a bridge em C# e confirme que os recursos de plugins existem.",
+      "expectedBridgeFolder": "Pasta esperada da bridge: {{path}}",
+      "expectedPluginsFolder": "Pasta esperada dos plugins: {{path}}",
+      "devTip": "Dica: execute `pnpm run build:bridge` antes de iniciar o app.",
+      "bridgeFolder": "Pasta da bridge: {{path}}",
+      "pluginsFolder": "Pasta dos plugins: {{path}}",
+      "missingEntries": "Itens ausentes:"
+    }
+  },
   "patcher": {
     "title": "Modificações do Jogo",
     "description": "Configure patches independentes para aplicar direto no executável do Terraria.",
