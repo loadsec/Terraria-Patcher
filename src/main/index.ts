@@ -16,10 +16,7 @@ interface StoreSchema {
   terrariaPath: string;
   language: string;
   pluginSupport: boolean;
-  patchOptions: {
-    SteamFix: boolean;
-    Plugins: boolean;
-  };
+  patchOptions: Record<string, unknown>;
   activePlugins?: string[];
 }
 
@@ -107,6 +104,14 @@ function serializePluginIni(sections: PluginIniSection[]): string {
   return lines.join("\r\n") + (lines.length > 0 ? "\r\n" : "");
 }
 
+type ProfileConfigData = {
+  terrariaPath?: string;
+  language?: string;
+  pluginSupport?: boolean;
+  patchOptions?: Record<string, unknown>;
+  activePlugins?: string[];
+};
+
 // ─── Edge.js Bridge ──────────────────────────────────────────────────────────
 
 let patcherFunc:
@@ -161,6 +166,110 @@ function setupIpcHandlers(): void {
   ipcMain.handle("config:set", async (_event, key: string, value: unknown) => {
     const store = await getStore();
     store.set(key, value);
+  });
+
+  ipcMain.handle("profile:export", async () => {
+    try {
+      const store = await getStore();
+      const payload = {
+        schema: "terraria-patcher-profile",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        data: {
+          terrariaPath: (store.get("terrariaPath") as string) || "",
+          language: (store.get("language") as string) || "en",
+          pluginSupport: Boolean(store.get("pluginSupport")),
+          patchOptions:
+            (store.get("patchOptions") as Record<string, unknown>) || {},
+          activePlugins: (store.get("activePlugins") as string[]) || [],
+        } satisfies ProfileConfigData,
+      };
+
+      const result = await dialog.showSaveDialog({
+        title: "Export Terraria Patcher Profile",
+        defaultPath: join(app.getPath("documents"), "TerrariaPatcher.profile.json"),
+        filters: [{ name: "JSON Files", extensions: ["json"] }],
+      });
+
+      if (result.canceled || !result.filePath) {
+        return { success: false, canceled: true };
+      }
+
+      await fse.writeJson(result.filePath, payload, { spaces: 2 });
+      return {
+        success: true,
+        path: result.filePath,
+        key: "config.profile.messages.exportSuccess",
+      };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return {
+        success: false,
+        key: "config.profile.messages.exportFailed",
+        args: { error: msg },
+      };
+    }
+  });
+
+  ipcMain.handle("profile:import", async () => {
+    try {
+      const result = await dialog.showOpenDialog({
+        title: "Import Terraria Patcher Profile",
+        properties: ["openFile"],
+        filters: [{ name: "JSON Files", extensions: ["json"] }],
+      });
+
+      if (result.canceled || result.filePaths.length === 0) {
+        return { success: false, canceled: true };
+      }
+
+      const filePath = result.filePaths[0];
+      const parsed = await fse.readJson(filePath);
+      const rawData = parsed?.data && typeof parsed.data === "object" ? parsed.data : parsed;
+
+      if (!rawData || typeof rawData !== "object") {
+        return {
+          success: false,
+          key: "config.profile.messages.importInvalid",
+        };
+      }
+
+      const data = rawData as ProfileConfigData;
+      const store = await getStore();
+
+      if (typeof data.terrariaPath === "string") store.set("terrariaPath", data.terrariaPath);
+      if (typeof data.language === "string") store.set("language", data.language);
+      if (typeof data.pluginSupport === "boolean") store.set("pluginSupport", data.pluginSupport);
+      if (data.patchOptions && typeof data.patchOptions === "object") store.set("patchOptions", data.patchOptions);
+      if (Array.isArray(data.activePlugins)) store.set("activePlugins", data.activePlugins);
+
+      return {
+        success: true,
+        path: filePath,
+        key: "config.profile.messages.importSuccess",
+        data: {
+          terrariaPath:
+            typeof data.terrariaPath === "string"
+              ? data.terrariaPath
+              : (store.get("terrariaPath") as string) || "",
+          language:
+            typeof data.language === "string"
+              ? data.language
+              : (store.get("language") as string) || "en",
+          pluginSupport:
+            typeof data.pluginSupport === "boolean"
+              ? data.pluginSupport
+              : Boolean(store.get("pluginSupport")),
+        },
+      };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return {
+        success: false,
+        key: "config.profile.messages.importFailed",
+        args: { error: msg },
+      };
+    }
   });
 
   // Plugins

@@ -78,7 +78,7 @@ export function AppSidebar() {
         <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
           <img
             src={terrariaLogo}
-            alt="Terraria Logo"
+            alt={t("sidebar.logoAlt", "Terraria Logo")}
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg object-contain"
           />
           <span className="text-sm font-semibold group-data-[collapsible=icon]:hidden">

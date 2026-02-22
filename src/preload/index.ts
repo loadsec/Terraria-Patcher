@@ -11,6 +11,27 @@ const api = {
     openFile: (): Promise<string | null> =>
       ipcRenderer.invoke("dialog:openFile"),
   },
+  profile: {
+    export: (): Promise<{
+      success: boolean;
+      canceled?: boolean;
+      path?: string;
+      key?: string;
+      args?: Record<string, string>;
+    }> => ipcRenderer.invoke("profile:export"),
+    import: (): Promise<{
+      success: boolean;
+      canceled?: boolean;
+      path?: string;
+      key?: string;
+      args?: Record<string, string>;
+      data?: {
+        terrariaPath: string;
+        language: string;
+        pluginSupport: boolean;
+      };
+    }> => ipcRenderer.invoke("profile:import"),
+  },
   plugins: {
     list: (): Promise<string[]> => ipcRenderer.invoke("plugins:list"),
     iniLoad: (

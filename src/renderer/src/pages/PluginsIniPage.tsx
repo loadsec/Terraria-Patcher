@@ -76,6 +76,19 @@ export default function PluginsIniPage() {
     text: string;
   } | null>(null);
 
+  const getFieldTypeLabel = (fieldType: "bool" | "number" | "hotkey" | "text") => {
+    switch (fieldType) {
+      case "bool":
+        return t("plugins.ini.fieldTypes.bool", "Boolean");
+      case "number":
+        return t("plugins.ini.fieldTypes.number", "Number");
+      case "hotkey":
+        return t("plugins.ini.fieldTypes.hotkey", "Hotkey");
+      default:
+        return t("plugins.ini.fieldTypes.text", "Text");
+    }
+  };
+
   const updateEntryValue = (
     sectionIndex: number,
     entryIndex: number,
@@ -304,7 +317,10 @@ export default function PluginsIniPage() {
               normalizeHotkeyValue(e.target.value),
             )
           }
-          placeholder="R / F / OemSemicolon"
+          placeholder={t(
+            "plugins.ini.hotkeyPlaceholder",
+            "R / F / OemSemicolon",
+          )}
           className="h-9"
         />
       );
@@ -510,7 +526,7 @@ export default function PluginsIniPage() {
                                 fieldType === "text" &&
                                   "border-muted-foreground/20 bg-muted/60 text-foreground/80 dark:bg-muted/30 dark:text-muted-foreground",
                               )}>
-                              {fieldType}
+                              {getFieldTypeLabel(fieldType)}
                             </span>
                           </div>
                           {renderFieldInput(entry, sectionIndex, entryIndex)}

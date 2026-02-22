@@ -424,24 +424,24 @@ interface PatchOptionsState {
 
 const DEFAULT_OPTIONS: PatchOptionsState = {
   steamFix: false,
-  time: true,
+  time: false,
   social: false,
   range: false,
-  pylon: true,
+  pylon: false,
   angler: false,
   rod: false,
   potion: false,
-  mana: true,
+  mana: false,
   drowning: false,
   ohk: false,
-  ammo: true,
+  ammo: false,
   wings: false,
   cloud: false,
-  bossBagsLoot: true,
+  bossBagsLoot: false,
   vampiricHealing: 7.5,
   spectreHealing: 20.0,
   spawnRateVoodoo: 15,
-  activeBuffs: ["[147] Banner", "[87] Cozy Fire", "[257] Lucky"],
+  activeBuffs: [],
 };
 
 export default function PatcherPage() {
@@ -1123,7 +1123,7 @@ export default function PatcherPage() {
                   {t("patcher.tabs.qol")}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Enhancements for standard gameplay flow.
+                  {t("patcher.tabsDescriptions.qol")}
                 </p>
               </div>
               <ScrollArea className="flex-1 p-6">
@@ -1139,9 +1139,9 @@ export default function PatcherPage() {
           {activeTab === "combat" && (
             <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
               <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold">Combat & Debuffs</h3>
+                <h3 className="text-lg font-semibold">{t("patcher.tabs.combat")}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Modifications to combat mechanics and negative effects.
+                  {t("patcher.tabsDescriptions.combat")}
                 </p>
               </div>
               <ScrollArea className="flex-1 p-6">
@@ -1157,9 +1157,9 @@ export default function PatcherPage() {
           {activeTab === "cheats" && (
             <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
               <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold">Overpowered / Cheats</h3>
+                <h3 className="text-lg font-semibold">{t("patcher.tabs.cheats")}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Features that strongly alter game balance.
+                  {t("patcher.tabsDescriptions.cheats")}
                 </p>
               </div>
               <ScrollArea className="flex-1 p-6">
@@ -1179,8 +1179,7 @@ export default function PatcherPage() {
                   {t("patcher.tabs.buffs")}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Select buffs that will be permanently active for your
-                  character.
+                  {t("patcher.tabsDescriptions.buffs")}
                 </p>
               </div>
               <div className="flex-1 p-6 flex flex-col gap-4 min-h-0">
@@ -1237,14 +1236,14 @@ export default function PatcherPage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      title="Add All"
+                      title={t("patcher.buffTransfer.addAll", "Add All")}
                       onClick={handleAddAll}>
                       <ChevronsRight className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="outline"
                       size="icon"
-                      title="Add Selected"
+                      title={t("patcher.buffTransfer.addSelected", "Add Selected")}
                       onClick={handleAddSelected}
                       disabled={selectedAvailable.size === 0}>
                       <ChevronRight className="h-4 w-4" />
@@ -1252,7 +1251,10 @@ export default function PatcherPage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      title="Remove Selected"
+                      title={t(
+                        "patcher.buffTransfer.removeSelected",
+                        "Remove Selected",
+                      )}
                       onClick={handleRemoveSelected}
                       disabled={selectedActive.size === 0}>
                       <ChevronLeft className="h-4 w-4" />
@@ -1260,7 +1262,7 @@ export default function PatcherPage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      title="Remove All"
+                      title={t("patcher.buffTransfer.removeAll", "Remove All")}
                       onClick={handleRemoveAll}>
                       <ChevronsLeft className="h-4 w-4" />
                     </Button>

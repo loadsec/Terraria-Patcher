@@ -1,6 +1,7 @@
 {
   "sidebar": {
     "title": "Terraria Patcher",
+    "logoAlt": "Terraria Logo",
     "home": "Home",
     "patcher": "Patcher",
     "pluginsIni": "Plugins.ini Editor",
@@ -71,6 +72,18 @@
       "spawning": "Spawning Tweaks",
       "voodooDemon": "Voodoo Demon Spawn Rate",
       "loot": "Loot & Bags"
+    },
+    "tabsDescriptions": {
+      "qol": "Enhancements for standard gameplay flow.",
+      "combat": "Modifications to combat mechanics and negative effects.",
+      "cheats": "Features that strongly alter game balance.",
+      "buffs": "Select buffs that will be permanently active for your character."
+    },
+    "buffTransfer": {
+      "addAll": "Add All",
+      "addSelected": "Add Selected",
+      "removeSelected": "Remove Selected",
+      "removeAll": "Remove All"
     },
     "features": {
       "qol": {
@@ -236,8 +249,15 @@
       "fieldsLabel": "fields",
       "noFields": "No fields in this section.",
       "hotkeyHint": "Use key names from the plugin format (examples: R, F, OemSemicolon).",
+      "hotkeyPlaceholder": "R / F / OemSemicolon",
       "emptyTitle": "No plugin settings found",
       "emptyDesc": "Plugins.ini exists but currently has no generated sections.",
+      "fieldTypes": {
+        "bool": "Boolean",
+        "number": "Number",
+        "hotkey": "Hotkey",
+        "text": "Text"
+      },
       "status": {
         "success": "Success",
         "error": "Error",
@@ -280,6 +300,20 @@
       "desc": "General settings for the application.",
       "pluginLabel": "Enable Plugin Support",
       "pluginDesc": "Load third-party patches from the <1>\\Plugins\\*.cs</1> directory."
+    },
+    "profile": {
+      "title": "Settings Profile",
+      "desc": "Export or import your patch selections and app settings as a JSON file.",
+      "includes": "Includes patch options, selected persistent buffs, active plugins, plugin support, language, and Terraria path.",
+      "exportBtn": "Export Profile",
+      "importBtn": "Import Profile",
+      "messages": {
+        "exportSuccess": "Profile exported successfully.",
+        "exportFailed": "Failed to export profile: {{error}}",
+        "importSuccess": "Profile imported successfully.",
+        "importFailed": "Failed to import profile: {{error}}",
+        "importInvalid": "Invalid profile file format."
+      }
     },
     "language": {
       "title": "Language",

@@ -30,6 +30,11 @@ export interface PatchResult {
   args?: Record<string, string>;
 }
 
+export interface SimpleApiResult extends PatchResult {
+  canceled?: boolean;
+  path?: string;
+}
+
 export interface PluginIniEntry {
   key: string;
   value: string;
@@ -77,6 +82,18 @@ declare global {
       };
       dialog: {
         openFile: () => Promise<string | null>;
+      };
+      profile: {
+        export: () => Promise<SimpleApiResult>;
+        import: () => Promise<
+          SimpleApiResult & {
+            data?: {
+              terrariaPath: string;
+              language: string;
+              pluginSupport: boolean;
+            };
+          }
+        >;
       };
       plugins: {
         list: () => Promise<string[]>;

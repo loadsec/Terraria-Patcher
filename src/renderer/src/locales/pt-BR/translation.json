@@ -1,6 +1,7 @@
 {
   "sidebar": {
     "title": "Terraria Patcher",
+    "logoAlt": "Logo do Terraria",
     "home": "Início",
     "patcher": "Patcher",
     "pluginsIni": "Editor do Plugins.ini",
@@ -71,6 +72,18 @@
       "spawning": "Ajustes de Geração",
       "voodooDemon": "Taxa de Geração do Demônio Vodu",
       "loot": "Loot e Bolsas"
+    },
+    "tabsDescriptions": {
+      "qol": "Melhorias para o fluxo padrão de gameplay.",
+      "combat": "Modificações em mecânicas de combate e efeitos negativos.",
+      "cheats": "Recursos que alteram fortemente o balanceamento do jogo.",
+      "buffs": "Selecione buffs que ficarão permanentemente ativos no personagem."
+    },
+    "buffTransfer": {
+      "addAll": "Adicionar Todos",
+      "addSelected": "Adicionar Selecionados",
+      "removeSelected": "Remover Selecionados",
+      "removeAll": "Remover Todos"
     },
     "features": {
       "qol": {
@@ -236,8 +249,15 @@
       "fieldsLabel": "campos",
       "noFields": "Nenhum campo nesta seção.",
       "hotkeyHint": "Use os nomes de tecla no formato do plugin (exemplos: R, F, OemSemicolon).",
+      "hotkeyPlaceholder": "R / F / OemSemicolon",
       "emptyTitle": "Nenhuma configuração de plugin encontrada",
       "emptyDesc": "O Plugins.ini existe, mas ainda não possui seções geradas.",
+      "fieldTypes": {
+        "bool": "Booleano",
+        "number": "Número",
+        "hotkey": "Atalho",
+        "text": "Texto"
+      },
       "status": {
         "success": "Sucesso",
         "error": "Erro",
@@ -280,6 +300,20 @@
       "desc": "Configurações gerais do sistema.",
       "pluginLabel": "Ativar Suporte a Plugins",
       "pluginDesc": "Carregar patches de terceiros colocados dentro do diretório <1>\\Plugins\\*.cs</1>."
+    },
+    "profile": {
+      "title": "Perfil de Configurações",
+      "desc": "Exporte ou importe suas seleções de patch e configurações do app em um arquivo JSON.",
+      "includes": "Inclui opções de patch, buffs persistentes selecionados, plugins ativos, suporte a plugins, idioma e caminho do Terraria.",
+      "exportBtn": "Exportar Perfil",
+      "importBtn": "Importar Perfil",
+      "messages": {
+        "exportSuccess": "Perfil exportado com sucesso.",
+        "exportFailed": "Falha ao exportar perfil: {{error}}",
+        "importSuccess": "Perfil importado com sucesso.",
+        "importFailed": "Falha ao importar perfil: {{error}}",
+        "importInvalid": "Formato de arquivo de perfil inválido."
+      }
     },
     "language": {
       "title": "Idioma",

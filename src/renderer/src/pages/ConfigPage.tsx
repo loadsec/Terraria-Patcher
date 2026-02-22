@@ -1,4 +1,4 @@
-import { Settings, Search, Check, Save } from "lucide-react";
+import { Settings, Search, Check, Save, Upload, Download } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,13 @@ export default function ConfigPage() {
   const [terrariaPath, setTerrariaPath] = useState("");
   const [pluginSupport, setPluginSupport] = useState(true);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [isExportingProfile, setIsExportingProfile] = useState(false);
+  const [isImportingProfile, setIsImportingProfile] = useState(false);
+
+  const flashMessage = (message: string) => {
+    setSaveMessage(message);
+    setTimeout(() => setSaveMessage(null), 3000);
+  };
 
   // Load persisted config on mount
   useEffect(() => {
@@ -69,12 +76,77 @@ export default function ConfigPage() {
       await window.api.config.set("language", selectedLang);
       await window.api.config.set("pluginSupport", pluginSupport);
       i18n.changeLanguage(selectedLang);
-      setSaveMessage(t("config.saved", "Configuration saved!"));
-      setTimeout(() => setSaveMessage(null), 3000);
+      flashMessage(t("config.saved", "Configuration saved!"));
     } catch (err) {
       console.error("Failed to save config:", err);
-      setSaveMessage(t("config.saveFailed", "Failed to save configuration."));
-      setTimeout(() => setSaveMessage(null), 3000);
+      flashMessage(t("config.saveFailed", "Failed to save configuration."));
+    }
+  };
+
+  const handleExportProfile = async () => {
+    setIsExportingProfile(true);
+    try {
+      const result = await window.api.profile.export();
+      if (result.canceled) return;
+      if (!result.success) {
+        flashMessage(
+          t(
+            result.key || "config.profile.messages.exportFailed",
+            result.args ?? { error: "Unknown error" },
+          ),
+        );
+        return;
+      }
+
+      flashMessage(t(result.key || "config.profile.messages.exportSuccess"));
+    } catch (err) {
+      console.error("Failed to export profile:", err);
+      flashMessage(
+        t("config.profile.messages.exportFailed", {
+          error: String(err),
+          defaultValue: `Failed to export profile: ${String(err)}`,
+        }),
+      );
+    } finally {
+      setIsExportingProfile(false);
+    }
+  };
+
+  const handleImportProfile = async () => {
+    setIsImportingProfile(true);
+    try {
+      const result = await window.api.profile.import();
+      if (result.canceled) return;
+      if (!result.success) {
+        flashMessage(
+          t(
+            result.key || "config.profile.messages.importFailed",
+            result.args ?? { error: "Unknown error" },
+          ),
+        );
+        return;
+      }
+
+      if (result.data) {
+        setTerrariaPath(result.data.terrariaPath || "");
+        setPluginSupport(Boolean(result.data.pluginSupport));
+        if (result.data.language) {
+          setSelectedLang(result.data.language);
+          i18n.changeLanguage(result.data.language);
+        }
+      }
+
+      flashMessage(t(result.key || "config.profile.messages.importSuccess"));
+    } catch (err) {
+      console.error("Failed to import profile:", err);
+      flashMessage(
+        t("config.profile.messages.importFailed", {
+          error: String(err),
+          defaultValue: `Failed to import profile: ${String(err)}`,
+        }),
+      );
+    } finally {
+      setIsImportingProfile(false);
     }
   };
 
@@ -108,6 +180,57 @@ export default function ConfigPage() {
       </div>
 
       <div className="flex flex-col gap-6">
+        {/* Language Preferences */}
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
+          <div className="flex flex-col space-y-1.5 p-6 border-b bg-muted/20">
+            <h3 className="font-semibold leading-none tracking-tight">
+              {t("config.profile.title", "Settings Profile")}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {t(
+                "config.profile.desc",
+                "Export or import your patch selections and app settings as a JSON file.",
+              )}
+            </p>
+          </div>
+          <div className="p-6 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {t(
+                "config.profile.includes",
+                "Includes patch options, selected persistent buffs, active plugins, plugin support, language, and Terraria path.",
+              )}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                className="gap-2"
+                onClick={handleExportProfile}
+                disabled={isExportingProfile || isImportingProfile}>
+                {isExportingProfile ? (
+                  <Save className="h-4 w-4 animate-pulse" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                {t("config.profile.exportBtn", "Export Profile")}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={handleImportProfile}
+                disabled={isImportingProfile || isExportingProfile}>
+                {isImportingProfile ? (
+                  <Save className="h-4 w-4 animate-pulse" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                {t("config.profile.importBtn", "Import Profile")}
+              </Button>
+            </div>
+          </div>
+        </div>
+
         {/* Language Preferences */}
         <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
           <div className="flex flex-col space-y-1.5 p-6 border-b bg-muted/20">
