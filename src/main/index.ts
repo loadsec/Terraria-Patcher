@@ -112,6 +112,35 @@ type ProfileConfigData = {
   activePlugins?: string[];
 };
 
+function getBridgeRuntimeDir(): string {
+  if (app.isPackaged) {
+    return join(process.resourcesPath, "patcher-bridge");
+  }
+
+  return join(
+    __dirname,
+    "..",
+    "..",
+    "src",
+    "main",
+    "bridge",
+    "bin",
+    "Release",
+  );
+}
+
+function getBridgeDllPath(): string {
+  return join(getBridgeRuntimeDir(), "TerrariaPatcherBridge.dll");
+}
+
+function getPluginsResourcesDir(): string {
+  if (app.isPackaged) {
+    return join(process.resourcesPath, "patcher-resources", "plugins");
+  }
+
+  return join(__dirname, "..", "..", "resources", "plugins");
+}
+
 // ─── Edge.js Bridge ──────────────────────────────────────────────────────────
 
 let patcherFunc:
@@ -125,17 +154,7 @@ function getEdgeFunc(): (
   input: object,
 ) => Promise<{ success: boolean; message: string }> {
   if (!patcherFunc) {
-    const bridgeDllPath = join(
-      __dirname,
-      "..",
-      "..",
-      "src",
-      "main",
-      "bridge",
-      "bin",
-      "Release",
-      "TerrariaPatcherBridge.dll",
-    );
+    const bridgeDllPath = getBridgeDllPath();
 
     patcherFunc = edge.func({
       assemblyFile: bridgeDllPath,
@@ -275,13 +294,7 @@ function setupIpcHandlers(): void {
   // Plugins
   ipcMain.handle("plugins:list", async () => {
     try {
-      const resourcesPluginsDir = join(
-        __dirname,
-        "..",
-        "..",
-        "resources",
-        "plugins",
-      );
+      const resourcesPluginsDir = getPluginsResourcesDir();
       if (!existsSync(resourcesPluginsDir)) return [];
       const files = readdirSync(resourcesPluginsDir);
       return files.filter((f) => f.endsWith(".cs"));
@@ -548,13 +561,7 @@ function setupIpcHandlers(): void {
       try {
         const { terrariaPath, activePlugins } = payload;
         const terrariaDir = dirname(terrariaPath);
-        const resourcesPluginsDir = join(
-          __dirname,
-          "..",
-          "..",
-          "resources",
-          "plugins",
-        );
+        const resourcesPluginsDir = getPluginsResourcesDir();
 
         // 1. Copy PluginLoader.XNA.dll
         const loaderSrc = join(resourcesPluginsDir, "PluginLoader.XNA.dll");
@@ -609,13 +616,7 @@ function setupIpcHandlers(): void {
 
         if (options.Plugins) {
           const terrariaDir = dirname(terrariaPath);
-          const resourcesPluginsDir = join(
-            __dirname,
-            "..",
-            "..",
-            "resources",
-            "plugins",
-          );
+          const resourcesPluginsDir = getPluginsResourcesDir();
 
           // 1. Copy PluginLoader.XNA.dll next to Terraria.exe
           const loaderSrc = join(resourcesPluginsDir, "PluginLoader.XNA.dll");
@@ -653,13 +654,7 @@ function setupIpcHandlers(): void {
           }
         }
 
-        options.PatcherPath = join(
-          __dirname,
-          "..",
-          "..",
-          "resources",
-          "plugins",
-        );
+        options.PatcherPath = getPluginsResourcesDir();
 
         const result = await edgeFunc({
           terrariaPath,

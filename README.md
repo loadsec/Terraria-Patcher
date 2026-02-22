@@ -86,6 +86,22 @@ pnpm install
 pnpm dev
 ```
 
+### C# Bridge (Contributor Notes)
+
+This project uses a C# patching bridge (`edge-js` + `Mono.Cecil`) located in `src/main/bridge`.
+
+- The C# source code is the canonical implementation for patching logic.
+- Prebuilt bridge binaries may be kept in the repository for convenience, so the app can run without requiring every contributor to build the bridge first.
+- If you change any file inside `src/main/bridge` (`.cs` / `.csproj`), rebuild the bridge before testing:
+
+```bash
+cd src/main/bridge
+dotnet build -c Release
+```
+
+- The Electron main process loads the compiled bridge from:
+  - `src/main/bridge/bin/Release/TerrariaPatcherBridge.dll`
+
 ### Build
 
 ```bash

@@ -7,12 +7,13 @@
   "scripts": {
     "dev": "electron-vite dev",
     "start": "electron-vite preview",
-    "build": "electron-vite build",
+    "build:bridge": "dotnet build src/main/bridge/TerrariaPatcherBridge.csproj -c Release",
+    "build": "pnpm run build:bridge && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
-    "build:unpack": "electron-vite build && electron-builder --dir",
-    "build:win": "electron-vite build && electron-builder --win",
-    "build:mac": "electron-vite build && electron-builder --mac",
-    "build:linux": "electron-vite build && electron-builder --linux",
+    "build:unpack": "pnpm run build && electron-builder --dir",
+    "build:win": "pnpm run build && electron-builder --win",
+    "build:mac": "pnpm run build && electron-builder --mac",
+    "build:linux": "pnpm run build && electron-builder --linux",
     "lint": "eslint ."
   },
   "dependencies": {
@@ -72,6 +73,22 @@
     },
     "files": [
       "out/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "src/main/bridge/bin/Release",
+        "to": "patcher-bridge",
+        "filter": [
+          "*.dll"
+        ]
+      },
+      {
+        "from": "resources/plugins",
+        "to": "patcher-resources/plugins",
+        "filter": [
+          "**/*"
+        ]
+      }
     ],
     "win": {
       "target": [
