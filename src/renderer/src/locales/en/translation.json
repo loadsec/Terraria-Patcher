@@ -26,7 +26,10 @@
       "devTip": "Tip: run `pnpm run build:bridge` before starting the app.",
       "bridgeFolder": "Bridge folder: {{path}}",
       "pluginsFolder": "Plugins folder: {{path}}",
-      "missingEntries": "Missing entries:"
+      "missingEntries": "Missing entries:",
+      "prereqsRelease": "Windows prerequisites release: {{url}}",
+      "closeButton": "Close",
+      "openPrereqsButton": "Open Prerequisites"
     }
   },
   "patcher": {

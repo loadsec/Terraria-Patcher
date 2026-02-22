@@ -122,6 +122,8 @@ type RuntimeDependencyCheck = {
 type MainLocaleDict = Record<string, unknown>;
 
 let mainLocalesCache: Record<string, MainLocaleDict> | null = null;
+const PREREQS_RELEASE_URL =
+  "https://github.com/loadsec/Terraria-Patcher-Prereqs/releases/tag/dotnet472-prereqs";
 
 function getBridgeRuntimeDir(): string {
   if (app.isPackaged) {
@@ -313,6 +315,12 @@ function validateRuntimeDependencies(language?: string | null): RuntimeDependenc
         defaultValue: "Missing entries:",
       }),
       ...missing.map((m) => `- ${m}`),
+      "",
+      tMain("main.runtimeDeps.prereqsRelease", {
+        lang: language,
+        defaultValue: "Windows prerequisites release: {{url}}",
+        args: { url: PREREQS_RELEASE_URL },
+      }),
     ],
   };
 }
@@ -916,10 +924,39 @@ app.whenReady().then(async () => {
   const depsCheck = validateRuntimeDependencies(startupLanguage);
   if (!depsCheck.ok) {
     const details = (depsCheck.details || []).join("\n");
-    dialog.showErrorBox(
-      depsCheck.title || "Startup Error",
-      `${depsCheck.message || "Required files are missing."}\n\n${details}`,
-    );
+    const isWindows = process.platform === "win32";
+    const buttons = [
+      tMain("main.runtimeDeps.closeButton", {
+        lang: startupLanguage,
+        defaultValue: "Close",
+      }),
+      ...(isWindows
+        ? [
+            tMain("main.runtimeDeps.openPrereqsButton", {
+              lang: startupLanguage,
+              defaultValue: "Open Prerequisites",
+            }),
+          ]
+        : []),
+    ];
+    const result = await dialog.showMessageBox({
+      type: "error",
+      title: depsCheck.title || "Startup Error",
+      message: depsCheck.message || "Required files are missing.",
+      detail: details,
+      buttons,
+      defaultId: 0,
+      cancelId: 0,
+      noLink: true,
+    });
+
+    if (isWindows && result.response === 1) {
+      try {
+        await shell.openExternal(PREREQS_RELEASE_URL);
+      } catch {
+        // Ignore browser launch failures and continue quitting the app.
+      }
+    }
     app.quit();
     return;
   }
