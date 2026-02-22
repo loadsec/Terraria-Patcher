@@ -23,6 +23,7 @@ out
 *.njsproj
 *.sln
 *.sw?
+*.ps1
 
 # Package lock files
 package-lock.json

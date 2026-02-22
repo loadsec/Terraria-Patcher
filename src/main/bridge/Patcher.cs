@@ -29,6 +29,9 @@ namespace TerrariaPatcherBridge
         public float SpectreHealing = 20f;
         public int SpawnRateVoodoo = 100;
         public bool BossBagsDropAllLoot = false;
+        public bool SteamFix = false;
+        public bool Plugins = false;
+        public string PatcherPath = "";
         public List<int> PermanentBuffs = new List<int>();
     }
 
@@ -56,6 +59,25 @@ namespace TerrariaPatcherBridge
                     return new { success = true, exeVersion = exeV, bakVersion = bakV };
                 }
 
+                if (dict.ContainsKey("command") && dict["command"].ToString() == "checkClean")
+                {
+                    var exePath = dict.ContainsKey("exePath") ? dict["exePath"]?.ToString() : null;
+                    bool isPatched = false;
+                    try 
+                    {
+                        if (!string.IsNullOrEmpty(exePath) && File.Exists(exePath))
+                        {
+                            using (var asm = AssemblyDefinition.ReadAssembly(exePath))
+                            {
+                                isPatched = asm.MainModule.AssemblyReferences.Any(r => r.Name.Contains("PluginLoader.XNA") || r.Name.Contains("PluginLoader"));
+                            }
+                        }
+                    } 
+                    catch {}
+                    
+                    return new { patched = isPatched };
+                }
+
                 var terrariaPath = dict["terrariaPath"].ToString();
                 var options = (IDictionary<string, object>)dict["options"];
 
@@ -81,6 +103,9 @@ namespace TerrariaPatcherBridge
                 if (options.ContainsKey("PermanentWings")) details.PermanentWings = (bool)options["PermanentWings"];
                 if (options.ContainsKey("InfiniteCloudJumps")) details.InfiniteCloudJumps = (bool)options["InfiniteCloudJumps"];
                 if (options.ContainsKey("BossBagsDropAllLoot")) details.BossBagsDropAllLoot = (bool)options["BossBagsDropAllLoot"];
+                if (options.ContainsKey("SteamFix")) details.SteamFix = (bool)options["SteamFix"];
+                if (options.ContainsKey("Plugins")) details.Plugins = (bool)options["Plugins"];
+                if (options.ContainsKey("PatcherPath")) details.PatcherPath = options["PatcherPath"].ToString();
 
                 // Numeric options
                 if (options.ContainsKey("VampiricHealing"))
@@ -169,6 +194,9 @@ namespace TerrariaPatcherBridge
                 if (Math.Abs(details.SpectreHealing - 20f) > 0.01) { ModSpectreArmor(details.SpectreHealing / 100f); TestIL("ModSpectreArmor"); }
                 if (details.SpawnRateVoodoo != 10) { ModSpawnRateVoodooDemon(details.SpawnRateVoodoo / 100f); TestIL("ModSpawnRateVoodooDemon"); }
                 if (details.BossBagsDropAllLoot) { TreasureBagsDropAll(); TestIL("TreasureBagsDropAll"); }
+                if (details.Plugins) { Plugins(details.PatcherPath); TestIL("Plugins"); }
+
+                RepairInvalidBranches(_mainModule);
 
                 asm.Write(target + ".tmp");
             }
@@ -177,6 +205,139 @@ namespace TerrariaPatcherBridge
                 File.Delete(target);
             File.Move(target + ".tmp", target);
             IL.MakeLargeAddressAware(target);
+        }
+
+        private static Instruction EnsureEntryInstruction(MethodDefinition method)
+        {
+            if (method == null)
+                throw new ArgumentNullException(nameof(method));
+
+            if (!method.HasBody)
+                throw new InvalidOperationException("Method '" + method.FullName + "' has no body and cannot be patched.");
+
+            if (method.Body.Instructions.Count > 0)
+                return method.Body.Instructions[0];
+
+            var il = method.Body.GetILProcessor();
+            EmitDefaultReturnValue(il, method, method.ReturnType);
+            il.Append(Instruction.Create(OpCodes.Ret));
+            return method.Body.Instructions[0];
+        }
+
+        private static void EmitDefaultReturnValue(ILProcessor il, MethodDefinition method, TypeReference returnType)
+        {
+            if (returnType.FullName == _mainModule.TypeSystem.Void.FullName)
+                return;
+
+            switch (returnType.MetadataType)
+            {
+                case MetadataType.Boolean:
+                case MetadataType.Char:
+                case MetadataType.SByte:
+                case MetadataType.Byte:
+                case MetadataType.Int16:
+                case MetadataType.UInt16:
+                case MetadataType.Int32:
+                case MetadataType.UInt32:
+                    il.Append(Instruction.Create(OpCodes.Ldc_I4_0));
+                    return;
+                case MetadataType.Int64:
+                case MetadataType.UInt64:
+                    il.Append(Instruction.Create(OpCodes.Ldc_I8, 0L));
+                    return;
+                case MetadataType.Single:
+                    il.Append(Instruction.Create(OpCodes.Ldc_R4, 0f));
+                    return;
+                case MetadataType.Double:
+                    il.Append(Instruction.Create(OpCodes.Ldc_R8, 0d));
+                    return;
+                case MetadataType.String:
+                case MetadataType.Class:
+                case MetadataType.Object:
+                case MetadataType.Array:
+                    il.Append(Instruction.Create(OpCodes.Ldnull));
+                    return;
+                case MetadataType.IntPtr:
+                    il.Append(Instruction.Create(OpCodes.Ldc_I4_0));
+                    il.Append(Instruction.Create(OpCodes.Conv_I));
+                    return;
+                case MetadataType.UIntPtr:
+                case MetadataType.ByReference:
+                case MetadataType.Pointer:
+                case MetadataType.FunctionPointer:
+                    il.Append(Instruction.Create(OpCodes.Ldc_I4_0));
+                    il.Append(Instruction.Create(OpCodes.Conv_U));
+                    return;
+            }
+
+            var local = new VariableDefinition(returnType);
+            method.Body.Variables.Add(local);
+            method.Body.InitLocals = true;
+            il.Append(Instruction.Create(OpCodes.Ldloca, local));
+            il.Append(Instruction.Create(OpCodes.Initobj, returnType));
+            il.Append(Instruction.Create(OpCodes.Ldloc, local));
+        }
+
+        private static void RepairInvalidBranches(ModuleDefinition module)
+        {
+            foreach (var type in EnumerateTypes(module.Types))
+            {
+                foreach (var method in type.Methods)
+                {
+                    if (!method.HasBody || method.Body.Instructions.Count == 0)
+                        continue;
+
+                    RepairInvalidBranches(method);
+                }
+            }
+        }
+
+        private static IEnumerable<TypeDefinition> EnumerateTypes(IEnumerable<TypeDefinition> roots)
+        {
+            foreach (var type in roots)
+            {
+                yield return type;
+
+                foreach (var nested in EnumerateTypes(type.NestedTypes))
+                    yield return nested;
+            }
+        }
+
+        private static void RepairInvalidBranches(MethodDefinition method)
+        {
+            var instructions = method.Body.Instructions;
+            var validTargets = new HashSet<Instruction>(instructions);
+            var fallbackTarget = instructions[0];
+
+            foreach (var instruction in instructions)
+            {
+                var operandType = instruction.OpCode.OperandType;
+
+                if (operandType == OperandType.InlineBrTarget || operandType == OperandType.ShortInlineBrTarget)
+                {
+                    var target = instruction.Operand as Instruction;
+                    if (target == null || !validTargets.Contains(target))
+                        instruction.Operand = fallbackTarget;
+                    continue;
+                }
+
+                if (operandType != OperandType.InlineSwitch)
+                    continue;
+
+                var targets = instruction.Operand as Instruction[];
+                if (targets == null || targets.Length == 0)
+                {
+                    instruction.Operand = new[] { fallbackTarget };
+                    continue;
+                }
+
+                for (int i = 0; i < targets.Length; i++)
+                {
+                    if (targets[i] == null || !validTargets.Contains(targets[i]))
+                        targets[i] = fallbackTarget;
+                }
+                instruction.Operand = targets;
+            }
         }
 
         private static void FunctionalSocialSlots()
@@ -270,32 +431,29 @@ namespace TerrariaPatcherBridge
                     OpCodes.Conv_R8,
                     OpCodes.Stloc_1);
 
-                var life = IL.GetFieldDefinition(npc, "life");
-                strikeNPC.Body.Instructions[spot].OpCode = OpCodes.Ldarg_0;
-                strikeNPC.Body.Instructions.Insert(spot + 1, Instruction.Create(OpCodes.Ldfld, life));
-
-                int spot2 = IL.ScanForOpcodePattern(strikeNPC,
-                    (i, instruction) =>
-                    {
-                        var i0 = strikeNPC.Body.Instructions[i].Operand as ParameterReference;
-                        return i0 != null && i0.Name == "crit";
-                    },
-                    spot,
-                    OpCodes.Ldarg_S,
-                    OpCodes.Brfalse_S);
-
-                // Instead of NOPping things out which might leave stack fragments, we just Br to spot2!
-                if (spot2 >= 0)
+                if (spot >= 0)
                 {
-                    // Convert the instruction after our Ldfld insert into a Br to spot2 + 1
-                    strikeNPC.Body.Instructions[spot + 2].OpCode = OpCodes.Br;
-                    strikeNPC.Body.Instructions[spot + 2].Operand = strikeNPC.Body.Instructions[spot2 + 1];
+                    var life = IL.GetFieldDefinition(npc, "life");
+                    strikeNPC.Body.Instructions[spot].OpCode = OpCodes.Ldarg_0;
+                    strikeNPC.Body.Instructions.Insert(spot + 1, Instruction.Create(OpCodes.Ldfld, life));
 
-                    // Nop out the remaining ones safely since they are now dead code and unreachable
-                    for (int i = spot + 3; i < spot2 + 1; i++)
+                    int spot2 = IL.ScanForOpcodePattern(strikeNPC,
+                        (i, instruction) =>
+                        {
+                            var i0 = strikeNPC.Body.Instructions[i].Operand as ParameterReference;
+                            return i0 != null && i0.Name == "crit";
+                        },
+                        spot + 2,
+                        OpCodes.Ldarg_S,
+                        OpCodes.Brfalse_S);
+
+                    if (spot2 >= 0)
                     {
-                        strikeNPC.Body.Instructions[i].OpCode = OpCodes.Nop;
-                        strikeNPC.Body.Instructions[i].Operand = null;
+                        for (int i = spot + 4; i < spot2; i++)
+                        {
+                            strikeNPC.Body.Instructions[i].OpCode = OpCodes.Nop;
+                            strikeNPC.Body.Instructions[i].Operand = null;
+                        }
                     }
                 }
             }
@@ -369,9 +527,11 @@ namespace TerrariaPatcherBridge
                 npcChatTextDoAnglerQuest.Body.Instructions[spot + 2].OpCode = OpCodes.Call;
                 npcChatTextDoAnglerQuest.Body.Instructions[spot + 2].Operand = questSwap;
 
-                // Instead of NOpping everything repeatedly (which can hit branch targets),
-                // we'll just insert a Ret immediately.
-                npcChatTextDoAnglerQuest.Body.Instructions.Insert(spot + 3, Instruction.Create(OpCodes.Ret));
+                for (int i = spot + 3; npcChatTextDoAnglerQuest.Body.Instructions[i].OpCode != OpCodes.Ret; i++)
+                {
+                    npcChatTextDoAnglerQuest.Body.Instructions[i].OpCode = OpCodes.Nop;
+                    npcChatTextDoAnglerQuest.Body.Instructions[i].Operand = null;
+                }
             }
         }
 
@@ -415,11 +575,12 @@ namespace TerrariaPatcherBridge
 
             if (spot1 >= 0)
             {
-                // Spot1 points to Ldloc_0. The instruction at spot1+3 is Ble_S.
-                // We want this Ble_S to always branch (meaning buffType <= 0, so it skips applying sickness).
-                // We replace the value compared against with int.MaxValue, so buffType is always <= int.MaxValue.
-                quickHeal.Body.Instructions[spot1 + 2].OpCode = OpCodes.Ldc_I4;
-                quickHeal.Body.Instructions[spot1 + 2].Operand = int.MaxValue;
+                for (int i = 0; i < 3; i++)
+                {
+                    quickHeal.Body.Instructions[spot1 + i].OpCode = OpCodes.Nop;
+                    quickHeal.Body.Instructions[spot1 + i].Operand = null;
+                }
+                quickHeal.Body.Instructions[spot1 + 3].OpCode = OpCodes.Br_S;
             }
 
             int spot2 = IL.ScanForOpcodePattern(applyLifeAndOrMana,
@@ -438,33 +599,10 @@ namespace TerrariaPatcherBridge
 
             if (spot2 >= 0)
             {
-                // spot2 points to Ldarg_0. This is the start of `this.AddBuff(94, Player.manaSickTime, true, false)`
-                // Before spot2 there should be a branch checking if we should add mana sickness.
-                // We can instead just replace the Call to AddBuff with a branch that jumps OVER the Call and Pops the arguments.
-                // Or much easier: Find the branch *before* spot2 that jumps over AddBuff, and force it to jump!
-                int branchIndex = -1;
-                for (int i = spot2 - 1; i >= 0; i--)
+                for (int i = 0; i < 5; i++)
                 {
-                    if (applyLifeAndOrMana.Body.Instructions[i].OpCode == OpCodes.Ble_S ||
-                        applyLifeAndOrMana.Body.Instructions[i].OpCode == OpCodes.Ble)
-                    {
-                        branchIndex = i;
-                        break;
-                    }
-                }
-
-                if (branchIndex >= 0)
-                {
-                    // The instruction before Ble_S is usually Ldc_I4_0. Let's make it Ldc_I4_M1 so the <= 0 check always passes.
-                    if (applyLifeAndOrMana.Body.Instructions[branchIndex - 1].OpCode == OpCodes.Ldc_I4_0)
-                    {
-                        applyLifeAndOrMana.Body.Instructions[branchIndex - 1].OpCode = OpCodes.Ldc_I4_M1;
-                    }
-                    else if (applyLifeAndOrMana.Body.Instructions[branchIndex].OpCode == OpCodes.Ble_S || applyLifeAndOrMana.Body.Instructions[branchIndex].OpCode == OpCodes.Ble)
-                    {
-                        // If we can't find the constant, change Ble to unconditional Br
-                        applyLifeAndOrMana.Body.Instructions[branchIndex].OpCode = (applyLifeAndOrMana.Body.Instructions[branchIndex].OpCode == OpCodes.Ble_S) ? OpCodes.Br_S : OpCodes.Br;
-                    }
+                    applyLifeAndOrMana.Body.Instructions[spot2 + i].OpCode = OpCodes.Nop;
+                    applyLifeAndOrMana.Body.Instructions[spot2 + i].Operand = null;
                 }
             }
 
@@ -539,11 +677,8 @@ namespace TerrariaPatcherBridge
 
             if (spot2 >= 0)
             {
-                // Instead of popping the result of SolidCollision, change the branch to always jump or never jump.
-                // SolidCollision returns bool (leaves 1 value on stack).
-                // We'll replace the Call with a constant (Ldc_I4_0) so Brtrue never jumps, allowing teleport.
-                itemCheckUseRodOfDiscord.Body.Instructions[spot2].OpCode = OpCodes.Ldc_I4_0;
-                itemCheckUseRodOfDiscord.Body.Instructions[spot2].Operand = null;
+                itemCheckUseRodOfDiscord.Body.Instructions[spot2 + 1].OpCode = OpCodes.Pop;
+                itemCheckUseRodOfDiscord.Body.Instructions[spot2 + 1].Operand = null;
             }
         }
 
@@ -669,11 +804,8 @@ namespace TerrariaPatcherBridge
                                 var branch = handleRequest.Body.Instructions[i + 1];
                                 if (branch.OpCode == OpCodes.Brfalse || branch.OpCode == OpCodes.Brfalse_S)
                                 {
-                                    // InTileEntityInteractionRange returns bool (leaves 1 val on stack)
-                                    // Brfalse consumes it. We can't NOP the branch, or stack will be unbalanced.
-                                    // We replace the Callvirt itself with Ldc_I4_1 so Brfalse won't jump!
-                                    handleRequest.Body.Instructions[i].OpCode = OpCodes.Ldc_I4_1;
-                                    handleRequest.Body.Instructions[i].Operand = null;
+                                    branch.OpCode = OpCodes.Pop;
+                                    branch.Operand = null;
                                 }
                             }
                             break;
@@ -1173,6 +1305,504 @@ namespace TerrariaPatcherBridge
         private static bool IsLoadPlayer(Instruction instr)
         {
             return instr != null && (instr.OpCode == OpCodes.Ldarg_0 || instr.OpCode == OpCodes.Ldarg || instr.OpCode == OpCodes.Ldarg_S);
+        }
+
+        private static void Plugins(string resourcesDir)
+        {
+            if (_mainModule.AssemblyReferences.Any(r => r.Name == "FNA"))
+                throw new NotSupportedException("PluginLoader.XNA.dll is not compatible with FNA builds.");
+
+            TypeDefinition loader;
+            var loaderFileName = Path.Combine(resourcesDir, "PluginLoader.XNA.dll");
+            using (var pluginAsm = AssemblyDefinition.ReadAssembly(loaderFileName))
+            {
+                loader = _mainModule
+                    .ImportReference(new TypeReference("PluginLoader", "Loader", pluginAsm.MainModule, pluginAsm.MainModule))
+                    .Resolve();
+            }
+
+            var onInitialize = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnInitialize"));
+            var onDrawSplash = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnDrawSplash"));
+            var onDrawInterface = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnDrawInterface"));
+            var onDrawInventory = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnDrawInventory"));
+            var onPreUpdate = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPreUpdate"));
+            var onUpdate = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnUpdate"));
+            var onUpdateTime = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnUpdateTime"));
+            var onCheckXmas = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnCheckXmas"));
+            var onCheckHalloween = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnCheckHalloween"));
+            var onPlaySound = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlaySound"));
+            var onPlayerPreSpawn = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerPreSpawn"));
+            var onPlayerSpawn = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerSpawn"));
+            var onPlayerLoad = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerLoad"));
+            var onPlayerSave = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerSave"));
+            var onPlayerPreUpdate = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerPreUpdate"));
+            var onPlayerUpdate = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerUpdate"));
+            var onPlayerUpdateBuffs = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerUpdateBuffs"));
+            var onPlayerUpdateEquips = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerUpdateEquips"));
+            var onPlayerUpdateArmorSets = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerUpdateArmorSets"));
+            var onPlayerKillMe = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerKillMe"));
+            var onPlayerHurt = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerHurt"));
+            var onPlayerPickAmmo = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerPickAmmo"));
+            var onItemSetDefaults = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnItemSetDefaults"));
+            var onProjectileAI = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnProjectileAI001"));
+            var onRightClick = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnItemSlotRightClick"));
+            var onItemRollAPrefix = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnItemRollAPrefix"));
+            var onSendChatMessageFromClient = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnSendChatMessageFromClient"));
+            var onGetColor = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnLightingGetColor"));
+            var onGetItem = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerGetItem"));
+            var onChestSetupShop = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnChestSetupShop"));
+            var onPlayerQuickBuff = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerQuickBuff"));
+            var onNPCLoot = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnNPCLoot"));
+
+            // Types
+            var main = IL.GetTypeDefinition(_mainModule, "Main");
+            var player = IL.GetTypeDefinition(_mainModule, "Player");
+            var npc = IL.GetTypeDefinition(_mainModule, "NPC");
+            var item = IL.GetTypeDefinition(_mainModule, "Item");
+            var projectile = IL.GetTypeDefinition(_mainModule, "Projectile");
+            var itemSlot = IL.GetTypeDefinition(_mainModule, "ItemSlot");
+            var lighting = IL.GetTypeDefinition(_mainModule, "Lighting");
+            var chest = IL.GetTypeDefinition(_mainModule, "Chest");
+            var soundEngine = IL.GetTypeDefinition(_mainModule, "SoundEngine");
+
+            // Methods
+            var initialize = IL.GetMethodDefinition(main, "Initialize_AlmostEverything");
+            var drawSplash = IL.GetMethodDefinition(main, "DrawSplash");
+            var drawInterface = IL.GetMethodDefinition(main, "DrawInterface");
+            var drawInventory = IL.GetMethodDefinition(main, "DrawInventory");
+            var update = IL.GetMethodDefinition(main, "DoUpdate");
+            var updateTime = IL.GetMethodDefinition(main, "UpdateTime");
+            var checkXmas = IL.GetMethodDefinition(main, "checkXMas");
+            var checkHalloween = IL.GetMethodDefinition(main, "checkHalloween");
+            var playSound = IL.GetMethodDefinition(soundEngine, "PlaySound", 6);
+            var spawn = IL.GetMethodDefinition(player, "Spawn");
+            var loadPlayer = IL.GetMethodDefinition(player, "Deserialize");
+            var savePlayer = IL.GetMethodDefinition(player, "Serialize");
+            var updatePlayer = IL.GetMethodDefinition(player, "Update");
+            var updatePlayerBuffs = IL.GetMethodDefinition(player, "UpdateBuffs");
+            var updatePlayerEquips = IL.GetMethodDefinition(player, "UpdateEquips");
+            var updatePlayerArmorSets = IL.GetMethodDefinition(player, "UpdateArmorSets");
+            var killMe = IL.GetMethodDefinition(player, "KillMe");
+            var hurt = IL.GetMethodDefinition(player, "Hurt");
+            var pickAmmo = IL.GetMethodDefinition(player, "PickAmmo");
+            var setDefaults = IL.GetMethodDefinition(item, "SetDefaults", 2);
+            var rollAPrefix = IL.GetMethodDefinition(item, "RollAPrefix");
+            var ai = IL.GetMethodDefinition(projectile, "AI_001");
+            var rightClick = IL.GetMethodDefinition(itemSlot, "RightClick", 3);
+            var doUpdateHandleChat = IL.GetMethodDefinition(main, "DoUpdate_HandleChat");
+            var getColor = (from MethodDefinition m in lighting.Methods
+                            where m.Name == "GetColor" &&
+                                  m.Parameters.Count == 2 &&
+                                  m.Parameters[0].ParameterType.FullName == "System.Int32" &&
+                                  m.Parameters[1].ParameterType.FullName == "System.Int32"
+                            select m).FirstOrDefault();
+            var getItem = IL.GetMethodDefinition(player, "GetItem");
+            var setupShop = IL.GetMethodDefinition(chest, "SetupShop");
+            var quickBuff = IL.GetMethodDefinition(player, "QuickBuff");
+            var npcLoot = IL.GetMethodDefinition(npc, "NPCLoot");
+
+            using (initialize.JumpFix())
+            {
+                IL.MethodAppend(initialize, initialize.Body.Instructions.Count - 1, 1, new[]
+                {
+                    Instruction.Create(OpCodes.Call, onInitialize),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (drawSplash.JumpFix())
+            {
+                IL.MethodPrepend(drawSplash, new[]
+                {
+                    Instruction.Create(OpCodes.Call, onDrawSplash)
+                });
+            }
+
+            using (drawInventory.JumpFix())
+            {
+                IL.MethodAppend(drawInventory, drawInventory.Body.Instructions.Count - 1, 1, new[]
+                {
+                    Instruction.Create(OpCodes.Call, onDrawInventory),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (drawInterface.JumpFix())
+            {
+                IL.MethodAppend(drawInterface, drawInterface.Body.Instructions.Count - 1, 1, new[]
+                {
+                    Instruction.Create(OpCodes.Call, onDrawInterface),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (update.JumpFix())
+            {
+                IL.MethodPrepend(update, new[]
+                {
+                    Instruction.Create(OpCodes.Call, onPreUpdate)
+                });
+
+                IL.MethodAppend(update, update.Body.Instructions.Count - 1, 1, new[]
+                {
+                    Instruction.Create(OpCodes.Call, onUpdate),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (updateTime.JumpFix())
+            {
+                IL.MethodAppend(updateTime, updateTime.Body.Instructions.Count - 1, 1, new[]
+                {
+                    Instruction.Create(OpCodes.Call, onUpdateTime),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (checkXmas.JumpFix())
+            {
+                var firstInstr = EnsureEntryInstruction(checkXmas);
+                IL.MethodPrepend(checkXmas, new[]
+                {
+                    Instruction.Create(OpCodes.Call, onCheckXmas),
+                    Instruction.Create(OpCodes.Brfalse_S, firstInstr),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (checkHalloween.JumpFix())
+            {
+                var firstInstr = EnsureEntryInstruction(checkHalloween);
+                IL.MethodPrepend(checkHalloween, new[]
+                {
+                    Instruction.Create(OpCodes.Call, onCheckHalloween),
+                    Instruction.Create(OpCodes.Brfalse_S, firstInstr),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (playSound.JumpFix())
+            {
+                var firstInstr = EnsureEntryInstruction(playSound);
+                IL.MethodPrepend(playSound, new[]
+                {
+                    Instruction.Create(OpCodes.Ldarg_0),
+                    Instruction.Create(OpCodes.Ldarg_1),
+                    Instruction.Create(OpCodes.Ldarg_2),
+                    Instruction.Create(OpCodes.Ldarg_3),
+                    Instruction.Create(OpCodes.Call, onPlaySound),
+                    Instruction.Create(OpCodes.Brfalse_S, firstInstr),
+                    Instruction.Create(OpCodes.Ldnull),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (loadPlayer.JumpFix())
+            {
+                var instr = Instruction.Create(OpCodes.Ldarg_0);
+                int spot = IL.ScanForOpcodePattern(loadPlayer,
+                    (i, instruction) => (instruction.Operand as MethodReference)?.Name == "LoadPlayer_LastMinuteFixes",
+                    OpCodes.Call);
+
+                foreach (var instruction in loadPlayer.Body.Instructions)
+                {
+                    if (instruction.Operand == loadPlayer.Body.Instructions[spot - 1])
+                        instruction.Operand = instr;
+                }
+
+                IL.MethodPrepend(loadPlayer, loadPlayer.Body.Instructions[spot - 1], new[]
+                {
+                    instr,
+                    Instruction.Create(OpCodes.Ldarg_1),
+                    Instruction.Create(OpCodes.Ldarg_2),
+                    Instruction.Create(OpCodes.Call, onPlayerLoad)
+                });
+            }
+
+            using (savePlayer.JumpFix())
+            {
+                IL.MethodAppend(savePlayer, savePlayer.Body.Instructions.Count - 1, 1, new[]
+                {
+                    Instruction.Create(OpCodes.Ldarg_0),
+                    Instruction.Create(OpCodes.Ldarg_1),
+                    Instruction.Create(OpCodes.Ldarg_2),
+                    Instruction.Create(OpCodes.Call, onPlayerSave),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (spawn.JumpFix())
+            {
+                IL.MethodPrepend(spawn, new[]
+                {
+                    Instruction.Create(OpCodes.Ldarg_0),
+                    Instruction.Create(OpCodes.Call, onPlayerPreSpawn)
+                });
+
+                IL.MethodAppend(spawn, spawn.Body.Instructions.Count - 1, 1, new[]
+                {
+                    Instruction.Create(OpCodes.Ldarg_0),
+                    Instruction.Create(OpCodes.Call, onPlayerSpawn),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (updatePlayer.JumpFix())
+            {
+                IL.MethodPrepend(updatePlayer, new[]
+                {
+                    Instruction.Create(OpCodes.Ldarg_0),
+                    Instruction.Create(OpCodes.Call, onPlayerPreUpdate)
+                });
+
+                IL.MethodAppend(updatePlayer, updatePlayer.Body.Instructions.Count - 1, 1, new[]
+                {
+                    Instruction.Create(OpCodes.Ldarg_0),
+                    Instruction.Create(OpCodes.Call, onPlayerUpdate),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (updatePlayerBuffs.JumpFix())
+            {
+                IL.MethodAppend(updatePlayerBuffs, updatePlayerBuffs.Body.Instructions.Count - 1, 1, new[]
+                {
+                    Instruction.Create(OpCodes.Ldarg_0),
+                    Instruction.Create(OpCodes.Call, onPlayerUpdateBuffs),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (updatePlayerEquips.JumpFix())
+            {
+                IL.MethodAppend(updatePlayerEquips, updatePlayerEquips.Body.Instructions.Count - 1, 1, new[]
+                {
+                    Instruction.Create(OpCodes.Ldarg_0),
+                    Instruction.Create(OpCodes.Call, onPlayerUpdateEquips),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (updatePlayerArmorSets.JumpFix())
+            {
+                IL.MethodAppend(updatePlayerArmorSets, updatePlayerArmorSets.Body.Instructions.Count - 1, 1, new[]
+                {
+                    Instruction.Create(OpCodes.Ldarg_0),
+                    Instruction.Create(OpCodes.Call, onPlayerUpdateArmorSets),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (killMe.JumpFix())
+            {
+                var firstInstr = EnsureEntryInstruction(killMe);
+                IL.MethodPrepend(killMe, new[]
+                {
+                    Instruction.Create(OpCodes.Ldarg_0),
+                    Instruction.Create(OpCodes.Ldarg_1),
+                    Instruction.Create(OpCodes.Ldarg_2),
+                    Instruction.Create(OpCodes.Ldarg_3),
+                    Instruction.Create(OpCodes.Ldarg_S, killMe.Parameters.FirstOrDefault(def => def.Name == "pvp")),
+                    Instruction.Create(OpCodes.Call, onPlayerKillMe),
+                    Instruction.Create(OpCodes.Brfalse_S, firstInstr),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (hurt.JumpFix())
+            {
+                var firstInstr = EnsureEntryInstruction(hurt);
+                var varDbl = new VariableDefinition(_mainModule.ImportReference(typeof(double)));
+                hurt.Body.Variables.Add(varDbl);
+                IL.MethodPrepend(hurt, new[]
+                {
+                    Instruction.Create(OpCodes.Ldarg_0),
+                    Instruction.Create(OpCodes.Ldarg_1),
+                    Instruction.Create(OpCodes.Ldarg_2),
+                    Instruction.Create(OpCodes.Ldarg_3),
+                    Instruction.Create(OpCodes.Ldarg_S, hurt.Parameters.FirstOrDefault(def => def.Name == "pvp")),
+                    Instruction.Create(OpCodes.Ldarg_S, hurt.Parameters.FirstOrDefault(def => def.Name == "quiet")),
+                    Instruction.Create(OpCodes.Ldarg_S, hurt.Parameters.FirstOrDefault(def => def.Name == "Crit")),
+                    Instruction.Create(OpCodes.Ldarg_S, hurt.Parameters.FirstOrDefault(def => def.Name == "cooldownCounter")),
+                    Instruction.Create(OpCodes.Ldarg_S, hurt.Parameters.FirstOrDefault(def => def.Name == "dodgeable")),
+                    Instruction.Create(OpCodes.Ldloca_S, varDbl),
+                    Instruction.Create(OpCodes.Call, onPlayerHurt),
+                    Instruction.Create(OpCodes.Brfalse_S, firstInstr),
+                    Instruction.Create(OpCodes.Ldloc, varDbl),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (pickAmmo.JumpFix())
+            {
+                IL.MethodAppend(pickAmmo, pickAmmo.Body.Instructions.Count - 1, 1, new[]
+                {
+                    Instruction.Create(OpCodes.Ldarg_0),
+                    Instruction.Create(OpCodes.Ldarg_1),
+                    Instruction.Create(OpCodes.Ldarga_S, pickAmmo.Parameters.FirstOrDefault(def => def.Name == "projToShoot")),
+                    Instruction.Create(OpCodes.Ldarga_S, pickAmmo.Parameters.FirstOrDefault(def => def.Name == "speed")),
+                    Instruction.Create(OpCodes.Ldarga_S, pickAmmo.Parameters.FirstOrDefault(def => def.Name == "canShoot")),
+                    Instruction.Create(OpCodes.Ldarga_S, pickAmmo.Parameters.FirstOrDefault(def => def.Name == "Damage")),
+                    Instruction.Create(OpCodes.Ldarga_S, pickAmmo.Parameters.FirstOrDefault(def => def.Name == "KnockBack")),
+                    Instruction.Create(OpCodes.Ldarga_S, pickAmmo.Parameters.FirstOrDefault(def => def.Name == "usedAmmoItemId")),
+                    Instruction.Create(OpCodes.Ldarg_S, pickAmmo.Parameters.FirstOrDefault(def => def.Name == "dontConsume")),
+                    Instruction.Create(OpCodes.Call, onPlayerPickAmmo),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (setDefaults.JumpFix())
+            {
+                IL.MethodAppend(setDefaults, setDefaults.Body.Instructions.Count - 1, 1, new[]
+                {
+                    Instruction.Create(OpCodes.Ldarg_0),
+                    Instruction.Create(OpCodes.Call, onItemSetDefaults),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (ai.JumpFix())
+            {
+                IL.MethodAppend(ai, ai.Body.Instructions.Count - 1, 1, new[]
+                {
+                    Instruction.Create(OpCodes.Ldarg_0),
+                    Instruction.Create(OpCodes.Call, onProjectileAI),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (rightClick.JumpFix())
+            {
+                var firstInstr = EnsureEntryInstruction(rightClick);
+                IL.MethodPrepend(rightClick, new[]
+                {
+                    Instruction.Create(OpCodes.Ldarg_0),
+                    Instruction.Create(OpCodes.Ldarg_1),
+                    Instruction.Create(OpCodes.Ldarg_2),
+                    Instruction.Create(OpCodes.Call, onRightClick),
+                    Instruction.Create(OpCodes.Brfalse_S, firstInstr),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (rollAPrefix.JumpFix())
+            {
+                var varResult = new VariableDefinition(_mainModule.ImportReference(typeof(bool)));
+                rollAPrefix.Body.Variables.Add(varResult);
+                var firstInstr = EnsureEntryInstruction(rollAPrefix);
+                IL.MethodPrepend(rollAPrefix, new[]
+                {
+                    Instruction.Create(OpCodes.Ldarg_0),
+                    Instruction.Create(OpCodes.Ldarg_1),
+                    Instruction.Create(OpCodes.Ldarg_2),
+                    Instruction.Create(OpCodes.Ldloca_S, varResult),
+                    Instruction.Create(OpCodes.Call, onItemRollAPrefix),
+                    Instruction.Create(OpCodes.Brfalse_S, firstInstr),
+                    Instruction.Create(OpCodes.Ldloc, varResult),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (doUpdateHandleChat.JumpFix())
+            {
+                int spot = IL.ScanForOpcodePattern(doUpdateHandleChat,
+                    (i, instruction) =>
+                    {
+                        var fieldReference = instruction.Operand as FieldReference;
+                        return fieldReference != null && fieldReference.Name == "netMode";
+                    },
+                    OpCodes.Ldsfld,
+                    OpCodes.Ldc_I4_1,
+                    OpCodes.Bne_Un_S);
+                int spot2 = IL.ScanForOpcodePattern(doUpdateHandleChat, (i, instruction) => instruction.Operand as string == "", spot, OpCodes.Ldstr);
+                var chatMessage = doUpdateHandleChat.Body.Variables.FirstOrDefault(definition => definition.VariableType.Name == "ChatMessage");
+
+                var skip = doUpdateHandleChat.Body.Instructions[spot2];
+                IL.MethodPrepend(doUpdateHandleChat, doUpdateHandleChat.Body.Instructions[spot], new[]
+                {
+                    Instruction.Create(OpCodes.Ldloc_S, chatMessage),
+                    Instruction.Create(OpCodes.Call, onSendChatMessageFromClient),
+                    Instruction.Create(OpCodes.Brtrue_S, skip)
+                });
+            }
+
+            using (getColor.JumpFix())
+            {
+                var firstInstr = EnsureEntryInstruction(getColor);
+                var varColor = new VariableDefinition(IL.GetTypeReference(_mainModule, "Microsoft.Xna.Framework.Color"));
+                getColor.Body.Variables.Add(varColor);
+                IL.MethodPrepend(getColor, new[]
+                {
+                    Instruction.Create(OpCodes.Ldarg_0),
+                    Instruction.Create(OpCodes.Ldarg_1),
+                    Instruction.Create(OpCodes.Ldloca_S, varColor),
+                    Instruction.Create(OpCodes.Call, onGetColor),
+                    Instruction.Create(OpCodes.Brfalse_S, firstInstr),
+                    Instruction.Create(OpCodes.Ldloc, varColor),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (getItem.JumpFix())
+            {
+                var firstInstr = EnsureEntryInstruction(getItem);
+                var varItem = new VariableDefinition(IL.GetTypeDefinition(_mainModule, "Item"));
+                getItem.Body.Variables.Add(varItem);
+                IL.MethodPrepend(getItem, new[]
+                {
+                    Instruction.Create(OpCodes.Ldarg_0),
+                    Instruction.Create(OpCodes.Ldarg_1),
+                    Instruction.Create(OpCodes.Ldarg_2),
+                    Instruction.Create(OpCodes.Ldloca_S, varItem),
+                    Instruction.Create(OpCodes.Call, onGetItem),
+                    Instruction.Create(OpCodes.Brfalse_S, firstInstr),
+                    Instruction.Create(OpCodes.Ldloc, varItem),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (setupShop.JumpFix())
+            {
+                IL.MethodAppend(setupShop, setupShop.Body.Instructions.Count - 1, 1, new[]
+                {
+                    Instruction.Create(OpCodes.Ldarg_0),
+                    Instruction.Create(OpCodes.Ldarg_1),
+                    Instruction.Create(OpCodes.Call, onChestSetupShop),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (quickBuff.JumpFix())
+            {
+                var firstInstr = EnsureEntryInstruction(quickBuff);
+                IL.MethodPrepend(quickBuff, new[]
+                {
+                    Instruction.Create(OpCodes.Ldarg_0),
+                    Instruction.Create(OpCodes.Call, onPlayerQuickBuff),
+                    Instruction.Create(OpCodes.Brfalse_S, firstInstr),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            using (npcLoot.JumpFix())
+            {
+                var firstInstr = EnsureEntryInstruction(npcLoot);
+                IL.MethodPrepend(npcLoot, new[]
+                {
+                    Instruction.Create(OpCodes.Ldarg_0),
+                    Instruction.Create(OpCodes.Call, onNPCLoot),
+                    Instruction.Create(OpCodes.Brfalse_S, firstInstr),
+                    Instruction.Create(OpCodes.Ret)
+                });
+            }
+
+            IL.MakeTypePublic(IL.GetTypeDefinition(_mainModule, "MapHelper"));
+            IL.MakeTypePublic(IL.GetTypeDefinition(_mainModule, "Player"));
+            IL.MakeTypePublic(IL.GetTypeDefinition(_mainModule, "Main"));
+            IL.MakeTypePublic(IL.GetTypeDefinition(_mainModule, "Lang"));
+            IL.MakeTypePublic(IL.GetTypeDefinition(_mainModule, "LocalizedText"));
+            IL.MakeTypePublic(IL.GetTypeDefinition(_mainModule, "ItemTooltip"));
+            IL.MakeTypePublic(IL.GetTypeDefinition(_mainModule, "Item"));
         }
 
         private static bool IsLoadLocal(Instruction instr)

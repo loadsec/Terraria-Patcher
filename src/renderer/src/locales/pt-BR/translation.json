@@ -18,6 +18,11 @@
     "title": "Modificações do Jogo",
     "description": "Configure patches independentes para aplicar direto no executável do Terraria.",
     "patchBtn": "Aplicar & Salvar",
+    "patching": "Aplicando patches...",
+    "syncBtn": "Sincronizar Plugins",
+    "syncing": "Sincronizando...",
+    "external": "Externo",
+    "empty": "Nenhum resultado encontrado.",
     "messages": {
       "success": "Terraria modificado com sucesso!",
       "error": "Falha na modificação: {{error}}",
@@ -26,7 +31,9 @@
       "notFound": "O executável Terraria.exe não foi encontrado em: {{path}}",
       "backupNotFound": "O arquivo de backup (Terraria.exe.bak) não foi encontrado.",
       "restoreSuccess": "Backup restaurado com sucesso.",
-      "restoreFailed": "Falha ao restaurar: {{error}}"
+      "restoreFailed": "Falha ao restaurar: {{error}}",
+      "pluginsSynced": "Plugins sincronizados com sucesso!",
+      "syncFailed": "Falha na sincronização: {{error}}"
     },
     "modal": {
       "title": "Modificando o Terraria",
@@ -44,6 +51,11 @@
       "errorTitle": "Erro ao Modificar",
       "errorDesc": "Ocorreu um erro durante a modificação:",
       "btnClose": "Fechar"
+    },
+    "errors": {
+      "unexpected": "Erro inesperado: ",
+      "noPath": "Nenhum caminho para o Terraria foi configurado. Vá para Configurações para defini-lo.",
+      "doublePatch": "Tanto o Terraria.exe quanto o backup JÁ ESTÃO MODIFICADOS. Por favor, verifique a integridade dos arquivos do jogo na Steam para restaurar uma versão limpa antes de aplicar o patch novamente!"
     },
     "tabs": {
       "qol": "Qualidade de Vida",
@@ -79,7 +91,9 @@
         },
         "angler": {
           "label": "Remover Limite Diário de Pescaria",
-          "desc": "Conclua quantas Missões do Pescador você quiser por dia."
+          "desc": "Conclua quantas Missões do Pescador você quiser por dia.",
+          "warningTitle": "Aviso de Conquistas",
+          "warningDesc": "Esta modificação foi reportada por bugar as conquistas da Steam para o Pescador. O jogo continuará funcionando normalmente para conquistas in-game, mas as da Steam podem não ser contabilizadas."
         }
       },
       "combat": {
@@ -197,22 +211,31 @@
   },
   "plugins": {
     "title": "Plugins",
-    "subtitle": "Explore, ative e configure seus plugins",
-    "autosync": "Auto-sincronizar plugins selecionados",
-    "autosyncDesc": "Aplica automaticamente as alterações de botão liga/desliga no jogo.",
+    "subtitle": "Navegue, ative e configure plugins",
+    "enableSupport": "Ativar Suporte a Plugins",
+    "enableSupportDesc": "Permite disparar funcionalidades personalizadas através de scripts C#.",
+    "listTitle": "Plugins Disponíveis",
+    "activeLabel": "ativos",
+    "localScriptLabel": "Script C# Local",
     "emptyState": {
       "title": "Nenhum plugin carregado",
-      "desc": "Nesta seção você verá a lista de todos os plugins disponíveis. Podendo ligar, desligar e ajustar cada um individualmente."
+      "desc": "Esta seção listará todos os plugins disponíveis que forem detectados no diretório resources/plugins/."
+    },
+    "error": {
+      "missingLoader": "PluginLoader.XNA.dll não foi encontrado nos recursos."
     }
   },
   "config": {
     "title": "Configurações",
     "subtitle": "Preferências gerais e integração",
     "saveBtn": "Salvar Configurações",
+    "saved": "Configurações salvas!",
+    "saveFailed": "Falha ao salvar configurações.",
     "gameDirectory": {
       "title": "Diretório do Jogo",
       "desc": "Configure o caminho de instalação do Terraria.",
       "label": "Localização do Executável do Terraria",
+      "placeholder": "Selecione o caminho do Terraria.exe...",
       "browse": "Procurar...",
       "help": "O patcher precisa localizar o executável principal do seu jogo para poder modificá-lo e aplicar os patches."
     },

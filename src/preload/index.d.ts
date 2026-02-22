@@ -62,6 +62,9 @@ declare global {
       dialog: {
         openFile: () => Promise<string | null>;
       };
+      plugins: {
+        list: () => Promise<string[]>;
+      };
       patcher: {
         run: (options: PatcherOptions) => Promise<PatchResult>;
         backup: (terrariaPath: string) => Promise<PatchResult>;

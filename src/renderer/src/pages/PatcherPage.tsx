@@ -14,6 +14,9 @@ import {
   ChevronsLeft,
   Puzzle,
   Loader2,
+  Package,
+  DownloadCloud,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +27,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -447,6 +449,7 @@ export default function PatcherPage() {
   // Main patch options state
   const [options, setOptions] = useState<PatchOptionsState>(DEFAULT_OPTIONS);
   const [isPatching, setIsPatching] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // workflow state for patching dialog
   const [patchStage, setPatchStage] = useState<
@@ -459,6 +462,9 @@ export default function PatcherPage() {
     | "error"
   >("idle");
   const [patchError, setPatchError] = useState<string | null>(null);
+
+  // Warning Modals
+  const [showAnglerWarning, setShowAnglerWarning] = useState(false);
 
   // information about existing backup (used in restorePrompt warning)
   const [backupInfo, setBackupInfo] = useState<{
@@ -481,6 +487,10 @@ export default function PatcherPage() {
   const [searchAvailable, setSearchAvailable] = useState("");
   const [searchActive, setSearchActive] = useState("");
 
+  const [pluginsList, setPluginsList] = useState<string[]>([]);
+  const [activePlugins, setActivePlugins] = useState<string[]>([]);
+  const [pluginSupport, setPluginSupport] = useState(false);
+
   // Load config from store
   useEffect(() => {
     const loadOptions = async () => {
@@ -500,6 +510,31 @@ export default function PatcherPage() {
               (b) => !DEFAULT_OPTIONS.activeBuffs.includes(b),
             ),
           );
+        }
+
+        const availablePlugins = await window.api.plugins.list();
+        setPluginsList(availablePlugins);
+
+        const storeSupport = (await window.api.config.get(
+          "pluginSupport",
+        )) as boolean;
+        setPluginSupport(storeSupport || false);
+
+        const activePlug = (await window.api.config.get("activePlugins")) as
+          | string[]
+          | undefined;
+
+        // Sanitize out any stray strings (like buffs) that might have been saved previously.
+        const sanitizedPlugins = (activePlug || []).filter((p) =>
+          availablePlugins.includes(p),
+        );
+        setActivePlugins(sanitizedPlugins);
+
+        // If the store was dirty, auto-clean it
+        if (activePlug && activePlug.length !== sanitizedPlugins.length) {
+          window.api.config
+            .set("activePlugins", sanitizedPlugins)
+            .catch(console.error);
         }
       } catch (err) {
         console.error("Failed to load patch options:", err);
@@ -522,17 +557,49 @@ export default function PatcherPage() {
     }
   }, []);
 
+  const togglePlugin = async (pluginName: string, checked: boolean) => {
+    let newActivePlugins = [...activePlugins];
+    if (checked) {
+      if (!newActivePlugins.includes(pluginName)) {
+        newActivePlugins.push(pluginName);
+      }
+    } else {
+      newActivePlugins = newActivePlugins.filter((p) => p !== pluginName);
+    }
+
+    setActivePlugins(newActivePlugins);
+    await window.api.config.set("activePlugins", newActivePlugins);
+  };
+
   // Helper to update a single boolean option
   const setOption = useCallback(
     (key: keyof PatchOptionsState, value: boolean | number | string[]) => {
       setOptions((prev) => {
         const updated = { ...prev, [key]: value };
+
+        // Mutually exclusive features
+        if (key === "wings" && value === true) {
+          updated.cloud = false;
+        } else if (key === "cloud" && value === true) {
+          updated.wings = false;
+        }
+
         persistOptions(updated);
         return updated;
       });
     },
     [persistOptions],
   );
+
+  const handleSettingChange = (
+    id: keyof PatchOptionsState,
+    checked: boolean,
+  ) => {
+    if (id === "angler" && checked) {
+      setShowAnglerWarning(true);
+    }
+    setOption(id, checked);
+  };
 
   // Extract buff IDs from strings like "[147] Banner" -> 147
   const extractBuffIds = (buffStrings: string[]): number[] => {
@@ -565,6 +632,18 @@ export default function PatcherPage() {
         return;
       }
 
+      // Verify clean executable to prevent double-patching
+      const verifyResult = await window.api.patcher.verifyClean(terrariaPath);
+      if (!verifyResult.safe) {
+        setPatchStage("error");
+        setPatchError(
+          verifyResult.key
+            ? t(verifyResult.key, verifyResult.message!)
+            : verifyResult.message || "Executable already patched error",
+        );
+        return;
+      }
+
       // Check for backup
       const checkResult = await window.api.patcher.checkBackup(terrariaPath);
       setBackupInfo(checkResult);
@@ -577,6 +656,57 @@ export default function PatcherPage() {
     } catch (err) {
       setPatchStage("error");
       setPatchError(String(err));
+    }
+  };
+
+  const handleSyncPlugins = async () => {
+    setIsSyncing(true);
+    setPatchMessage(null);
+    setPatchError(null);
+    try {
+      const terrariaPath = (await window.api.config.get(
+        "terrariaPath",
+      )) as string;
+      if (!terrariaPath) {
+        setPatchStage("error");
+        setPatchError(
+          t(
+            "patcher.errors.noPath",
+            "No Terraria path configured. Go to Config to set it.",
+          ),
+        );
+        return;
+      }
+
+      const aPlugins =
+        ((await window.api.config.get("activePlugins")) as string[]) || [];
+      const result = await window.api.patcher.syncPlugins({
+        terrariaPath,
+        activePlugins: aPlugins,
+      });
+
+      if (result.success) {
+        setPatchMessage({
+          type: "success",
+          text: t(
+            result.key || "patcher.messages.pluginsSynced",
+            "Plugins synced successfully!",
+          ),
+        });
+      } else {
+        setPatchStage("error");
+        setPatchError(
+          t(
+            result.key || "patcher.messages.error",
+            result.args?.error || "Error syncing plugins",
+          ),
+        );
+      }
+    } catch (err) {
+      setPatchStage("error");
+      setPatchError(String(err));
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -625,6 +755,11 @@ export default function PatcherPage() {
       // Proceed to patch
       setPatchStage("patching");
 
+      const pluginSupport =
+        (await window.api.config.get("pluginSupport")) || false;
+      const activePlugins =
+        (await window.api.config.get("activePlugins")) || [];
+
       const patcherInput = {
         terrariaPath,
         options: {
@@ -646,6 +781,9 @@ export default function PatcherPage() {
           SpectreHealing: options.spectreHealing,
           SpawnRateVoodoo: options.spawnRateVoodoo,
           PermanentBuffs: extractBuffIds(options.activeBuffs),
+          SteamFix: options.steamFix || false,
+          Plugins: pluginSupport,
+          activePlugins: activePlugins,
         },
       };
 
@@ -833,7 +971,9 @@ export default function PatcherPage() {
       <Checkbox
         id={setting.id}
         checked={options[setting.id] as boolean}
-        onCheckedChange={(checked) => setOption(setting.id, checked === true)}
+        onCheckedChange={(checked) =>
+          handleSettingChange(setting.id, checked === true)
+        }
         className="mt-1"
       />
       <div className="space-y-1.5 leading-none">
@@ -875,13 +1015,32 @@ export default function PatcherPage() {
               {patchMessage.text}
             </span>
           )}
-          <Button className="gap-2" onClick={handlePatch} disabled={isPatching}>
-            {isPatching ? (
+          {pluginSupport && (
+            <Button
+              variant="secondary"
+              className="gap-2"
+              onClick={handleSyncPlugins}
+              disabled={isPatching || isSyncing || patchStage !== "idle"}>
+              {isSyncing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Puzzle className="h-4 w-4" />
+              )}
+              {isSyncing
+                ? t("patcher.syncing", "Syncing...")
+                : t("patcher.syncBtn", "Sync Plugins Only")}
+            </Button>
+          )}
+          <Button
+            className="gap-2"
+            onClick={handlePatch}
+            disabled={isPatching || isSyncing || patchStage !== "idle"}>
+            {isPatching || patchStage !== "idle" ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Wrench className="h-4 w-4" />
             )}
-            {isPatching
+            {isPatching || patchStage !== "idle"
               ? t("patcher.patching", "Patching...")
               : t("patcher.patchBtn", "Patch & Save")}
           </Button>
@@ -1285,34 +1444,86 @@ export default function PatcherPage() {
                     )}
                   </p>
                 </div>
-                <div className="flex items-start space-x-3">
-                  <Checkbox id="autosync-plugins" className="mt-1" />
-                  <div className="space-y-1">
-                    <Label
-                      htmlFor="autosync-plugins"
-                      className="text-sm font-medium cursor-pointer">
-                      {t("plugins.autosync", "Auto-sync selected plugins")}
-                    </Label>
-                    <p className="text-sm text-muted-foreground max-w-[260px]">
+              </div>
+              <div
+                className={cn(
+                  "p-0 flex-1 flex flex-col min-h-0",
+                  pluginsList.length === 0 &&
+                    "items-center justify-center text-center space-y-3",
+                )}>
+                {pluginsList.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center space-y-3">
+                    <Package className="h-12 w-12 text-muted-foreground/30" />
+                    <h2 className="text-lg font-medium text-muted-foreground">
+                      {t("plugins.emptyState.title", "No plugins loaded")}
+                    </h2>
+                    <p className="text-sm text-muted-foreground/70 max-w-md">
                       {t(
-                        "plugins.autosyncDesc",
-                        "Automatically apply plugin changes without clicking save.",
+                        "plugins.emptyState.desc",
+                        "This section lists all available plugins located in resources/plugins dir.",
                       )}
                     </p>
                   </div>
-                </div>
-              </div>
-              <div className="p-6 flex-1 flex flex-col items-center justify-center text-center space-y-3">
-                <Puzzle className="h-12 w-12 text-muted-foreground/30" />
-                <h2 className="text-lg font-medium text-muted-foreground">
-                  {t("plugins.emptyState.title", "No plugins loaded")}
-                </h2>
-                <p className="text-sm text-muted-foreground/70 max-w-md">
-                  {t(
-                    "plugins.emptyState.desc",
-                    "This section will list all available plugins, allowing you to enable, disable, and configure each one individually.",
-                  )}
-                </p>
+                ) : (
+                  <ScrollArea className="h-full w-full">
+                    <div className="p-6 space-y-2">
+                      <div className="flex items-center gap-2 mb-4 text-sm font-medium text-muted-foreground px-2">
+                        <DownloadCloud className="h-4 w-4" />
+                        {t("plugins.listTitle", "Available Plugins")} (
+                        {activePlugins.length} / {pluginsList.length}{" "}
+                        {t("plugins.activeLabel", "active")})
+                      </div>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                        {pluginsList.map((plugin) => (
+                          <div
+                            key={plugin}
+                            className={cn(
+                              "flex flex-row items-center space-x-3 p-4 rounded-lg border text-left transition-all",
+                              activePlugins.includes(plugin) && pluginSupport
+                                ? "border-primary bg-primary/5"
+                                : "border-border/50 hover:bg-accent/50",
+                              pluginSupport
+                                ? "cursor-pointer"
+                                : "opacity-50 grayscale cursor-not-allowed",
+                            )}
+                            onClick={() => {
+                              if (!pluginSupport) return;
+                              togglePlugin(
+                                plugin,
+                                !activePlugins.includes(plugin),
+                              );
+                            }}>
+                            <Checkbox
+                              id={plugin}
+                              checked={activePlugins.includes(plugin)}
+                              onCheckedChange={(checked) => {
+                                if (!pluginSupport) return;
+                                togglePlugin(plugin, checked === true);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="h-5 w-5 rounded-sm data-[state=checked]:bg-primary"
+                              disabled={!pluginSupport}
+                            />
+                            <div className="flex-1 flex flex-col cursor-pointer overflow-hidden">
+                              <span className="text-sm font-medium leading-none mb-1 text-foreground">
+                                {plugin}
+                              </span>
+                              <span className="text-xs text-muted-foreground truncate">
+                                {t(
+                                  "plugins.localScriptLabel",
+                                  "Local C# script",
+                                )}
+                              </span>
+                            </div>
+                            {activePlugins.includes(plugin) && (
+                              <CheckCircle2 className="h-5 w-5 text-emerald-500 animate-in zoom-in duration-200" />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </ScrollArea>
+                )}
               </div>
             </div>
           )}
@@ -1447,6 +1658,34 @@ export default function PatcherPage() {
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Warning Modals */}
+      <Dialog open={showAnglerWarning} onOpenChange={setShowAnglerWarning}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-500">
+              <Sparkles className="h-5 w-5" />
+              {t(
+                "patcher.features.qol.angler.warningTitle",
+                "Achievement Warning",
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-foreground">
+              {t(
+                "patcher.features.qol.angler.warningDesc",
+                "This mod is reported to break Steam achievements for the Angler. It will still allow you to get in-game achievements though.",
+              )}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowAnglerWarning(false)}>
+              {t("patcher.modal.btnClose", "Close")}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

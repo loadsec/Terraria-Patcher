@@ -1,0 +1,24 @@
+﻿using System;
+using PluginLoader;
+using Terraria;
+using Utils = PluginLoader.Utils;
+
+namespace TranscendPlugins
+{
+    // can't fully skip because async loading was added to Terraria
+    public class FastSplash : MarshalByRefObject, IPluginDrawSplash
+    {
+        /// <inheritdoc />
+        public void OnDrawSplash()
+        {
+            // FastSplash is no longer natively supported in 1.4.5 via quickSplash
+            /*
+            if (!Utils.IstModLoaderInstalled() && !Main.instance.quickSplash)
+            {
+                Main.instance.quickSplash = true;
+                Main.instance.splashCounter = 199;
+            }
+            */
+        }
+    }
+}

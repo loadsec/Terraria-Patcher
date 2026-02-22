@@ -11,6 +11,9 @@ const api = {
     openFile: (): Promise<string | null> =>
       ipcRenderer.invoke("dialog:openFile"),
   },
+  plugins: {
+    list: (): Promise<string[]> => ipcRenderer.invoke("plugins:list"),
+  },
   patcher: {
     run: (
       options: Record<string, unknown>,
@@ -40,6 +43,21 @@ const api = {
       key?: string;
       args?: Record<string, string>;
     }> => ipcRenderer.invoke("patcher:restoreBackup", terrariaPath),
+    verifyClean: (
+      terrariaPath: string,
+    ): Promise<{
+      safe: boolean;
+      key?: string;
+      message?: string;
+    }> => ipcRenderer.invoke("patcher:verify-clean", terrariaPath),
+    syncPlugins: (payload: {
+      terrariaPath: string;
+      activePlugins: string[];
+    }): Promise<{
+      success: boolean;
+      key?: string;
+      args?: Record<string, string>;
+    }> => ipcRenderer.invoke("patcher:sync-plugins", payload),
   },
 };
 

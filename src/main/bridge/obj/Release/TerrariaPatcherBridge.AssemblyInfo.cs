@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TerrariaPatcherBridge")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+49d5d9a707eccd475f0f52a95513bf3fe136f760")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3076720bca49188fa9b81114510533dc142c4c3a")]
 [assembly: System.Reflection.AssemblyProductAttribute("TerrariaPatcherBridge")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TerrariaPatcherBridge")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

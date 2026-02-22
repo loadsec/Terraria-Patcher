@@ -18,6 +18,11 @@
     "title": "Game Modifications",
     "description": "Configure standalone patches to apply directly to the Terraria executable.",
     "patchBtn": "Patch & Save",
+    "patching": "Patching...",
+    "syncBtn": "Sync Plugins Only",
+    "syncing": "Syncing...",
+    "external": "External",
+    "empty": "No results found.",
     "messages": {
       "success": "Terraria patched successfully!",
       "error": "Patch failed: {{error}}",
@@ -26,7 +31,9 @@
       "notFound": "Terraria.exe not found at: {{path}}",
       "backupNotFound": "Backup file (Terraria.exe.bak) not found.",
       "restoreSuccess": "Backup restored successfully.",
-      "restoreFailed": "Restore failed: {{error}}"
+      "restoreFailed": "Restore failed: {{error}}",
+      "pluginsSynced": "Plugins synced successfully!",
+      "syncFailed": "Sync failed: {{error}}"
     },
     "modal": {
       "title": "Patching Terraria",
@@ -44,6 +51,11 @@
       "errorTitle": "Error Parsing or Patching",
       "errorDesc": "An error occurred during patching:",
       "btnClose": "Close"
+    },
+    "errors": {
+      "unexpected": "Unexpected error: ",
+      "noPath": "No Terraria path configured. Go to Config to set it.",
+      "doublePatch": "Both Terraria.exe and the backup are ALREADY PATCHED. Please verify your game files on Steam to restore a clean version before patching again!"
     },
     "tabs": {
       "qol": "Quality of Life",
@@ -79,7 +91,9 @@
         },
         "angler": {
           "label": "Remove Angler Quest Per Day Limit",
-          "desc": "Complete as many fishing quests as you want per in-game day."
+          "desc": "Complete as many fishing quests as you want per in-game day.",
+          "warningTitle": "Achievement Warning",
+          "warningDesc": "This mod is reported to break Steam achievements for the Angler. It will still allow you to get in-game achievements though."
         }
       },
       "combat": {
@@ -197,22 +211,31 @@
   },
   "plugins": {
     "title": "Plugins",
-    "subtitle": "Explore, enable, and tweak community plugins",
-    "autosync": "Auto-sync selected plugins",
-    "autosyncDesc": "Automatically apply plugin changes without clicking save.",
+    "subtitle": "Browse, enable, and configure plugins",
+    "enableSupport": "Enable Plugin Support",
+    "enableSupportDesc": "Allows custom functionality by loading localized C# scripts.",
+    "listTitle": "Available Plugins",
+    "activeLabel": "active",
+    "localScriptLabel": "Local C# script",
     "emptyState": {
       "title": "No plugins loaded",
-      "desc": "This section will list all available plugins, allowing you to enable, disable, and configure each one individually."
+      "desc": "This section lists all available plugins located natively in the resources/plugins dir."
+    },
+    "error": {
+      "missingLoader": "PluginLoader.XNA.dll is missing from resources."
     }
   },
   "config": {
     "title": "Config",
     "subtitle": "Application settings and preferences",
     "saveBtn": "Save Configuration",
+    "saved": "Configuration saved!",
+    "saveFailed": "Failed to save configuration.",
     "gameDirectory": {
       "title": "Game Directory",
       "desc": "Configure the installation path for Terraria.",
       "label": "Terraria Executable Location",
+      "placeholder": "Select the Terraria.exe path...",
       "browse": "Browse...",
       "help": "The patcher needs to locate your main game executable to apply modifications."
     },

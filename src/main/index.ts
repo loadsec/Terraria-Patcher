@@ -1,7 +1,9 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
-import { join } from "path";
+import { join, dirname } from "path";
 import icon from "../../resources/terraria-logo.png?asset";
 import * as fse from "fs-extra";
+import { copySync, emptyDirSync, ensureDirSync } from "fs-extra";
+import { existsSync, copyFileSync, readdirSync } from "fs";
 import edge from "electron-edge-js";
 
 // ─── Electron Store ──────────────────────────────────────────────────────────
@@ -15,25 +17,10 @@ interface StoreSchema {
   language: string;
   pluginSupport: boolean;
   patchOptions: {
-    time: boolean;
-    social: boolean;
-    range: boolean;
-    pylon: boolean;
-    angler: boolean;
-    rod: boolean;
-    potion: boolean;
-    mana: boolean;
-    drowning: boolean;
-    ohk: boolean;
-    ammo: boolean;
-    wings: boolean;
-    cloud: boolean;
-    bossBagsLoot: boolean;
-    vampiricHealing: number;
-    spectreHealing: number;
-    spawnRateVoodoo: number;
-    activeBuffs: string[];
+    SteamFix: boolean;
+    Plugins: boolean;
   };
+  activePlugins?: string[];
 }
 
 async function getStore() {
@@ -45,25 +32,10 @@ async function getStore() {
       language: "en",
       pluginSupport: true,
       patchOptions: {
-        time: true,
-        social: false,
-        range: false,
-        pylon: true,
-        angler: false,
-        rod: false,
-        potion: false,
-        mana: true,
-        drowning: false,
-        ohk: false,
-        ammo: true,
-        wings: false,
-        cloud: false,
-        bossBagsLoot: true,
-        vampiricHealing: 7.5,
-        spectreHealing: 20.0,
-        spawnRateVoodoo: 15,
-        activeBuffs: ["[147] Banner", "[87] Cozy Fire", "[257] Lucky"],
+        SteamFix: false,
+        Plugins: false,
       },
+      activePlugins: [],
     },
   });
   return _store;
@@ -123,6 +95,24 @@ function setupIpcHandlers(): void {
   ipcMain.handle("config:set", async (_event, key: string, value: unknown) => {
     const store = await getStore();
     store.set(key, value);
+  });
+
+  // Plugins
+  ipcMain.handle("plugins:list", async () => {
+    try {
+      const resourcesPluginsDir = join(
+        __dirname,
+        "..",
+        "..",
+        "resources",
+        "plugins",
+      );
+      if (!existsSync(resourcesPluginsDir)) return [];
+      const files = readdirSync(resourcesPluginsDir);
+      return files.filter((f) => f.endsWith(".cs"));
+    } catch {
+      return [];
+    }
   });
 
   // Dialog
@@ -214,13 +204,182 @@ function setupIpcHandlers(): void {
     }
   });
 
+  // Patcher: verify-clean
+  ipcMain.handle(
+    "patcher:verify-clean",
+    async (_event, terrariaPath: string) => {
+      try {
+        const backupPath = terrariaPath + ".bak";
+        const hasBackup = await fse.pathExists(backupPath);
+
+        let exePatched = false;
+        let bakPatched = false;
+
+        const checkPatched = async (path: string) => {
+          if (!(await fse.pathExists(path))) return false;
+
+          try {
+            // We can use edge.js to run a minimal verification, reading references
+            const patcher = getEdgeFunc();
+            const result = (await patcher({
+              command: "checkClean",
+              exePath: path,
+            })) as unknown as { patched: boolean };
+            return result.patched;
+          } catch {
+            return false;
+          }
+        };
+
+        exePatched = await checkPatched(terrariaPath);
+        if (hasBackup) {
+          bakPatched = await checkPatched(backupPath);
+        }
+
+        if (hasBackup && exePatched && bakPatched) {
+          return {
+            safe: false,
+            key: "patcher.errors.doublePatch",
+            message:
+              "Both Terraria.exe and Terraria.exe.bak are already patched! You must verify game files via Steam to restore a clean version before proceeding.",
+          };
+        }
+
+        return { safe: true };
+      } catch (err) {
+        console.error("verify-clean error:", err);
+        return { safe: true }; // Assume safe to prevent blocking if edge-js fails here
+      }
+    },
+  );
+
+  // Patcher: sync-plugins
+  ipcMain.handle(
+    "patcher:sync-plugins",
+    async (
+      _event,
+      payload: { terrariaPath: string; activePlugins: string[] },
+    ) => {
+      try {
+        const { terrariaPath, activePlugins } = payload;
+        const terrariaDir = dirname(terrariaPath);
+        const resourcesPluginsDir = join(
+          __dirname,
+          "..",
+          "..",
+          "resources",
+          "plugins",
+        );
+
+        // 1. Copy PluginLoader.XNA.dll
+        const loaderSrc = join(resourcesPluginsDir, "PluginLoader.XNA.dll");
+        const loaderDest = join(terrariaDir, "PluginLoader.XNA.dll");
+        if (existsSync(loaderSrc)) {
+          copyFileSync(loaderSrc, loaderDest);
+        }
+
+        // 2. Setup Plugins directory
+        const pluginsDestDir = join(terrariaDir, "Plugins");
+        ensureDirSync(pluginsDestDir);
+        emptyDirSync(pluginsDestDir); // Wipe previous scripts
+
+        // 3. Copy Shared folder
+        const sharedSrc = join(resourcesPluginsDir, "Shared");
+        if (existsSync(sharedSrc)) {
+          copySync(sharedSrc, join(pluginsDestDir, "Shared"));
+        }
+
+        // 4. Sync active .cs plugins
+        if (activePlugins && Array.isArray(activePlugins)) {
+          for (const pluginName of activePlugins) {
+            const pluginSrc = join(resourcesPluginsDir, pluginName);
+            if (existsSync(pluginSrc)) {
+              copyFileSync(pluginSrc, join(pluginsDestDir, pluginName));
+            }
+          }
+        }
+
+        return { success: true, key: "patcher.messages.pluginsSynced" };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          success: false,
+          key: "patcher.messages.syncFailed",
+          args: { error: msg },
+        };
+      }
+    },
+  );
+
   // Patcher: run
   ipcMain.handle(
     "patcher:run",
-    async (_event, options: Record<string, unknown>) => {
+    async (
+      _event,
+      payload: { terrariaPath: string; options: Record<string, unknown> },
+    ) => {
       try {
-        const patcher = getEdgeFunc();
-        const result = await patcher(options);
+        const { terrariaPath, options } = payload;
+        const edgeFunc = getEdgeFunc();
+
+        if (options.Plugins) {
+          const terrariaDir = dirname(terrariaPath);
+          const resourcesPluginsDir = join(
+            __dirname,
+            "..",
+            "..",
+            "resources",
+            "plugins",
+          );
+
+          // 1. Copy PluginLoader.XNA.dll next to Terraria.exe
+          const loaderSrc = join(resourcesPluginsDir, "PluginLoader.XNA.dll");
+          const loaderDest = join(terrariaDir, "PluginLoader.XNA.dll");
+          if (existsSync(loaderSrc)) {
+            copyFileSync(loaderSrc, loaderDest);
+          } else {
+            return {
+              success: false,
+              key: "plugins.error.missingLoader",
+              args: { path: loaderSrc },
+              message: "PluginLoader.XNA.dll is missing from resources.",
+            };
+          }
+
+          // 2. Setup Plugins directory
+          const pluginsDestDir = join(terrariaDir, "Plugins");
+          ensureDirSync(pluginsDestDir);
+          emptyDirSync(pluginsDestDir); // Wipe previous scripts
+
+          // 3. Copy Shared folder
+          const sharedSrc = join(resourcesPluginsDir, "Shared");
+          if (existsSync(sharedSrc)) {
+            copySync(sharedSrc, join(pluginsDestDir, "Shared"));
+          }
+
+          // 4. Sync active .cs plugins
+          if (options.activePlugins && Array.isArray(options.activePlugins)) {
+            for (const pluginName of options.activePlugins) {
+              const pluginSrc = join(resourcesPluginsDir, pluginName);
+              if (existsSync(pluginSrc)) {
+                copyFileSync(pluginSrc, join(pluginsDestDir, pluginName));
+              }
+            }
+          }
+        }
+
+        options.PatcherPath = join(
+          __dirname,
+          "..",
+          "..",
+          "resources",
+          "plugins",
+        );
+
+        const result = await edgeFunc({
+          terrariaPath,
+          options,
+        });
 
         // Convert to our standard signature mapping
         if (result.success) {
@@ -233,7 +392,7 @@ function setupIpcHandlers(): void {
             return {
               success: false,
               key: "patcher.messages.notFound",
-              args: { path: options.terrariaPath },
+              args: { path: terrariaPath },
             };
           }
           const errorMessage = backendMessage.replace(/^Patch failed:\s*/, "");
