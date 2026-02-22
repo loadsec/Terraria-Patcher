@@ -30,6 +30,22 @@ export interface PatchResult {
   args?: Record<string, string>;
 }
 
+export interface PluginIniEntry {
+  key: string;
+  value: string;
+}
+
+export interface PluginIniSection {
+  name: string;
+  entries: PluginIniEntry[];
+}
+
+export interface PluginIniLoadResult extends PatchResult {
+  exists: boolean;
+  path?: string;
+  sections?: PluginIniSection[];
+}
+
 export interface PatchOptions {
   time: boolean;
   social: boolean;
@@ -64,6 +80,12 @@ declare global {
       };
       plugins: {
         list: () => Promise<string[]>;
+        iniLoad: (terrariaPath: string) => Promise<PluginIniLoadResult>;
+        iniSave: (payload: {
+          terrariaPath: string;
+          sections: PluginIniSection[];
+        }) => Promise<PatchResult & { path?: string }>;
+        iniDelete: (terrariaPath: string) => Promise<PatchResult & { path?: string }>;
       };
       patcher: {
         run: (options: PatcherOptions) => Promise<PatchResult>;
@@ -74,6 +96,15 @@ declare global {
           bakVersion: string | null;
         }>;
         restoreBackup: (terrariaPath: string) => Promise<PatchResult>;
+        verifyClean: (terrariaPath: string) => Promise<{
+          safe: boolean;
+          key?: string;
+          message?: string;
+        }>;
+        syncPlugins: (payload: {
+          terrariaPath: string;
+          activePlugins: string[];
+        }) => Promise<PatchResult>;
       };
     };
   }

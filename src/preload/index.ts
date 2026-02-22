@@ -13,6 +13,39 @@ const api = {
   },
   plugins: {
     list: (): Promise<string[]> => ipcRenderer.invoke("plugins:list"),
+    iniLoad: (
+      terrariaPath: string,
+    ): Promise<{
+      success: boolean;
+      exists: boolean;
+      path?: string;
+      key?: string;
+      args?: Record<string, string>;
+      sections?: Array<{
+        name: string;
+        entries: Array<{ key: string; value: string }>;
+      }>;
+    }> => ipcRenderer.invoke("plugins:ini-load", terrariaPath),
+    iniSave: (payload: {
+      terrariaPath: string;
+      sections: Array<{
+        name: string;
+        entries: Array<{ key: string; value: string }>;
+      }>;
+    }): Promise<{
+      success: boolean;
+      path?: string;
+      key?: string;
+      args?: Record<string, string>;
+    }> => ipcRenderer.invoke("plugins:ini-save", payload),
+    iniDelete: (
+      terrariaPath: string,
+    ): Promise<{
+      success: boolean;
+      path?: string;
+      key?: string;
+      args?: Record<string, string>;
+    }> => ipcRenderer.invoke("plugins:ini-delete", terrariaPath),
   },
   patcher: {
     run: (

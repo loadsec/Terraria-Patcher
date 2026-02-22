@@ -401,6 +401,7 @@ const ALL_POSSIBLE_BUFFS = [
 ];
 
 interface PatchOptionsState {
+  steamFix: boolean;
   time: boolean;
   social: boolean;
   range: boolean;
@@ -422,6 +423,7 @@ interface PatchOptionsState {
 }
 
 const DEFAULT_OPTIONS: PatchOptionsState = {
+  steamFix: false,
   time: true,
   social: false,
   range: false,
@@ -448,7 +450,7 @@ export default function PatcherPage() {
 
   // Main patch options state
   const [options, setOptions] = useState<PatchOptionsState>(DEFAULT_OPTIONS);
-  const [isPatching, setIsPatching] = useState(false);
+  const [isPatching, _setIsPatching] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
   // workflow state for patching dialog

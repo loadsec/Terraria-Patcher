@@ -3,6 +3,7 @@
     "title": "Terraria Patcher",
     "home": "Início",
     "patcher": "Patcher",
+    "pluginsIni": "Editor do Plugins.ini",
     "plugins": "Plugins",
     "config": "Configurações",
     "tools": "Ferramentas",
@@ -223,6 +224,41 @@
     },
     "error": {
       "missingLoader": "PluginLoader.XNA.dll não foi encontrado nos recursos."
+    },
+    "ini": {
+      "title": "Editor de Plugins.ini",
+      "subtitle": "Edite apenas as configurações geradas pelo PluginLoader e pelos plugins.",
+      "pathUnknown": "O caminho do Plugins.ini aparecerá aqui após carregar.",
+      "reloadBtn": "Recarregar",
+      "saveBtn": "Salvar",
+      "deleteBtn": "Apagar Arquivo",
+      "deleteConfirm": "Apagar o Plugins.ini? Isso remove apenas o arquivo de configurações gerado pelos plugins.",
+      "fieldsLabel": "campos",
+      "noFields": "Nenhum campo nesta seção.",
+      "hotkeyHint": "Use os nomes de tecla no formato do plugin (exemplos: R, F, OemSemicolon).",
+      "emptyTitle": "Nenhuma configuração de plugin encontrada",
+      "emptyDesc": "O Plugins.ini existe, mas ainda não possui seções geradas.",
+      "status": {
+        "success": "Sucesso",
+        "error": "Erro",
+        "info": "Info"
+      },
+      "errors": {
+        "noTerrariaPath": "Nenhum caminho do Terraria foi configurado.",
+        "noTerrariaPathTitle": "Caminho do Terraria não configurado",
+        "noTerrariaPathDesc": "Defina o caminho do Terraria.exe na página de Configurações antes de usar o editor de Plugins.ini."
+      },
+      "messages": {
+        "notFound": "Plugins.ini não foi encontrado.",
+        "notFoundTitle": "Plugins.ini não encontrado",
+        "notFoundDesc": "O arquivo ainda não foi encontrado. Primeiro aplique o patch de plugins e depois execute o Terraria uma vez para que o PluginLoader gere o Plugins.ini.",
+        "expectedPath": "Caminho esperado: {{path}}",
+        "loadFailed": "Falha ao carregar Plugins.ini: {{error}}",
+        "saveSuccess": "Plugins.ini salvo com sucesso.",
+        "saveFailed": "Falha ao salvar Plugins.ini: {{error}}",
+        "deleteSuccess": "Plugins.ini apagado com sucesso.",
+        "deleteFailed": "Falha ao apagar Plugins.ini: {{error}}"
+      }
     }
   },
   "config": {

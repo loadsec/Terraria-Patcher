@@ -41,6 +41,72 @@ async function getStore() {
   return _store;
 }
 
+interface PluginIniEntry {
+  key: string;
+  value: string;
+}
+
+interface PluginIniSection {
+  name: string;
+  entries: PluginIniEntry[];
+}
+
+function getPluginsIniPath(terrariaPath: string): string {
+  return join(dirname(terrariaPath), "Plugins.ini");
+}
+
+function parsePluginIni(content: string): PluginIniSection[] {
+  const sections: PluginIniSection[] = [];
+  let current: PluginIniSection | null = null;
+
+  const normalized = content.replace(/^\uFEFF/, "");
+  for (const rawLine of normalized.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith(";") || line.startsWith("#")) continue;
+
+    if (line.startsWith("[") && line.endsWith("]") && line.length > 2) {
+      current = {
+        name: line.slice(1, -1).trim(),
+        entries: [],
+      };
+      sections.push(current);
+      continue;
+    }
+
+    const separatorIndex = rawLine.indexOf("=");
+    if (separatorIndex < 0 || !current) continue;
+
+    const key = rawLine.slice(0, separatorIndex).trim();
+    const value = rawLine.slice(separatorIndex + 1).trim();
+    if (!key) continue;
+
+    current.entries.push({ key, value });
+  }
+
+  return sections;
+}
+
+function serializePluginIni(sections: PluginIniSection[]): string {
+  const lines: string[] = [];
+
+  for (const section of sections) {
+    const name = String(section.name ?? "").trim();
+    if (!name) continue;
+
+    if (lines.length > 0) lines.push("");
+    lines.push(`[${name}]`);
+
+    for (const entry of section.entries ?? []) {
+      const key = String(entry.key ?? "").trim();
+      if (!key) continue;
+      const value = String(entry.value ?? "");
+      lines.push(`${key}=${value}`);
+    }
+  }
+
+  return lines.join("\r\n") + (lines.length > 0 ? "\r\n" : "");
+}
+
 // ─── Edge.js Bridge ──────────────────────────────────────────────────────────
 
 let patcherFunc:
@@ -114,6 +180,116 @@ function setupIpcHandlers(): void {
       return [];
     }
   });
+
+  ipcMain.handle("plugins:ini-load", async (_event, terrariaPath: string) => {
+    try {
+      if (!terrariaPath) {
+        return {
+          success: false,
+          exists: false,
+          key: "plugins.ini.errors.noTerrariaPath",
+        };
+      }
+
+      const iniPath = getPluginsIniPath(terrariaPath);
+      if (!(await fse.pathExists(iniPath))) {
+        return {
+          success: true,
+          exists: false,
+          path: iniPath,
+          key: "plugins.ini.messages.notFound",
+        };
+      }
+
+      const content = await fse.readFile(iniPath, "utf8");
+      return {
+        success: true,
+        exists: true,
+        path: iniPath,
+        sections: parsePluginIni(content),
+      };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return {
+        success: false,
+        exists: false,
+        key: "plugins.ini.messages.loadFailed",
+        args: { error: msg },
+      };
+    }
+  });
+
+  ipcMain.handle(
+    "plugins:ini-save",
+    async (
+      _event,
+      payload: { terrariaPath: string; sections: PluginIniSection[] },
+    ) => {
+      try {
+        if (!payload?.terrariaPath) {
+          return {
+            success: false,
+            key: "plugins.ini.errors.noTerrariaPath",
+          };
+        }
+
+        const iniPath = getPluginsIniPath(payload.terrariaPath);
+        const sections = Array.isArray(payload.sections) ? payload.sections : [];
+        const content = serializePluginIni(sections);
+        await fse.writeFile(iniPath, content, "utf8");
+
+        return {
+          success: true,
+          path: iniPath,
+          key: "plugins.ini.messages.saveSuccess",
+        };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          success: false,
+          key: "plugins.ini.messages.saveFailed",
+          args: { error: msg },
+        };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    "plugins:ini-delete",
+    async (_event, terrariaPath: string) => {
+      try {
+        if (!terrariaPath) {
+          return {
+            success: false,
+            key: "plugins.ini.errors.noTerrariaPath",
+          };
+        }
+
+        const iniPath = getPluginsIniPath(terrariaPath);
+        if (!(await fse.pathExists(iniPath))) {
+          return {
+            success: false,
+            key: "plugins.ini.messages.notFound",
+            args: { path: iniPath },
+          };
+        }
+
+        await fse.remove(iniPath);
+        return {
+          success: true,
+          path: iniPath,
+          key: "plugins.ini.messages.deleteSuccess",
+        };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return {
+          success: false,
+          key: "plugins.ini.messages.deleteFailed",
+          args: { error: msg },
+        };
+      }
+    },
+  );
 
   // Dialog
   ipcMain.handle("dialog:openFile", async () => {

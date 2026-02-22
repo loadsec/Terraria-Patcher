@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import { AppSidebar } from "@/components/AppSidebar";
 import HomePage from "@/pages/HomePage";
 import PatcherPage from "@/pages/PatcherPage";
+import PluginsIniPage from "@/pages/PluginsIniPage";
 import ConfigPage from "@/pages/ConfigPage";
 import AboutPage from "@/pages/AboutPage";
 import ChangelogPage from "@/pages/ChangelogPage";
@@ -75,6 +76,7 @@ function App(): React.ReactElement {
                 <Routes>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/patcher" element={<PatcherPage />} />
+                  <Route path="/plugins-ini" element={<PluginsIniPage />} />
                   <Route path="/config" element={<ConfigPage />} />
                   <Route path="/about" element={<AboutPage />} />
                   <Route path="/changelog" element={<ChangelogPage />} />

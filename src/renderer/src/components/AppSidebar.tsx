@@ -16,7 +16,14 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 
-const navItems = [
+type SidebarNavItem = {
+  i18nKey: string;
+  icon: typeof Home;
+  path: string;
+  label?: string;
+};
+
+const navItems: SidebarNavItem[] = [
   {
     i18nKey: "home",
     icon: Home,
@@ -24,15 +31,21 @@ const navItems = [
   },
 ];
 
-const toolsItems = [
+const toolsItems: SidebarNavItem[] = [
   {
     i18nKey: "patcher",
     icon: Wrench,
     path: "/patcher",
   },
+  {
+    i18nKey: "pluginsIni",
+    label: "Plugins.ini Editor",
+    icon: FileText,
+    path: "/plugins-ini",
+  },
 ];
 
-const systemItems = [
+const systemItems: SidebarNavItem[] = [
   {
     i18nKey: "config",
     icon: Settings,
@@ -56,6 +69,8 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
+  const navLabel = (item: SidebarNavItem) =>
+    t(`sidebar.${item.i18nKey}`, item.label ?? item.i18nKey);
 
   return (
     <Sidebar collapsible="icon">
@@ -81,9 +96,9 @@ export function AppSidebar() {
                 <SidebarMenuButton
                   isActive={location.pathname === item.path}
                   onClick={() => navigate(item.path)}
-                  tooltip={t(`sidebar.${item.i18nKey}`, item.label)}>
+                  tooltip={navLabel(item)}>
                   <item.icon className="h-4 w-4" />
-                  <span>{t(`sidebar.${item.i18nKey}`, item.label)}</span>
+                  <span>{navLabel(item)}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
@@ -101,9 +116,9 @@ export function AppSidebar() {
                 <SidebarMenuButton
                   isActive={location.pathname === item.path}
                   onClick={() => navigate(item.path)}
-                  tooltip={t(`sidebar.${item.i18nKey}`, item.label)}>
+                  tooltip={navLabel(item)}>
                   <item.icon className="h-4 w-4" />
-                  <span>{t(`sidebar.${item.i18nKey}`, item.label)}</span>
+                  <span>{navLabel(item)}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
@@ -121,9 +136,9 @@ export function AppSidebar() {
                 <SidebarMenuButton
                   isActive={location.pathname === item.path}
                   onClick={() => navigate(item.path)}
-                  tooltip={t(`sidebar.${item.i18nKey}`, item.label)}>
+                  tooltip={navLabel(item)}>
                   <item.icon className="h-4 w-4" />
-                  <span>{t(`sidebar.${item.i18nKey}`, item.label)}</span>
+                  <span>{navLabel(item)}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
