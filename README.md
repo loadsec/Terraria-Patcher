@@ -72,6 +72,21 @@ Apply standalone patches directly to the Terraria executable:
 - [Node.js](https://nodejs.org/) `>= 18`
 - [pnpm](https://pnpm.io/) `>= 8`
 
+### Windows Runtime / Prerequisites
+
+Terraria Patcher may require the **.NET Framework 4.7.2 Runtime** on some Windows systems (mainly for the C# bridge used by patching features).
+
+- End users: install the **.NET Framework 4.7.2 Runtime (Offline Installer)** if the app reports a missing .NET dependency
+- Contributors: install the **.NET Framework 4.7.2 Developer Pack (Offline Installer)** if you want to build/modify the C# bridge
+
+Offline installers mirror (GitHub Releases):
+
+- https://github.com/loadsec/Terraria-Patcher-Prereqs/releases/tag/dotnet472-prereqs
+
+Official Microsoft reference page:
+
+- https://dotnet.microsoft.com/en-us/download/dotnet-framework/net472
+
 ### Installation
 
 ```bash
