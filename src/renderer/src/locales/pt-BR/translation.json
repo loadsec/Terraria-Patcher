@@ -18,7 +18,19 @@
   },
   "header": {
     "toggleTheme": "Alternar Tema",
-    "toggleLanguage": "Mudar Idioma"
+    "toggleLanguage": "Mudar Idioma",
+    "updateAvailable": "Atualização Disponível",
+    "updateDownloading": "Baixando {{percent}}%",
+    "updateDownloadingTitle": "Baixando Atualização",
+    "updateReady": "Atualização Pronta",
+    "openUpdates": "Abrir atualizações em Configurações",
+    "updateBannerAvailableDesc": "Uma nova versão do app está disponível para download.",
+    "updateBannerDownloadingDesc": "Baixando a atualização em segundo plano ({{percent}}%).",
+    "updateBannerReadyDesc": "Uma nova versão está pronta para instalar. Reinicie o app para aplicar.",
+    "dismissUpdate": "Pular esta atualização",
+    "downloadNow": "Baixar agora",
+    "installNow": "Instalar agora",
+    "closeUpdateBanner": "Fechar aviso de atualização"
   },
   "main": {
     "runtimeDeps": {
@@ -339,6 +351,40 @@
         "importSuccess": "Perfil importado com sucesso.",
         "importFailed": "Falha ao importar perfil: {{error}}",
         "importInvalid": "Formato de arquivo de perfil inválido."
+      }
+    },
+    "updates": {
+      "title": "Atualizações do App",
+      "desc": "Verifique novas versões, baixe atualizações e instale sem sair do aplicativo.",
+      "currentVersion": "Versão atual",
+      "latestVersion": "Última versão",
+      "unknown": "Desconhecida",
+      "releaseNotes": "Notas da versão",
+      "checkBtn": "Verificar Atualizações",
+      "downloadBtn": "Baixar Atualização",
+      "installBtn": "Instalar e Reiniciar",
+      "progress": "{{percent}}%",
+      "lastChecked": "Última verificação: {{time}}",
+      "phase": {
+        "idle": "Parado",
+        "unsupported": "Indisponível",
+        "checking": "Verificando",
+        "available": "Atualização Disponível",
+        "not-available": "Atualizado",
+        "downloading": "Baixando",
+        "downloaded": "Pronto para Instalar",
+        "error": "Erro"
+      },
+      "messages": {
+        "idle": "Nenhuma ação de atualização foi iniciada ainda.",
+        "packagedOnly": "A verificação de updates só está disponível em builds instaladas/empacotadas.",
+        "busy": "Uma tarefa de atualização já está em execução. Aguarde.",
+        "checkFailed": "Falha ao verificar atualizações: {{error}}",
+        "downloadFailed": "Falha ao baixar atualização: {{error}}",
+        "installFailed": "Falha ao instalar atualização: {{error}}",
+        "noUpdateToDownload": "Não há atualização disponível para baixar.",
+        "installNotReady": "Baixe uma atualização antes de instalar.",
+        "installStarting": "Reiniciando o app para instalar a atualização..."
       }
     },
     "language": {

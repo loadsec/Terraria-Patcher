@@ -1,5 +1,34 @@
 import { contextBridge, ipcRenderer } from "electron";
 
+type UpdaterState = {
+  supported: boolean;
+  phase:
+    | "idle"
+    | "unsupported"
+    | "checking"
+    | "available"
+    | "not-available"
+    | "downloading"
+    | "downloaded"
+    | "error";
+  currentVersion: string;
+  latestVersion?: string;
+  releaseName?: string;
+  releaseDate?: string;
+  releaseNotes?: string;
+  checking: boolean;
+  downloading: boolean;
+  downloaded: boolean;
+  updateAvailable: boolean;
+  percent?: number;
+  transferred?: number;
+  total?: number;
+  bytesPerSecond?: number;
+  error?: string;
+  message?: string;
+  lastCheckedAt?: string;
+};
+
 const api = {
   config: {
     get: (key: string): Promise<unknown> =>
@@ -31,6 +60,37 @@ const api = {
         pluginSupport: boolean;
       };
     }> => ipcRenderer.invoke("profile:import"),
+  },
+  updater: {
+    getState: (): Promise<UpdaterState> => ipcRenderer.invoke("updater:getState"),
+    check: (): Promise<{
+      success: boolean;
+      unsupported?: boolean;
+      busy?: boolean;
+      error?: string;
+      state?: UpdaterState;
+    }> => ipcRenderer.invoke("updater:check"),
+    download: (): Promise<{
+      success: boolean;
+      unsupported?: boolean;
+      busy?: boolean;
+      noUpdate?: boolean;
+      error?: string;
+      state?: UpdaterState;
+    }> => ipcRenderer.invoke("updater:download"),
+    quitAndInstall: (): Promise<{
+      success: boolean;
+      unsupported?: boolean;
+      notReady?: boolean;
+      state?: UpdaterState;
+    }> => ipcRenderer.invoke("updater:quitAndInstall"),
+    onStateChange: (callback: (state: UpdaterState) => void): (() => void) => {
+      const listener = (_event: unknown, state: UpdaterState) => callback(state);
+      ipcRenderer.on("updater:state", listener);
+      return () => {
+        ipcRenderer.removeListener("updater:state", listener);
+      };
+    },
   },
   plugins: {
     list: (): Promise<string[]> => ipcRenderer.invoke("plugins:list"),

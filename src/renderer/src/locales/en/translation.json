@@ -18,7 +18,19 @@
   },
   "header": {
     "toggleTheme": "Toggle Theme",
-    "toggleLanguage": "Change Language"
+    "toggleLanguage": "Change Language",
+    "updateAvailable": "Update Available",
+    "updateDownloading": "Downloading {{percent}}%",
+    "updateDownloadingTitle": "Downloading Update",
+    "updateReady": "Update Ready",
+    "openUpdates": "Open updates in Config",
+    "updateBannerAvailableDesc": "A new app update is available and ready to download.",
+    "updateBannerDownloadingDesc": "Downloading the update in the background ({{percent}}%).",
+    "updateBannerReadyDesc": "A new version is ready to install. Restart the app to apply it.",
+    "dismissUpdate": "Skip this update",
+    "downloadNow": "Download now",
+    "installNow": "Install now",
+    "closeUpdateBanner": "Close update notice"
   },
   "main": {
     "runtimeDeps": {
@@ -339,6 +351,40 @@
         "importSuccess": "Profile imported successfully.",
         "importFailed": "Failed to import profile: {{error}}",
         "importInvalid": "Invalid profile file format."
+      }
+    },
+    "updates": {
+      "title": "App Updates",
+      "desc": "Check for new releases, download updates and install them without leaving the app.",
+      "currentVersion": "Current version",
+      "latestVersion": "Latest version",
+      "unknown": "Unknown",
+      "releaseNotes": "Release notes",
+      "checkBtn": "Check for Updates",
+      "downloadBtn": "Download Update",
+      "installBtn": "Install & Restart",
+      "progress": "{{percent}}%",
+      "lastChecked": "Last checked: {{time}}",
+      "phase": {
+        "idle": "Idle",
+        "unsupported": "Unavailable",
+        "checking": "Checking",
+        "available": "Update Available",
+        "not-available": "Up to Date",
+        "downloading": "Downloading",
+        "downloaded": "Ready to Install",
+        "error": "Error"
+      },
+      "messages": {
+        "idle": "No update action started yet.",
+        "packagedOnly": "Update checks are only available in installed/packaged builds.",
+        "busy": "An update task is already running. Please wait.",
+        "checkFailed": "Failed to check for updates: {{error}}",
+        "downloadFailed": "Failed to download update: {{error}}",
+        "installFailed": "Failed to install update: {{error}}",
+        "noUpdateToDownload": "No available update to download.",
+        "installNotReady": "Download an update before installing.",
+        "installStarting": "Restarting app to install the update..."
       }
     },
     "language": {

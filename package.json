@@ -113,7 +113,14 @@
       "target": [
         "AppImage"
       ]
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "loadsec",
+        "repo": "Terraria-Patcher"
+      }
+    ]
   },
   "pnpm": {
     "onlyBuiltDependencies": [

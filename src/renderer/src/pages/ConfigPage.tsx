@@ -1,4 +1,15 @@
-import { Settings, Search, Check, Save, Upload, Download } from "lucide-react";
+import {
+  Settings,
+  Search,
+  Check,
+  Save,
+  Upload,
+  Download,
+  RefreshCw,
+  DownloadCloud,
+  Rocket,
+  Loader2,
+} from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -13,6 +24,47 @@ const AVAILABLE_LANGUAGES = [
   { id: "pt-BR", label: "Português Brasileiro" },
 ];
 
+type UpdaterState = {
+  supported: boolean;
+  phase:
+    | "idle"
+    | "unsupported"
+    | "checking"
+    | "available"
+    | "not-available"
+    | "downloading"
+    | "downloaded"
+    | "error";
+  currentVersion: string;
+  latestVersion?: string;
+  releaseName?: string;
+  releaseDate?: string;
+  releaseNotes?: string;
+  checking: boolean;
+  downloading: boolean;
+  downloaded: boolean;
+  updateAvailable: boolean;
+  percent?: number;
+  error?: string;
+  message?: string;
+  lastCheckedAt?: string;
+};
+
+function formatUpdateDate(value?: string, locale = "en"): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  try {
+    return new Intl.DateTimeFormat(locale, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }).format(date);
+  } catch {
+    return value;
+  }
+}
+
 export default function ConfigPage() {
   const { t, i18n } = useTranslation();
 
@@ -25,6 +77,9 @@ export default function ConfigPage() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isExportingProfile, setIsExportingProfile] = useState(false);
   const [isImportingProfile, setIsImportingProfile] = useState(false);
+  const [updaterState, setUpdaterState] = useState<UpdaterState | null>(null);
+  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
+  const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
 
   const flashMessage = (message: string) => {
     setSaveMessage(message);
@@ -53,6 +108,33 @@ export default function ConfigPage() {
       }
     };
     loadConfig();
+  }, []);
+
+  useEffect(() => {
+    let disposed = false;
+
+    const loadUpdaterState = async () => {
+      try {
+        const state = await window.api.updater.getState();
+        if (!disposed) setUpdaterState(state);
+      } catch (err) {
+        console.error("Failed to load updater state:", err);
+      }
+    };
+
+    loadUpdaterState();
+
+    const unsubscribe = window.api.updater.onStateChange((state) => {
+      if (disposed) return;
+      setUpdaterState(state);
+      if (!state.checking) setIsCheckingUpdates(false);
+      if (!state.downloading) setIsDownloadingUpdate(false);
+    });
+
+    return () => {
+      disposed = true;
+      unsubscribe();
+    };
   }, []);
 
   const filteredLanguages = AVAILABLE_LANGUAGES.filter((lang) =>
@@ -150,6 +232,143 @@ export default function ConfigPage() {
     }
   };
 
+  const handleCheckUpdates = async () => {
+    setIsCheckingUpdates(true);
+    try {
+      const result = await window.api.updater.check();
+      if (!result.success) {
+        if (result.unsupported) {
+          flashMessage(
+            t(
+              "config.updates.messages.packagedOnly",
+              "Update checks are only available in installed/packaged builds.",
+            ),
+          );
+        } else if (result.busy) {
+          flashMessage(
+            t(
+              "config.updates.messages.busy",
+              "An update task is already running. Please wait.",
+            ),
+          );
+        } else if (result.error) {
+          flashMessage(
+            t("config.updates.messages.checkFailed", {
+              error: result.error,
+              defaultValue: `Failed to check for updates: ${result.error}`,
+            }),
+          );
+        }
+      }
+    } catch (err) {
+      console.error("Failed to check for updates:", err);
+      flashMessage(
+        t("config.updates.messages.checkFailed", {
+          error: String(err),
+          defaultValue: `Failed to check for updates: ${String(err)}`,
+        }),
+      );
+    } finally {
+      setIsCheckingUpdates(false);
+    }
+  };
+
+  const handleDownloadUpdate = async () => {
+    setIsDownloadingUpdate(true);
+    try {
+      const result = await window.api.updater.download();
+      if (!result.success) {
+        if (result.unsupported) {
+          flashMessage(
+            t(
+              "config.updates.messages.packagedOnly",
+              "Update checks are only available in installed/packaged builds.",
+            ),
+          );
+        } else if (result.busy) {
+          flashMessage(
+            t(
+              "config.updates.messages.busy",
+              "An update task is already running. Please wait.",
+            ),
+          );
+        } else if (result.noUpdate) {
+          flashMessage(
+            t(
+              "config.updates.messages.noUpdateToDownload",
+              "No available update to download.",
+            ),
+          );
+        } else if (result.error) {
+          flashMessage(
+            t("config.updates.messages.downloadFailed", {
+              error: result.error,
+              defaultValue: `Failed to download update: ${result.error}`,
+            }),
+          );
+        }
+      }
+    } catch (err) {
+      console.error("Failed to download update:", err);
+      flashMessage(
+        t("config.updates.messages.downloadFailed", {
+          error: String(err),
+          defaultValue: `Failed to download update: ${String(err)}`,
+        }),
+      );
+    } finally {
+      setIsDownloadingUpdate(false);
+    }
+  };
+
+  const handleInstallUpdate = async () => {
+    try {
+      const result = await window.api.updater.quitAndInstall();
+      if (!result.success) {
+        if (result.unsupported) {
+          flashMessage(
+            t(
+              "config.updates.messages.packagedOnly",
+              "Update checks are only available in installed/packaged builds.",
+            ),
+          );
+        } else if (result.notReady) {
+          flashMessage(
+            t(
+              "config.updates.messages.installNotReady",
+              "Download an update before installing.",
+            ),
+          );
+        }
+        return;
+      }
+
+      flashMessage(
+        t(
+          "config.updates.messages.installStarting",
+          "Restarting app to install the update...",
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to install update:", err);
+      flashMessage(
+        t("config.updates.messages.installFailed", {
+          error: String(err),
+          defaultValue: `Failed to install update: ${String(err)}`,
+        }),
+      );
+    }
+  };
+
+  const updatePhaseLabel = updaterState
+    ? t(`config.updates.phase.${updaterState.phase}`, updaterState.phase)
+    : t("config.updates.phase.idle", "Idle");
+  const updateProgressPercent = Math.max(
+    0,
+    Math.min(100, Math.round(updaterState?.percent ?? 0)),
+  );
+  const formattedReleaseDate = formatUpdateDate(updaterState?.releaseDate, i18n.language);
+
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between shrink-0">
@@ -180,6 +399,167 @@ export default function ConfigPage() {
       </div>
 
       <div className="flex flex-col gap-6">
+        {/* Updates */}
+        <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
+          <div className="flex flex-col space-y-1.5 p-6 border-b bg-muted/20">
+            <h3 className="font-semibold leading-none tracking-tight">
+              {t("config.updates.title", "App Updates")}
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {t(
+                "config.updates.desc",
+                "Check for new releases, download updates and install them without leaving the app.",
+              )}
+            </p>
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">
+                  {t("config.updates.currentVersion", "Current version")}
+                </p>
+                <p className="text-sm font-semibold">
+                  v{updaterState?.currentVersion || "1.0.0"}
+                </p>
+              </div>
+              <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">
+                  {t("config.updates.latestVersion", "Latest version")}
+                </p>
+                <p className="text-sm font-semibold">
+                  {updaterState?.latestVersion
+                    ? `v${updaterState.latestVersion}`
+                    : t("config.updates.unknown", "Unknown")}
+                </p>
+                {formattedReleaseDate ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {formattedReleaseDate}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border/60 bg-background/60 p-3 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={cn(
+                      "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold border",
+                      updaterState?.phase === "error"
+                        ? "border-destructive/30 bg-destructive/10 text-destructive"
+                        : updaterState?.phase === "downloaded"
+                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+                          : updaterState?.phase === "available" ||
+                              updaterState?.phase === "downloading"
+                            ? "border-blue-500/30 bg-blue-500/10 text-blue-500"
+                            : "border-border/60 bg-muted/30 text-muted-foreground",
+                    )}>
+                    {updatePhaseLabel}
+                  </span>
+                  {updaterState?.releaseName ? (
+                    <span className="text-sm text-muted-foreground">
+                      {updaterState.releaseName}
+                    </span>
+                  ) : null}
+                </div>
+                {updaterState?.lastCheckedAt ? (
+                  <span className="text-xs text-muted-foreground">
+                    {t("config.updates.lastChecked", {
+                      time: formatUpdateDate(updaterState.lastCheckedAt, i18n.language),
+                      defaultValue: `Last checked: ${formatUpdateDate(updaterState.lastCheckedAt, i18n.language)}`,
+                    })}
+                  </span>
+                ) : null}
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                {updaterState?.error ||
+                  updaterState?.message ||
+                  t("config.updates.messages.idle", "No update action started yet.")}
+              </p>
+
+              {(updaterState?.downloading || updaterState?.downloaded) && (
+                <div className="space-y-2">
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all duration-300"
+                      style={{ width: `${updateProgressPercent}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>
+                      {t("config.updates.progress", {
+                        percent: updateProgressPercent,
+                        defaultValue: `${updateProgressPercent}%`,
+                      })}
+                    </span>
+                    {typeof updaterState?.percent === "number" && (
+                      <span>{updateProgressPercent}%</span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {updaterState?.releaseNotes ? (
+                <div className="rounded-md border border-border/50 bg-muted/20 p-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {t("config.updates.releaseNotes", "Release notes")}
+                  </p>
+                  <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words text-xs leading-relaxed text-muted-foreground font-sans">
+                    {updaterState.releaseNotes}
+                  </pre>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                className="gap-2"
+                onClick={handleCheckUpdates}
+                disabled={isCheckingUpdates || isDownloadingUpdate || updaterState?.checking}>
+                {isCheckingUpdates || updaterState?.checking ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                {t("config.updates.checkBtn", "Check for Updates")}
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="gap-2"
+                onClick={handleDownloadUpdate}
+                disabled={
+                  !updaterState?.supported ||
+                  !updaterState?.updateAvailable ||
+                  updaterState?.downloaded ||
+                  isDownloadingUpdate ||
+                  updaterState?.downloading ||
+                  updaterState?.checking
+                }>
+                {isDownloadingUpdate || updaterState?.downloading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <DownloadCloud className="h-4 w-4" />
+                )}
+                {t("config.updates.downloadBtn", "Download Update")}
+              </Button>
+
+              <Button
+                type="button"
+                className="gap-2"
+                onClick={handleInstallUpdate}
+                disabled={!updaterState?.downloaded}>
+                <Rocket className="h-4 w-4" />
+                {t("config.updates.installBtn", "Install & Restart")}
+              </Button>
+            </div>
+          </div>
+        </div>
+
         {/* Language Preferences */}
         <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
           <div className="flex flex-col space-y-1.5 p-6 border-b bg-muted/20">

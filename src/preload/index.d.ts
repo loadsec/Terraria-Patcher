@@ -51,6 +51,45 @@ export interface PluginIniLoadResult extends PatchResult {
   sections?: PluginIniSection[];
 }
 
+export interface UpdaterState {
+  supported: boolean;
+  phase:
+    | "idle"
+    | "unsupported"
+    | "checking"
+    | "available"
+    | "not-available"
+    | "downloading"
+    | "downloaded"
+    | "error";
+  currentVersion: string;
+  latestVersion?: string;
+  releaseName?: string;
+  releaseDate?: string;
+  releaseNotes?: string;
+  checking: boolean;
+  downloading: boolean;
+  downloaded: boolean;
+  updateAvailable: boolean;
+  percent?: number;
+  transferred?: number;
+  total?: number;
+  bytesPerSecond?: number;
+  error?: string;
+  message?: string;
+  lastCheckedAt?: string;
+}
+
+export interface UpdaterActionResult {
+  success: boolean;
+  unsupported?: boolean;
+  busy?: boolean;
+  noUpdate?: boolean;
+  notReady?: boolean;
+  error?: string;
+  state?: UpdaterState;
+}
+
 export interface PatchOptions {
   time: boolean;
   social: boolean;
@@ -94,6 +133,13 @@ declare global {
             };
           }
         >;
+      };
+      updater: {
+        getState: () => Promise<UpdaterState>;
+        check: () => Promise<UpdaterActionResult>;
+        download: () => Promise<UpdaterActionResult>;
+        quitAndInstall: () => Promise<UpdaterActionResult>;
+        onStateChange: (callback: (state: UpdaterState) => void) => () => void;
       };
       plugins: {
         list: () => Promise<string[]>;

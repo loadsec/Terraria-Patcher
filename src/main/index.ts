@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
 import { join, dirname } from "path";
+import { autoUpdater, type ProgressInfo, type UpdateInfo } from "electron-updater";
 import icon from "../../resources/terraria-logo.png?asset";
 import * as fse from "fs-extra";
 import { copySync, emptyDirSync, ensureDirSync } from "fs-extra";
@@ -117,6 +118,37 @@ type RuntimeDependencyCheck = {
   title?: string;
   message?: string;
   details?: string[];
+};
+
+type UpdaterPhase =
+  | "idle"
+  | "unsupported"
+  | "checking"
+  | "available"
+  | "not-available"
+  | "downloading"
+  | "downloaded"
+  | "error";
+
+type UpdaterState = {
+  supported: boolean;
+  phase: UpdaterPhase;
+  currentVersion: string;
+  latestVersion?: string;
+  releaseName?: string;
+  releaseDate?: string;
+  releaseNotes?: string;
+  checking: boolean;
+  downloading: boolean;
+  downloaded: boolean;
+  updateAvailable: boolean;
+  percent?: number;
+  transferred?: number;
+  total?: number;
+  bytesPerSecond?: number;
+  error?: string;
+  message?: string;
+  lastCheckedAt?: string;
 };
 
 type MainLocaleDict = Record<string, unknown>;
@@ -325,6 +357,197 @@ function validateRuntimeDependencies(language?: string | null): RuntimeDependenc
   };
 }
 
+// ─── App Updater (electron-updater) ──────────────────────────────────────────
+
+let updaterInitialized = false;
+let startupUpdateCheckScheduled = false;
+let updaterState: UpdaterState = {
+  supported: false,
+  phase: "unsupported",
+  currentVersion: "0.0.0",
+  checking: false,
+  downloading: false,
+  downloaded: false,
+  updateAvailable: false,
+};
+
+function createInitialUpdaterState(): UpdaterState {
+  const supported = app.isPackaged;
+  return {
+    supported,
+    phase: supported ? "idle" : "unsupported",
+    currentVersion: app.getVersion(),
+    checking: false,
+    downloading: false,
+    downloaded: false,
+    updateAvailable: false,
+    message: supported ? undefined : "Updates are only available in packaged builds.",
+  };
+}
+
+function normalizeReleaseNotes(notes: UpdateInfo["releaseNotes"]): string | undefined {
+  if (!notes) return undefined;
+  if (typeof notes === "string") return notes;
+  if (Array.isArray(notes)) {
+    return notes
+      .map((entry) => {
+        const version =
+          typeof entry === "object" && entry && "version" in entry
+            ? String(entry.version ?? "")
+            : "";
+        const note =
+          typeof entry === "object" && entry && "note" in entry
+            ? String(entry.note ?? "")
+            : "";
+        return version && note ? `${version}\n${note}` : note || version;
+      })
+      .filter(Boolean)
+      .join("\n\n");
+  }
+  return String(notes);
+}
+
+function broadcastUpdaterState(): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.send("updater:state", updaterState);
+  }
+}
+
+function setUpdaterState(next: Partial<UpdaterState>): void {
+  updaterState = {
+    ...updaterState,
+    ...next,
+  };
+  broadcastUpdaterState();
+}
+
+function initializeAutoUpdater(): void {
+  if (updaterInitialized) return;
+  updaterInitialized = true;
+  updaterState = createInitialUpdaterState();
+  broadcastUpdaterState();
+
+  if (!app.isPackaged) return;
+
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on("checking-for-update", () => {
+    setUpdaterState({
+      supported: true,
+      phase: "checking",
+      checking: true,
+      downloading: false,
+      downloaded: false,
+      updateAvailable: false,
+      percent: undefined,
+      error: undefined,
+      message: "Checking for updates...",
+      lastCheckedAt: new Date().toISOString(),
+    });
+  });
+
+  autoUpdater.on("update-available", (info) => {
+    setUpdaterState({
+      supported: true,
+      phase: "available",
+      checking: false,
+      downloading: false,
+      downloaded: false,
+      updateAvailable: true,
+      latestVersion: info.version,
+      releaseName: info.releaseName || info.version,
+      releaseDate: info.releaseDate || undefined,
+      releaseNotes: normalizeReleaseNotes(info.releaseNotes),
+      percent: undefined,
+      error: undefined,
+      message: "Update available.",
+    });
+  });
+
+  autoUpdater.on("update-not-available", (info) => {
+    setUpdaterState({
+      supported: true,
+      phase: "not-available",
+      checking: false,
+      downloading: false,
+      downloaded: false,
+      updateAvailable: false,
+      latestVersion: info.version || updaterState.currentVersion,
+      releaseName: info.releaseName || info.version || updaterState.currentVersion,
+      releaseDate: info.releaseDate || undefined,
+      releaseNotes: normalizeReleaseNotes(info.releaseNotes),
+      percent: undefined,
+      error: undefined,
+      message: "You already have the latest version.",
+      lastCheckedAt: new Date().toISOString(),
+    });
+  });
+
+  autoUpdater.on("download-progress", (progress: ProgressInfo) => {
+    setUpdaterState({
+      supported: true,
+      phase: "downloading",
+      checking: false,
+      downloading: true,
+      downloaded: false,
+      updateAvailable: true,
+      percent: progress.percent,
+      transferred: progress.transferred,
+      total: progress.total,
+      bytesPerSecond: progress.bytesPerSecond,
+      error: undefined,
+      message: "Downloading update...",
+    });
+  });
+
+  autoUpdater.on("update-downloaded", (info) => {
+    setUpdaterState({
+      supported: true,
+      phase: "downloaded",
+      checking: false,
+      downloading: false,
+      downloaded: true,
+      updateAvailable: true,
+      latestVersion: info.version,
+      releaseName: info.releaseName || info.version,
+      releaseDate: info.releaseDate || undefined,
+      releaseNotes: normalizeReleaseNotes(info.releaseNotes),
+      percent: 100,
+      error: undefined,
+      message: "Update downloaded. Restart to install.",
+    });
+  });
+
+  autoUpdater.on("error", (error) => {
+    const message = error instanceof Error ? error.message : String(error);
+    setUpdaterState({
+      phase: "error",
+      checking: false,
+      downloading: false,
+      error: message,
+      message,
+    });
+  });
+}
+
+function scheduleSilentStartupUpdateCheck(): void {
+  if (!app.isPackaged) return;
+  if (startupUpdateCheckScheduled) return;
+  startupUpdateCheckScheduled = true;
+
+  setTimeout(() => {
+    if (!app.isPackaged) return;
+    if (updaterState.checking || updaterState.downloading) return;
+
+    void autoUpdater.checkForUpdates().catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      // Silent background check: no dialogs, only state/logs.
+      console.warn("[updater] silent startup check failed:", message);
+    });
+  }, 3500);
+}
+
 // ─── Edge.js Bridge ──────────────────────────────────────────────────────────
 
 let patcherFunc:
@@ -360,6 +583,92 @@ function getEdgeFunc(): (
 // ─── IPC Handlers ────────────────────────────────────────────────────────────
 
 function setupIpcHandlers(): void {
+  // Updater
+  ipcMain.handle("updater:getState", async () => {
+    initializeAutoUpdater();
+    return updaterState;
+  });
+
+  ipcMain.handle("updater:check", async () => {
+    initializeAutoUpdater();
+
+    if (!app.isPackaged) {
+      setUpdaterState({
+        ...createInitialUpdaterState(),
+        message: "Update checks are only available in packaged builds.",
+      });
+      return { success: false, unsupported: true, state: updaterState };
+    }
+
+    if (updaterState.checking || updaterState.downloading) {
+      return { success: false, busy: true, state: updaterState };
+    }
+
+    try {
+      await autoUpdater.checkForUpdates();
+      return { success: true, state: updaterState };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setUpdaterState({
+        phase: "error",
+        checking: false,
+        downloading: false,
+        error: message,
+        message,
+      });
+      return { success: false, error: message, state: updaterState };
+    }
+  });
+
+  ipcMain.handle("updater:download", async () => {
+    initializeAutoUpdater();
+
+    if (!app.isPackaged) {
+      return { success: false, unsupported: true, state: updaterState };
+    }
+
+    if (updaterState.downloading) {
+      return { success: false, busy: true, state: updaterState };
+    }
+
+    if (!updaterState.updateAvailable) {
+      return { success: false, noUpdate: true, state: updaterState };
+    }
+
+    try {
+      await autoUpdater.downloadUpdate();
+      return { success: true, state: updaterState };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setUpdaterState({
+        phase: "error",
+        checking: false,
+        downloading: false,
+        error: message,
+        message,
+      });
+      return { success: false, error: message, state: updaterState };
+    }
+  });
+
+  ipcMain.handle("updater:quitAndInstall", async () => {
+    initializeAutoUpdater();
+
+    if (!app.isPackaged) {
+      return { success: false, unsupported: true, state: updaterState };
+    }
+
+    if (!updaterState.downloaded) {
+      return { success: false, notReady: true, state: updaterState };
+    }
+
+    setImmediate(() => {
+      autoUpdater.quitAndInstall();
+    });
+
+    return { success: true };
+  });
+
   // Config
   ipcMain.handle("config:get", async (_event, key: string) => {
     const store = await getStore();
@@ -962,7 +1271,9 @@ app.whenReady().then(async () => {
   }
 
   setupIpcHandlers();
+  initializeAutoUpdater();
   createWindow();
+  scheduleSilentStartupUpdateCheck();
 
   app.on("activate", function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
