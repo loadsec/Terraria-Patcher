@@ -134,7 +134,7 @@
           "desc": "Mata de imediato qualquer inimigo ou chefão que receber 1 único ataque."
         },
         "ammo": {
-          "label": "Munição Infinita (por Ryan S)",
+          "label": "Munição Infinita",
           "desc": "Armas de alcance nunca consumirão cartuchos e munições do inventário."
         },
         "wings": {
@@ -210,6 +210,12 @@
       "electron": "Framework Desktop",
       "react": "Biblioteca de Interface",
       "vite": "Empacotador (Build)",
+      "typescript": "Linguagem e Tipagem",
+      "edgejs": "Bridge Node <-> C#",
+      "monoCecil": "Engine de Patching IL",
+      "electronStore": "Armazenamento Persistente",
+      "fsExtra": "Operações Avançadas de Arquivo",
+      "i18next": "Internacionalização",
       "shadcn": "Sistema de Componentes",
       "magicui": "VFX e Animações",
       "animateui": "Componentes de Movimento"

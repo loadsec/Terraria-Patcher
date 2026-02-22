@@ -101,7 +101,7 @@ export default function AboutPage() {
           <p className="text-sm text-muted-foreground mb-6">
             {t("about.stack.desc")}
           </p>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             <a
               href="https://electronjs.org/"
               target="_blank"
@@ -139,6 +139,18 @@ export default function AboutPage() {
               </span>
             </a>
             <a
+              href="https://www.typescriptlang.org/"
+              target="_blank"
+              rel="noreferrer"
+              className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-center">
+              <span className="font-medium group-hover:text-primary transition-colors">
+                TypeScript
+              </span>
+              <span className="text-xs text-muted-foreground mt-1">
+                {t("about.stack.typescript")}
+              </span>
+            </a>
+            <a
               href="https://ui.shadcn.com/"
               target="_blank"
               rel="noreferrer"
@@ -148,6 +160,66 @@ export default function AboutPage() {
               </span>
               <span className="text-xs text-muted-foreground mt-1">
                 {t("about.stack.shadcn")}
+              </span>
+            </a>
+            <a
+              href="https://www.npmjs.com/package/electron-edge-js"
+              target="_blank"
+              rel="noreferrer"
+              className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-center">
+              <span className="font-medium group-hover:text-primary transition-colors">
+                edge-js
+              </span>
+              <span className="text-xs text-muted-foreground mt-1">
+                {t("about.stack.edgejs")}
+              </span>
+            </a>
+            <a
+              href="https://www.nuget.org/packages/Mono.Cecil"
+              target="_blank"
+              rel="noreferrer"
+              className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-center">
+              <span className="font-medium group-hover:text-primary transition-colors">
+                Mono.Cecil
+              </span>
+              <span className="text-xs text-muted-foreground mt-1">
+                {t("about.stack.monoCecil")}
+              </span>
+            </a>
+            <a
+              href="https://github.com/sindresorhus/electron-store"
+              target="_blank"
+              rel="noreferrer"
+              className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-center">
+              <span className="font-medium group-hover:text-primary transition-colors">
+                electron-store
+              </span>
+              <span className="text-xs text-muted-foreground mt-1">
+                {t("about.stack.electronStore")}
+              </span>
+            </a>
+            <a
+              href="https://github.com/jprichardson/node-fs-extra"
+              target="_blank"
+              rel="noreferrer"
+              className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-center">
+              <span className="font-medium group-hover:text-primary transition-colors">
+                fs-extra
+              </span>
+              <span className="text-xs text-muted-foreground mt-1">
+                {t("about.stack.fsExtra")}
+              </span>
+            </a>
+            <a
+              href="https://www.i18next.com/"
+              target="_blank"
+              rel="noreferrer"
+              className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-center">
+              <span className="font-medium group-hover:text-primary transition-colors">
+                i18next
+              </span>
+              <span className="text-xs text-muted-foreground mt-1">
+                {t("about.stack.i18next")}
               </span>
             </a>
             <a

@@ -134,7 +134,7 @@
           "desc": "Instantly kill any enemy or boss with a single attack."
         },
         "ammo": {
-          "label": "Infinite Ammo (by Ryan S)",
+          "label": "Infinite Ammo",
           "desc": "Ranged weapons will never consume ammunition."
         },
         "wings": {
@@ -210,6 +210,12 @@
       "electron": "Desktop Framework",
       "react": "UI Library",
       "vite": "Build Tool",
+      "typescript": "Language & Type Safety",
+      "edgejs": "Node <-> C# Bridge",
+      "monoCecil": "IL Patching Engine",
+      "electronStore": "Persistent Settings Store",
+      "fsExtra": "Advanced File Operations",
+      "i18next": "Internationalization",
       "shadcn": "Component System",
       "magicui": "Animations Library",
       "animateui": "Motion Components"
