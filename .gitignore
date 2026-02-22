@@ -27,8 +27,12 @@ latest*.yml
 # -----------------------------------------------------------------------------
 # C# bridge build artifacts (Mono.Cecil / edge-js bridge)
 # -----------------------------------------------------------------------------
-src/main/bridge/bin/
 src/main/bridge/obj/
+src/main/bridge/bin/*
+!src/main/bridge/bin/Release/
+src/main/bridge/bin/Release/*
+!src/main/bridge/bin/Release/*.dll
+src/main/bridge/bin/Release/*.pdb
 
 # -----------------------------------------------------------------------------
 # Logs / coverage / caches
