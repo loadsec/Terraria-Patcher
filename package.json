@@ -2,6 +2,7 @@
   "name": "terraria-patcher",
   "private": true,
   "version": "1.0.0",
+  "author": "Louan Fontenele",
   "description": "A desktop tool for patching Terraria",
   "main": "./out/main/index.js",
   "scripts": {
@@ -68,6 +69,7 @@
   "build": {
     "appId": "com.terraria-patcher",
     "productName": "Terraria Patcher",
+    "npmRebuild": false,
     "directories": {
       "buildResources": "build"
     },
