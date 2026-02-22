@@ -1,31 +1,97 @@
-# Logs
-logs
+# -----------------------------------------------------------------------------
+# Node / package manager
+# -----------------------------------------------------------------------------
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+
+# Package lock files (keep ignored if this repo intentionally does not commit them)
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# -----------------------------------------------------------------------------
+# Build output (Electron / Vite)
+# -----------------------------------------------------------------------------
+dist/
+dist-ssr/
+out/
+release/
+*.blockmap
+latest*.yml
+
+# TypeScript incremental build metadata
+*.tsbuildinfo
+
+# -----------------------------------------------------------------------------
+# C# bridge build artifacts (Mono.Cecil / edge-js bridge)
+# -----------------------------------------------------------------------------
+src/main/bridge/bin/
+src/main/bridge/obj/
+
+# -----------------------------------------------------------------------------
+# Logs / coverage / caches
+# -----------------------------------------------------------------------------
+logs/
 *.log
+*.pid
+*.seed
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+.eslintcache
+coverage/
+.nyc_output/
+.cache/
 
-node_modules
-dist
-dist-ssr
-out
+# -----------------------------------------------------------------------------
+# Local environment / machine-specific files
+# -----------------------------------------------------------------------------
 *.local
+.env
+.env.*
+!.env.example
+!.env.*.example
 
-# Editor directories and files
+# -----------------------------------------------------------------------------
+# Temporary files / backups
+# -----------------------------------------------------------------------------
+tmp/
+temp/
+@/
+*.tmp
+*.temp
+*.bak
+*.orig
+
+# Local diagnostic / scratch scripts used during reverse engineering/debugging
+dump*.ps1
+dump*.js
+test-compile.ps1
+test.js
+
+# -----------------------------------------------------------------------------
+# IDE / editor files
+# -----------------------------------------------------------------------------
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
+.idea/
+.vs/
 *.suo
+*.user
+*.userosscache
+*.rsuser
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-*.ps1
 
-# Package lock files
-package-lock.json
-pnpm-lock.yaml
-yarn.lock
+# -----------------------------------------------------------------------------
+# OS files
+# -----------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+Desktop.ini
