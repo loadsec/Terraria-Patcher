@@ -18,6 +18,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useTranslation, Trans } from "react-i18next";
 import { useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
 
 const AVAILABLE_LANGUAGES = [
   { id: "en", label: "English" },
@@ -67,6 +71,41 @@ function formatUpdateDate(value?: string, locale = "en"): string | null {
   } catch {
     return value;
   }
+}
+
+function ReleaseNotesContent({ value }: { value: string }) {
+  return (
+    <div className="max-h-56 overflow-auto rounded-md border border-border/40 bg-background/40 p-3">
+      <div
+        className={cn(
+          "text-xs leading-relaxed text-muted-foreground",
+          "[&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0",
+          "[&_h1]:mt-3 [&_h1:first-child]:mt-0 [&_h1]:mb-2 [&_h1]:text-sm [&_h1]:font-semibold [&_h1]:text-foreground",
+          "[&_h2]:mt-3 [&_h2:first-child]:mt-0 [&_h2]:mb-2 [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:text-foreground",
+          "[&_h3]:mt-3 [&_h3:first-child]:mt-0 [&_h3]:mb-1 [&_h3]:text-xs [&_h3]:font-semibold [&_h3]:text-foreground",
+          "[&_ul]:my-2 [&_ul]:list-none [&_ul]:pl-0",
+          "[&_ol]:my-2 [&_ol]:pl-4",
+          "[&_li]:relative [&_li]:my-1 [&_li]:pl-4",
+          "[&_ul>li]:before:absolute [&_ul>li]:before:left-0 [&_ul>li]:before:top-[0.7em] [&_ul>li]:before:h-1.5 [&_ul>li]:before:w-1.5 [&_ul>li]:before:-translate-y-1/2 [&_ul>li]:before:rounded-full [&_ul>li]:before:bg-muted-foreground/70",
+          "[&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2 hover:[&_a]:opacity-90",
+          "[&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-[11px] [&_code]:text-foreground",
+          "[&_pre]:my-2 [&_pre]:overflow-auto [&_pre]:rounded-md [&_pre]:border [&_pre]:border-border/50 [&_pre]:bg-muted/30 [&_pre]:p-2",
+          "[&_pre_code]:bg-transparent [&_pre_code]:p-0",
+          "[&_hr]:my-3 [&_hr]:border-border/50",
+        )}>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw, rehypeSanitize]}
+          components={{
+            a: ({ node: _node, ...props }) => (
+              <a {...props} target="_blank" rel="noreferrer noopener" />
+            ),
+          }}>
+          {value}
+        </ReactMarkdown>
+      </div>
+    </div>
+  );
 }
 
 export default function ConfigPage() {
@@ -553,8 +592,8 @@ export default function ConfigPage() {
               </div>
 
               <p className="text-sm text-muted-foreground">
-                {updaterState?.error ||
-                  updaterState?.message ||
+                {updaterState?.message ||
+                  updaterState?.error ||
                   t("config.updates.messages.idle", "No update action started yet.")}
               </p>
 
@@ -585,9 +624,7 @@ export default function ConfigPage() {
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {t("config.updates.releaseNotes", "Release notes")}
                   </p>
-                  <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words text-xs leading-relaxed text-muted-foreground font-sans">
-                    {updaterState.releaseNotes}
-                  </pre>
+                  <ReleaseNotesContent value={updaterState.releaseNotes} />
                 </div>
               ) : null}
             </div>

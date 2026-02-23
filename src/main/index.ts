@@ -679,6 +679,13 @@ function normalizeUpdaterErrorMessage(rawMessage: string): string {
     });
   }
 
+  // Some updater/provider errors include a large serialized HTTP dump (headers, cookies, etc.).
+  // Keep the user-facing message short and readable.
+  const headersIndex = message.indexOf(' Headers:');
+  const truncated = headersIndex > 0 ? message.slice(0, headersIndex) : message;
+  const firstLine = truncated.split(/\r?\n/).find((line) => line.trim())?.trim() ?? "";
+  if (firstLine) return firstLine;
+
   return message;
 }
 
@@ -797,11 +804,14 @@ function initializeAutoUpdater(): void {
   autoUpdater.on("error", (error) => {
     const rawMessage = error instanceof Error ? error.message : String(error);
     const message = normalizeUpdaterErrorMessage(rawMessage);
+    if (message !== rawMessage) {
+      console.warn("Auto updater error (raw):", rawMessage);
+    }
     setUpdaterState({
       phase: "error",
       checking: false,
       downloading: false,
-      error: rawMessage,
+      error: message,
       message,
     });
   });
