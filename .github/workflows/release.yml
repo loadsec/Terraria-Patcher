@@ -61,7 +61,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
@@ -82,7 +81,7 @@ jobs:
           }
 
       - name: Install dependencies (no postinstall scripts)
-        run: pnpm install --frozen-lockfile --ignore-scripts
+        run: pnpm install --ignore-scripts
 
       - name: Build bridge
         run: pnpm run build:bridge
@@ -124,10 +123,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
 
       - name: Install dependencies (no postinstall scripts)
-        run: pnpm install --frozen-lockfile --ignore-scripts
+        run: pnpm install --ignore-scripts
 
       - name: Download bridge DLLs
         uses: actions/download-artifact@v4
