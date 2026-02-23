@@ -280,28 +280,139 @@
     "pathAlert": "Certifique-se de que o caminho do Terraria está configurado corretamente na página Configurações."
   },
   "home": {
-    "welcome": "Bem-vindo ao Terraria Patcher",
-    "description": "Uma ferramenta poderosa para modificar e customizar sua experiência no Terraria. Aplique patches, gerencie plugins e configure sua instalação — tudo em um só lugar.",
-    "learnMore": "Saiba mais",
-    "features": {
-      "patcher": {
-        "title": "Patcher",
-        "desc": "Aplique e gerencie os patches do jogo com facilidade."
-      },
-      "plugins": {
-        "title": "Plugins",
-        "desc": "Navegue, ative e configure plugins da comunidade."
-      },
-      "config": {
-        "title": "Configurações",
-        "desc": "Customize preferências e opções do aplicativo."
+    "hero": {
+      "badge": "Toolkit desktop de patching para Terraria",
+      "title": "Aplique patches, configure e gerencie o Terraria em um só lugar",
+      "description": "Use recursos de patching IL, sincronização de plugins, edição de Plugins.ini, perfis e verificação de atualizações em uma interface desktop moderna.",
+      "primaryBtn": "Abrir Patcher",
+      "configBtn": "Abrir Configurações",
+      "pluginsIniBtn": "Abrir Editor do Plugins.ini",
+      "metrics": {
+        "targetVersion": "Terraria alvo",
+        "supportedRange": "Compatível",
+        "releaseDate": "Release atual",
+        "noDate": "Desconhecida",
+        "terrariaPath": "Caminho do Terraria",
+        "pathConfigured": "Configurado",
+        "pathMissing": "Não configurado",
+        "pathHint": "Defina o caminho do Terraria.exe na Config antes de aplicar patches.",
+        "runtimeLabel": "Runtime .NET",
+        "runtimeHint": ".NET Framework 4.7.2+",
+        "runtimeHintNonWindows": "Verificação apenas no Windows"
       }
     },
-    "quickStart": {
-      "title": "Início Rápido",
-      "step1": "Navegue para a página do Patcher para aplicar seus mods.",
-      "step2": "Vá em Plugins para ativar seus modificadores favoritos.",
-      "step3": "Ajuste suas preferências na tela de Configurações."
+    "status": {
+      "title": "Status do Sistema",
+      "subtitle": "Visão rápida da configuração, estado do updater e requisitos de runtime.",
+      "terrariaPath": "Caminho do Terraria",
+      "pluginSupport": "Suporte a plugins",
+      "updates": "Updater",
+      "configured": "Configurado",
+      "notConfigured": "Não configurado",
+      "enabled": "Ativado",
+      "disabled": "Desativado",
+      "loading": "Carregando...",
+      "notDetectedShort": "N/D",
+      "runtime": {
+        "label": "Runtime .NET 4.7.2+",
+        "ok": "Detectado",
+        "missing": "Ausente / incompatível",
+        "na": "Não se aplica",
+        "releaseHint": "Release: {{detected}} / necessário {{required}}"
+      }
+    },
+    "shortcuts": {
+      "title": "Acesso Rápido",
+      "subtitle": "Vá direto para as páginas que você mais usa.",
+      "patcher": "Patcher",
+      "patcherDesc": "Aplicar patches e sincronizar plugins",
+      "pluginsIni": "Editor do Plugins.ini",
+      "pluginsIniDesc": "Editar configurações geradas de plugins",
+      "config": "Configurações",
+      "configDesc": "Caminho, idioma, updates e runtime",
+      "changelog": "Changelog",
+      "changelogDesc": "Ver histórico de versões e notas"
+    },
+    "cards": {
+      "start": {
+        "subtitle": "O caminho mais curto para uma sessão normal de patching.",
+        "patcherBtn": "Abrir Patcher",
+        "configBtn": "Config"
+      },
+      "build": {
+        "title": "Build Atual",
+        "subtitle": "Versão, compatibilidade e referências rápidas.",
+        "appVersion": "Versão do App",
+        "terrariaTarget": "Terraria Alvo",
+        "releaseDate": "Data da Release",
+        "changelogBtn": "Ver Changelog",
+        "aboutBtn": "Sobre"
+      },
+      "notes": {
+        "title": "Observações Importantes",
+        "subtitle": "Coisas importantes antes de aplicar patches.",
+        "pluginsIniBtn": "Editor do Plugins.ini"
+      }
+    },
+    "details": {
+      "title": "Detalhes Avançados",
+      "subtitle": "Capacidades expandidas e observações de plataforma (opcional).",
+      "toggle": "Mostrar mais"
+    },
+    "workflow": {
+      "title": "Fluxo Recomendado",
+      "subtitle": "Uma sequência segura para patchar o Terraria, ativar plugins e manter seu setup organizado.",
+      "steps": {
+        "config": {
+          "title": "Defina o caminho do Terraria",
+          "desc": "Abra Configurações e selecione seu Terraria.exe. O patcher e o editor de Plugins.ini dependem desse caminho.",
+          "action": "Abrir Configurações"
+        },
+        "patch": {
+          "title": "Aplique os patches",
+          "desc": "Escolha opções de gameplay/QoL, crie um backup e modifique o executável. Os arquivos de plugin também são sincronizados quando o suporte a plugins está ativado.",
+          "action": "Abrir Patcher"
+        },
+        "run": {
+          "title": "Execute o Terraria uma vez",
+          "desc": "Isso gera o Plugins.ini e inicializa os plugins. Depois disso, você pode editar com segurança as configurações geradas."
+        },
+        "edit": {
+          "title": "Ajuste o Plugins.ini e salve um perfil",
+          "desc": "Use o editor de Plugins.ini para os plugins e exporte um perfil em Configurações para lembrar suas preferências de patch/plugin.",
+          "action": "Abrir Editor do Plugins.ini"
+        }
+      }
+    },
+    "capabilities": {
+      "title": "O Que Esta Build Inclui",
+      "subtitle": "Baseado na implementação atual do projeto e nas ferramentas desktop já integradas.",
+      "rows": {
+        "patching": {
+          "title": "Patching IL (Mono.Cecil)",
+          "desc": "Patches de qualidade de vida, combate, cheats, buffs persistentes, ajustes de cura/spawn e loot."
+        },
+        "plugins": {
+          "title": "Sync de plugins + loader",
+          "desc": "Copia o PluginLoader, sincroniza plugins selecionados e suporta recursos compartilhados."
+        },
+        "ini": {
+          "title": "Editor tipado de Plugins.ini",
+          "desc": "Tipos boolean, number, text e hotkey com ações de salvar/apagar persistentes."
+        },
+        "updates": {
+          "title": "Updates do app + checagem de pré-requisitos",
+          "desc": "Integração com electron-updater, diagnósticos no startup e checagem de runtime .NET no Windows."
+        }
+      }
+    },
+    "notes": {
+      "title": "Observações Importantes",
+      "subtitle": "Lembretes rápidos do fluxo atual de patching e plugins.",
+      "backup": "Use backup/restauração antes de reaplicar para evitar empilhar patches em um Terraria.exe já modificado.",
+      "pluginsIni": "Se o Plugins.ini ainda não existir, aplique patch com suporte a plugins ativo e execute o Terraria uma vez para gerar o arquivo.",
+      "platform": "O app desktop roda em Windows, Linux e macOS, mas o suporte completo de patching está atualmente focado no Terraria 1.4.5.x (fluxo Windows).",
+      "aboutBtn": "Sobre & Créditos"
     }
   },
   "about": {
@@ -360,7 +471,7 @@
       "missingLoader": "PluginLoader.XNA.dll não foi encontrado nos recursos."
     },
     "ini": {
-      "title": "Editor de Plugins.ini",
+      "title": "Editor do Plugins.ini",
       "subtitle": "Edite apenas as configurações geradas pelo PluginLoader e pelos plugins.",
       "pathUnknown": "O caminho do Plugins.ini aparecerá aqui após carregar.",
       "reloadBtn": "Recarregar",

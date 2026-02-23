@@ -1,4 +1,4 @@
-import { Home, Wrench, Settings, Info, FileText, FlaskConical } from "lucide-react";
+import { Home, Wrench, Settings, Info, FileText, FlaskConical, BookOpen } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import terrariaLogo from "../../../../resources/terraria-logo.png";
@@ -66,7 +66,7 @@ const systemItems: SidebarNavItem[] = [
   {
     i18nKey: "changelog", // Fallback to label if translation missing
     label: "Changelog",
-    icon: FileText,
+    icon: BookOpen,
     path: "/changelog",
   },
   {

@@ -1,4 +1,4 @@
-import { History, Sparkles } from "lucide-react";
+import { BookOpen, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import versionManifestJson from "../../../../version.json";
 import {
@@ -144,7 +144,7 @@ export default function ChangelogPage() {
       <div className="space-y-4">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg border bg-muted/40">
-            <History className="h-4 w-4" />
+            <BookOpen className="h-4 w-4" />
           </div>
           <div>
             <h2 className="text-lg font-semibold tracking-tight">
