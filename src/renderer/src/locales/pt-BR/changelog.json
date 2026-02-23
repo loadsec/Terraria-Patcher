@@ -12,6 +12,17 @@
     "noEntriesDesc": "Adicione versões no version.json e traduções no changelog.json."
   },
   "releases": {
+    "v1_0_1": {
+      "title": "Polimento de UI e Updater",
+      "summary": "Melhorias na renderização das notas de atualização e polimentos visuais na Home/Changelog.",
+      "changes": [
+        "Corrigida a exibição das release notes do updater (Markdown + HTML), sem mostrar tags cruas.",
+        "Adicionada renderização segura e estilizada das release notes para modo claro e escuro.",
+        "Melhorada a mensagem de erro quando o repositório de updates está privado, com link de contato do desenvolvedor.",
+        "Refinado o layout/alinhamento dos cards da Home e reduzido ruído visual.",
+        "Padronizados ícones e alinhamento de bolinhas/listas na Home e no Changelog."
+      ]
+    },
     "v1_0_0": {
       "title": "Primeira Versão Pública",
       "summary": "Primeira versão pública com patch funcional, suporte a plugins e persistência de configurações.",

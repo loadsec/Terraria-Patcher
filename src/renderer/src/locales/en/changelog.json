@@ -12,6 +12,17 @@
     "noEntriesDesc": "Add release entries to version.json and translations to changelog.json."
   },
   "releases": {
+    "v1_0_1": {
+      "title": "UI & Updater Polish",
+      "summary": "Improved update release notes rendering and polished the Home/Changelog interface.",
+      "changes": [
+        "Rendered updater release notes correctly (Markdown + HTML) instead of showing raw tags.",
+        "Added safer, styled release notes rendering for dark and light themes.",
+        "Improved updater private-repository error message with a clear developer contact link.",
+        "Refined Home page layout/cards alignment and reduced visual clutter.",
+        "Polished icon consistency and bullet alignment across Home and Changelog."
+      ]
+    },
     "v1_0_0": {
       "title": "Initial Public Release",
       "summary": "First public release with functional patching, plugin support and settings persistence.",

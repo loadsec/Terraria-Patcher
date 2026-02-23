@@ -487,6 +487,25 @@ export default function ConfigPage() {
     Math.min(100, Math.round(updaterState?.percent ?? 0)),
   );
   const formattedReleaseDate = formatUpdateDate(updaterState?.releaseDate, i18n.language);
+  const updaterUiMessage = (() => {
+    const raw =
+      updaterState?.message ||
+      updaterState?.error ||
+      t("config.updates.messages.idle", "No update action started yet.");
+    if (!raw) return "";
+    const lower = String(raw).toLowerCase();
+    const looksLikePrivateRepoMessage =
+      lower.includes("repository is private") ||
+      lower.includes("repositório") ||
+      (lower.includes("releases.atom") && lower.includes("404"));
+    if (looksLikePrivateRepoMessage) {
+      return t(
+        "main.updater.privateRepoOrNoRelease",
+        "Updates are unavailable because this repository is private. Please contact the developer: https://github.com/louanfontenele",
+      );
+    }
+    return raw;
+  })();
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -592,9 +611,7 @@ export default function ConfigPage() {
               </div>
 
               <p className="text-sm text-muted-foreground">
-                {updaterState?.message ||
-                  updaterState?.error ||
-                  t("config.updates.messages.idle", "No update action started yet.")}
+                {updaterUiMessage}
               </p>
 
               {(updaterState?.downloading || updaterState?.downloaded) && (

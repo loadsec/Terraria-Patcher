@@ -105,7 +105,7 @@ export default function ChangelogPage() {
                 className={
                   currentReleaseIsLatest
                     ? "inline-flex items-center rounded-full border border-amber-400/60 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:border-amber-400/35 dark:bg-amber-400/12 dark:text-amber-300"
-                    : "inline-flex items-center rounded-full border border-[#5865F2]/30 bg-[#5865F2]/10 px-2.5 py-1 text-xs font-semibold text-[#8EA1FF]"
+                    : "inline-flex items-center rounded-full border border-[#5A433A]/35 bg-[#5A433A]/10 px-2.5 py-1 text-xs font-semibold text-[#5A433A] dark:text-[#C5A99B]"
                 }>
                 v{appVersion}
               </span>
@@ -185,7 +185,7 @@ export default function ChangelogPage() {
                     className={
                       isLatest
                         ? "absolute left-[6px] top-6 h-4 w-4 rounded-full border-2 border-background bg-emerald-400 shadow-[0_0_0_4px_hsl(var(--background))]"
-                        : "absolute left-[6px] top-6 h-4 w-4 rounded-full border-2 border-background bg-[#5865F2] shadow-[0_0_0_4px_hsl(var(--background))]"
+                        : "absolute left-[6px] top-6 h-4 w-4 rounded-full border-2 border-background bg-[#5A433A] shadow-[0_0_0_4px_hsl(var(--background))]"
                     }
                   />
 
@@ -194,7 +194,7 @@ export default function ChangelogPage() {
                       className={
                         isLatest
                           ? "absolute inset-y-0 left-0 w-1 bg-emerald-400"
-                          : "absolute inset-y-0 left-0 w-1 bg-[#5865F2]"
+                          : "absolute inset-y-0 left-0 w-1 bg-[#5A433A]"
                       }
                     />
                     <CardHeader className="gap-2 pb-2">
@@ -236,7 +236,7 @@ export default function ChangelogPage() {
                               className={
                                 isLatest
                                   ? "relative pl-4 text-sm leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-emerald-400/90 before:content-['']"
-                                  : "relative pl-4 text-sm leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-[#5865F2]/85 before:content-['']"
+                                  : "relative pl-4 text-sm leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-[#5A433A]/90 before:content-['']"
                               }>
                               <span>{change}</span>
                             </li>

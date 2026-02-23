@@ -675,7 +675,7 @@ function normalizeUpdaterErrorMessage(rawMessage: string): string {
     return tMain("main.updater.privateRepoOrNoRelease", {
       lang: mainLanguageHint || app.getLocale(),
       defaultValue:
-        "Updates are unavailable right now. This usually happens when the GitHub repository is private or no release has been published yet.",
+        "Updates are unavailable because this repository is private. Please contact the developer: https://github.com/louanfontenele",
     });
   }
 

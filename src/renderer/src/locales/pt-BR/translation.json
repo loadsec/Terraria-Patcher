@@ -102,7 +102,7 @@
   },
   "main": {
     "updater": {
-      "privateRepoOrNoRelease": "As atualizações estão indisponíveis no momento. Isso geralmente acontece quando o repositório no GitHub está privado ou ainda não existe nenhuma release publicada."
+      "privateRepoOrNoRelease": "As atualizações estão indisponíveis porque este repositório está privado. Entre em contato com o desenvolvedor: https://github.com/louanfontenele"
     },
     "dotnetPrereq": {
       "title": ".NET Framework 4.7.2+ Necessário",
