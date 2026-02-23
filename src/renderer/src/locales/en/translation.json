@@ -411,6 +411,8 @@
       "subtitle": "Quick reminders from the current patching and plugin workflow.",
       "backup": "Use backup/restore before repatching to avoid stacking patches on an already modified Terraria.exe.",
       "pluginsIni": "If Plugins.ini does not exist yet, patch with plugin support enabled and launch Terraria once to generate it.",
+      "recovery": "If something goes wrong and you use Steam, try verifying file integrity. In more extreme cases, fully uninstall Terraria, check for leftover files in the installation folder, and try patching again.",
+      "repatchAfterUpdate": "Whenever Terraria updates, you will need to patch again. The update process restores Terraria.exe, so a re-patch is required.",
       "platform": "The desktop app runs on Windows, Linux and macOS, but full patching support is currently focused on Terraria 1.4.5.x (Windows workflow).",
       "aboutBtn": "About & Credits"
     }

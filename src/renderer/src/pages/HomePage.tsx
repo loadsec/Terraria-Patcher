@@ -153,29 +153,6 @@ export default function HomePage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" className="gap-2" onClick={() => navigate("/patcher")}>
-                <Wrench className="h-4 w-4" />
-                {t("home.hero.primaryBtn", "Open Patcher")}
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                className="gap-2"
-                onClick={() => navigate("/config")}>
-                <Settings className="h-4 w-4" />
-                {t("home.hero.configBtn", "Open Config")}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-2"
-                onClick={() => navigate("/plugins-ini")}>
-                <FileText className="h-4 w-4" />
-                {t("home.hero.pluginsIniBtn", "Open Plugins.ini Editor")}
-              </Button>
-            </div>
-
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
               <MetricTile
                 icon={<PackageCheck className="h-4 w-4" />}
@@ -422,6 +399,22 @@ export default function HomePage() {
                 {t(
                   "home.notes.pluginsIni",
                   "If Plugins.ini does not exist yet, patch with plugin support enabled and launch Terraria once to generate it.",
+                )}
+              </span>
+            </li>
+            <li className="relative pl-4 leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-foreground/70 before:content-['']">
+              <span>
+                {t(
+                  "home.notes.recovery",
+                  "If something goes wrong and you use Steam, try verifying file integrity. In more extreme cases, fully uninstall Terraria, check for leftover files in the installation folder, and then try patching again.",
+                )}
+              </span>
+            </li>
+            <li className="relative pl-4 leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-foreground/70 before:content-['']">
+              <span>
+                {t(
+                  "home.notes.repatchAfterUpdate",
+                  "Whenever Terraria updates, you will need to patch again. The update process restores Terraria.exe, so a re-patch is required.",
                 )}
               </span>
             </li>

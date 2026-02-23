@@ -411,6 +411,8 @@
       "subtitle": "Lembretes rápidos do fluxo atual de patching e plugins.",
       "backup": "Use backup/restauração antes de reaplicar para evitar empilhar patches em um Terraria.exe já modificado.",
       "pluginsIni": "Se o Plugins.ini ainda não existir, aplique patch com suporte a plugins ativo e execute o Terraria uma vez para gerar o arquivo.",
+      "recovery": "Se algo der errado e você usar a Steam, tente verificar a integridade dos arquivos. Em casos mais extremos, desinstale completamente o Terraria, verifique se ficaram arquivos na pasta de instalação e tente aplicar o patch novamente.",
+      "repatchAfterUpdate": "Sempre que o Terraria atualizar, será necessário aplicar o patch novamente. A atualização restaura o Terraria.exe, então o re-patch é obrigatório.",
       "platform": "O app desktop roda em Windows, Linux e macOS, mas o suporte completo de patching está atualmente focado no Terraria 1.4.5.x (fluxo Windows).",
       "aboutBtn": "Sobre & Créditos"
     }
