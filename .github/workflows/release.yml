@@ -1,0 +1,198 @@
+name: Build and Release (Terraria Patcher)
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (example: v1.0.1)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.release.tag_name || github.event.inputs.tag || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare metadata
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - name: Resolve tag/version
+        id: meta
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            RAW_TAG="${{ github.event.release.tag_name }}"
+          else
+            RAW_TAG="${{ github.event.inputs.tag }}"
+          fi
+
+          if [[ -z "$RAW_TAG" ]]; then
+            echo "Tag is required."
+            exit 1
+          fi
+
+          if [[ "$RAW_TAG" != v* ]]; then
+            TAG="v$RAW_TAG"
+          else
+            TAG="$RAW_TAG"
+          fi
+
+          VERSION="${TAG#v}"
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved tag: $TAG"
+          echo "Resolved version: $VERSION"
+
+  build-bridge:
+    name: Build C# bridge (Windows)
+    runs-on: windows-latest
+    needs: prepare
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Install .NET Framework 4.7.2 Developer Pack (offline mirror)
+        shell: pwsh
+        run: |
+          $url = "https://github.com/loadsec/Terraria-Patcher-Prereqs/releases/download/dotnet472-prereqs/NDP472-DevPack-ENU.exe"
+          $outDir = Join-Path $env:RUNNER_TEMP "dotnet472"
+          $outFile = Join-Path $outDir "NDP472-DevPack-ENU.exe"
+          New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+          Invoke-WebRequest -Uri $url -OutFile $outFile
+          $p = Start-Process -FilePath $outFile -ArgumentList "/q", "/norestart" -Wait -PassThru
+          if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) {
+            throw "Developer Pack installer failed with exit code $($p.ExitCode)"
+          }
+
+      - name: Install dependencies (no postinstall scripts)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build bridge
+        run: pnpm run build:bridge
+
+      - name: Upload bridge DLLs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bridge-dlls
+          if-no-files-found: error
+          path: src/main/bridge/bin/Release/*.dll
+
+  build-packages:
+    name: Build packages (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    needs: [prepare, build-bridge]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows
+            os: windows-latest
+            builderArg: --win
+          - name: macos
+            os: macos-latest
+            builderArg: --mac
+          - name: linux
+            os: ubuntu-latest
+            builderArg: --linux
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies (no postinstall scripts)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Download bridge DLLs
+        uses: actions/download-artifact@v4
+        with:
+          name: bridge-dlls
+          path: src/main/bridge/bin/Release
+
+      - name: Build app bundle (skip bridge rebuild)
+        run: pnpm exec electron-vite build
+
+      - name: Package app
+        run: pnpm exec electron-builder ${{ matrix.builderArg }} --publish never
+
+      - name: Upload packaged artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-files-${{ matrix.name }}
+          if-no-files-found: error
+          path: |
+            dist/*.exe
+            dist/*.dmg
+            dist/*.AppImage
+            dist/*.zip
+            dist/latest*.yml
+            dist/*.blockmap
+
+  release-assets:
+    name: Publish release assets + checksums
+    runs-on: ubuntu-latest
+    needs: [prepare, build-packages]
+    steps:
+      - name: Download packaged artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-files-*
+          merge-multiple: true
+          path: release-files
+
+      - name: List files
+        shell: bash
+        run: ls -lah release-files
+
+      - name: Generate SHA256 checksums
+        shell: bash
+        run: |
+          cd release-files
+          find . -maxdepth 1 -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Upload assets to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          files: |
+            release-files/*
+          overwrite_files: true
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
