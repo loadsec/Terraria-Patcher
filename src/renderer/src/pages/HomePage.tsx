@@ -210,6 +210,7 @@ export default function HomePage() {
       <div className="grid items-start gap-6 lg:grid-cols-[1.15fr_0.85fr]">
         <PanelCard
           compact
+          titleIcon={<Wrench className="h-4 w-4" />}
           className="h-full"
           title={t("home.workflow.title", "Recommended Workflow")}
           subtitle={t(
@@ -266,6 +267,7 @@ export default function HomePage() {
 
         <PanelCard
           compact
+          titleIcon={<Shield className="h-4 w-4" />}
           className="h-full"
           title={t("home.status.title", "System Status")}
           subtitle={t(
@@ -339,6 +341,7 @@ export default function HomePage() {
 
         <PanelCard
           compact
+          titleIcon={<ArrowRight className="h-4 w-4" />}
           className="h-full"
           title={t("home.shortcuts.title", "Quick Access")}
           subtitle={t(
@@ -375,6 +378,7 @@ export default function HomePage() {
 
         <PanelCard
           compact
+          titleIcon={<PackageCheck className="h-4 w-4" />}
           className="h-full"
           title={t("home.cards.build.title", "Current Build")}
           subtitle={t(
@@ -422,13 +426,14 @@ export default function HomePage() {
       <PanelCard
         compact
         tone="warning"
+        titleIcon={<Info className="h-4 w-4" />}
         title={t("home.cards.notes.title", "Important Notes")}
         subtitle={t(
           "home.cards.notes.subtitle",
           "Things worth knowing before patching.",
         )}>
         <ul className="m-0 list-none space-y-2 p-0 text-sm text-muted-foreground">
-          <li className="relative pl-4 leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-amber-600 dark:before:bg-amber-400 before:content-['']">
+          <li className="relative pl-4 leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-foreground/70 before:content-['']">
             <span>
               {t(
                 "home.notes.backup",
@@ -436,7 +441,7 @@ export default function HomePage() {
               )}
             </span>
           </li>
-          <li className="relative pl-4 leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-amber-600 dark:before:bg-amber-400 before:content-['']">
+          <li className="relative pl-4 leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-foreground/70 before:content-['']">
             <span>
               {t(
                 "home.notes.pluginsIni",
@@ -444,7 +449,7 @@ export default function HomePage() {
               )}
             </span>
           </li>
-          <li className="relative pl-4 leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-amber-600 dark:before:bg-amber-400 before:content-['']">
+          <li className="relative pl-4 leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-foreground/70 before:content-['']">
             <span>
               {t(
                 "home.notes.recovery",
@@ -452,7 +457,7 @@ export default function HomePage() {
               )}
             </span>
           </li>
-          <li className="relative pl-4 leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-amber-600 dark:before:bg-amber-400 before:content-['']">
+          <li className="relative pl-4 leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-foreground/70 before:content-['']">
             <span>
               {t(
                 "home.notes.repatchAfterUpdate",
@@ -470,6 +475,7 @@ function PanelCard({
   className,
   compact = false,
   tone = "default",
+  titleIcon,
   title,
   subtitle,
   children,
@@ -477,6 +483,7 @@ function PanelCard({
   className?: string;
   compact?: boolean;
   tone?: "default" | "warning";
+  titleIcon?: React.ReactNode;
   title: string;
   subtitle?: string;
   children: React.ReactNode;
@@ -486,7 +493,7 @@ function PanelCard({
       className={cn(
         "relative overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm",
         tone === "warning" &&
-          "border-amber-500/20 dark:border-amber-400/15",
+          "border-border",
         className,
       )}>
       {tone === "warning" ? (
@@ -495,16 +502,27 @@ function PanelCard({
       <div
         className={cn(
           "border-b bg-muted/20",
-          tone === "warning" &&
-            "border-amber-500/12 bg-amber-500/[0.03] dark:border-amber-400/10 dark:bg-amber-400/[0.04]",
           compact ? "p-3" : "p-4",
         )}>
-        <h2 className="font-semibold leading-none tracking-tight">{title}</h2>
-        {subtitle ? (
-          <p className={cn("text-muted-foreground", compact ? "mt-1 text-xs" : "mt-1.5 text-sm")}>
-            {subtitle}
-          </p>
-        ) : null}
+        <div className="flex items-start gap-2">
+          {titleIcon ? (
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border/50 bg-background/60 text-muted-foreground">
+              {titleIcon}
+            </span>
+          ) : null}
+          <div className="min-w-0">
+            <h2 className="font-semibold leading-none tracking-tight">{title}</h2>
+            {subtitle ? (
+              <p
+                className={cn(
+                  "text-muted-foreground",
+                  compact ? "mt-1 text-xs" : "mt-1.5 text-sm",
+                )}>
+                {subtitle}
+              </p>
+            ) : null}
+          </div>
+        </div>
       </div>
       <div className={cn(compact ? "p-3" : "p-4")}>{children}</div>
     </section>
