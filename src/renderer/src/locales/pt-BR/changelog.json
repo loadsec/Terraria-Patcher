@@ -12,6 +12,16 @@
     "noEntriesDesc": "Adicione versões no version.json e traduções no changelog.json."
   },
   "releases": {
+    "v1_0_2": {
+      "title": "Correções do Updater e Pipeline de Release",
+      "summary": "Corrigido o download do updater causado por inconsistência no nome dos artefatos e melhorada a confiabilidade do pipeline de release.",
+      "changes": [
+        "Padronizados os nomes dos artefatos de release (Windows/macOS/Linux) para manter consistência entre metadados do updater e assets enviados.",
+        "Melhorado o tratamento de erro do updater quando os arquivos da release ainda não foram totalmente publicados (latest.yml/instalador/blockmap em processamento).",
+        "Substituídos erros 404 verbosos na UI por uma mensagem traduzida e mais limpa.",
+        "Atualizado o workflow de release no GitHub Actions para buildar a partir da tag selecionada (inclusive em execução manual), evitando divergência entre versão e tag."
+      ]
+    },
     "v1_0_1": {
       "title": "Polimento de UI e Updater",
       "summary": "Melhorias na renderização das notas de atualização e polimentos visuais na Home/Changelog.",

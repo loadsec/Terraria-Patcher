@@ -12,6 +12,16 @@
     "noEntriesDesc": "Add release entries to version.json and translations to changelog.json."
   },
   "releases": {
+    "v1_0_2": {
+      "title": "Updater & Release Pipeline Fixes",
+      "summary": "Fixed updater download issues caused by release asset naming mismatches and improved release pipeline reliability.",
+      "changes": [
+        "Standardized release artifact names (Windows/macOS/Linux) to keep updater metadata and uploaded assets consistent.",
+        "Improved updater error handling when release files are not fully published yet (latest.yml/setup/blockmap still processing).",
+        "Replaced noisy 404 download errors in the UI with a cleaner translated message.",
+        "Updated the GitHub Actions release workflow to build from the selected release tag (including manual runs), preventing version/tag mismatches."
+      ]
+    },
     "v1_0_1": {
       "title": "UI & Updater Polish",
       "summary": "Improved update release notes rendering and polished the Home/Changelog interface.",

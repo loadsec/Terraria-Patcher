@@ -670,12 +670,32 @@ function normalizeUpdaterErrorMessage(rawMessage: string): string {
     lower.includes("releases.atom") &&
     (lower.includes("404") || lower.includes("status maybe not reported"));
   const mentionsAuthToken = lower.includes("authentication token");
+  const looksLikeReleaseAssetsNotReady =
+    (
+      lower.includes("latest.yml") &&
+      (lower.includes("cannot find latest.yml") ||
+        lower.includes("release artifacts"))
+    ) ||
+    (lower.includes("/releases/download/") &&
+      lower.includes("404") &&
+      (lower.includes("latest.yml") ||
+        lower.includes(".exe") ||
+        lower.includes(".blockmap") ||
+        lower.includes("cannot download")));
 
   if (looksLikeGithubAtom404 || mentionsAuthToken) {
     return tMain("main.updater.privateRepoOrNoRelease", {
       lang: mainLanguageHint || app.getLocale(),
       defaultValue:
         "Updates are unavailable because this repository is private. Please contact the developer: https://github.com/louanfontenele",
+    });
+  }
+
+  if (looksLikeReleaseAssetsNotReady) {
+    return tMain("main.updater.releaseAssetsNotReady", {
+      lang: mainLanguageHint || app.getLocale(),
+      defaultValue:
+        "A new release was detected, but the update files are not fully available yet (for example: latest.yml, setup file, or blockmap). GitHub Actions may still be building/uploading the artifacts. Please try again in a few minutes.",
     });
   }
 

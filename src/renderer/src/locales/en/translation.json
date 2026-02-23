@@ -102,7 +102,8 @@
   },
   "main": {
     "updater": {
-      "privateRepoOrNoRelease": "Updates are unavailable because this repository is private. Please contact the developer: https://github.com/louanfontenele"
+      "privateRepoOrNoRelease": "Updates are unavailable because this repository is private. Please contact the developer: https://github.com/louanfontenele",
+      "releaseAssetsNotReady": "A new release was detected, but the update files are not fully available yet (for example: latest.yml, setup file, or blockmap). GitHub Actions may still be building/uploading the artifacts. Please try again in a few minutes."
     },
     "dotnetPrereq": {
       "title": ".NET Framework 4.7.2+ Required",

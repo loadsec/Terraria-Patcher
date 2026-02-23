@@ -498,6 +498,24 @@ export default function ConfigPage() {
       lower.includes("repository is private") ||
       lower.includes("repositório") ||
       (lower.includes("releases.atom") && lower.includes("404"));
+    const looksLikeReleaseAssetsNotReady =
+      (
+        lower.includes("latest.yml") &&
+        (lower.includes("cannot find latest.yml") ||
+          lower.includes("release artifacts"))
+      ) ||
+      (lower.includes("/releases/download/") &&
+        lower.includes("404") &&
+        (lower.includes("latest.yml") ||
+          lower.includes(".exe") ||
+          lower.includes(".blockmap") ||
+          lower.includes("cannot download")));
+    if (looksLikeReleaseAssetsNotReady) {
+      return t(
+        "main.updater.releaseAssetsNotReady",
+        "A new release was detected, but the update files are not fully available yet (for example: latest.yml, setup file, or blockmap). GitHub Actions may still be building/uploading the artifacts. Please try again in a few minutes.",
+      );
+    }
     if (looksLikePrivateRepoMessage) {
       return t(
         "main.updater.privateRepoOrNoRelease",

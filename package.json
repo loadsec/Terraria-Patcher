@@ -1,7 +1,7 @@
 {
   "name": "terraria-patcher",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "Louan Fontenele",
   "description": "A desktop tool for patching Terraria",
   "main": "./out/main/index.js",
@@ -105,16 +105,19 @@
       }
     ],
     "win": {
+      "artifactName": "Terraria-Patcher-Setup-${version}.${ext}",
       "target": [
         "nsis"
       ]
     },
     "mac": {
+      "artifactName": "Terraria-Patcher-${version}-${arch}.${ext}",
       "target": [
         "dmg"
       ]
     },
     "linux": {
+      "artifactName": "Terraria-Patcher-${version}-${arch}.${ext}",
       "target": [
         "AppImage"
       ]
