@@ -129,6 +129,26 @@ type DotNetFrameworkCheck = {
   error?: string;
 };
 
+type DotNetDeveloperPackCheck = {
+  ok: boolean;
+  source?: "registry" | "filesystem" | "unknown";
+  installationFolder?: string;
+  referenceAssembliesPath?: string;
+  error?: string;
+};
+
+type DotNetPrereqStatus = {
+  platform: NodeJS.Platform;
+  runtime472Plus: DotNetFrameworkCheck;
+  developerPack472: DotNetDeveloperPackCheck;
+  links: {
+    microsoftPage: string;
+    githubMirror: string;
+    githubRuntimeInstaller: string;
+    githubDeveloperPackInstaller: string;
+  };
+};
+
 type UpdaterPhase =
   | "idle"
   | "unsupported"
@@ -169,6 +189,10 @@ const PREREQS_RELEASE_URL =
   "https://github.com/loadsec/Terraria-Patcher-Prereqs/releases/tag/dotnet472-prereqs";
 const MICROSOFT_DOTNET472_DOWNLOAD_URL =
   "https://dotnet.microsoft.com/en-us/download/dotnet-framework/net472";
+const GITHUB_DOTNET472_DEVPACK_URL =
+  "https://github.com/loadsec/Terraria-Patcher-Prereqs/releases/download/dotnet472-prereqs/NDP472-DevPack-ENU.exe";
+const GITHUB_DOTNET472_RUNTIME_URL =
+  "https://github.com/loadsec/Terraria-Patcher-Prereqs/releases/download/dotnet472-prereqs/NDP472-KB4054530-x86-x64-AllOS-ENU.exe";
 const DOTNET_472_MIN_RELEASE = 461808;
 let devBridgeBuildRunning = false;
 
@@ -273,6 +297,118 @@ async function detectWindowsDotNetFramework472(): Promise<DotNetFrameworkCheck> 
       error: err instanceof Error ? err.message : String(err),
     };
   }
+}
+
+async function queryRegistryValue(
+  args: string[],
+): Promise<{ code: number; stdout: string; stderr: string }> {
+  return new Promise((resolve) => {
+    let stdout = "";
+    let stderr = "";
+    const child = spawn("reg", args, { windowsHide: true });
+
+    child.stdout.on("data", (chunk) => {
+      stdout += String(chunk);
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += String(chunk);
+    });
+    child.on("error", (err) => {
+      stderr += `${err instanceof Error ? err.message : String(err)}\n`;
+      resolve({ code: 1, stdout, stderr });
+    });
+    child.on("close", (code) => {
+      resolve({ code: code ?? 1, stdout, stderr });
+    });
+  });
+}
+
+function parseRegistryStringValue(output: string, keyName: string): string | null {
+  const line = output
+    .split(/\r?\n/)
+    .map((v) => v.trim())
+    .find((v) => new RegExp(`\\b${keyName}\\b`, "i").test(v) && /\bREG_\w+\b/i.test(v));
+  if (!line) return null;
+  const match = line.match(new RegExp(`^${keyName}\\s+REG_\\w+\\s+(.+)$`, "i"));
+  if (match?.[1]) return match[1].trim();
+  const parts = line.split(/\s{2,}|\t+/).filter(Boolean);
+  return parts.length >= 3 ? parts.slice(2).join(" ").trim() : null;
+}
+
+async function detectWindowsDotNetDeveloperPack472(): Promise<DotNetDeveloperPackCheck> {
+  const base: DotNetDeveloperPackCheck = {
+    ok: process.platform !== "win32",
+    source: "unknown",
+  };
+
+  if (process.platform !== "win32") {
+    return base;
+  }
+
+  const regKeys = [
+    "HKLM\\SOFTWARE\\Microsoft\\Microsoft SDKs\\NETFXSDK\\4.7.2",
+    "HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Microsoft SDKs\\NETFXSDK\\4.7.2",
+  ];
+
+  for (const key of regKeys) {
+    const result = await queryRegistryValue(["query", key, "/v", "InstallationFolder"]);
+    if (result.code === 0) {
+      const installationFolder = parseRegistryStringValue(
+        result.stdout,
+        "InstallationFolder",
+      );
+      if (installationFolder) {
+        return {
+          ok: true,
+          source: "registry",
+          installationFolder,
+        };
+      }
+    }
+  }
+
+  const pfX86 = process.env["ProgramFiles(x86)"] || process.env["ProgramFiles"];
+  const referenceAssembliesPath = pfX86
+    ? join(
+        pfX86,
+        "Reference Assemblies",
+        "Microsoft",
+        "Framework",
+        ".NETFramework",
+        "v4.7.2",
+      )
+    : "";
+
+  if (referenceAssembliesPath && existsSync(referenceAssembliesPath)) {
+    return {
+      ok: true,
+      source: "filesystem",
+      referenceAssembliesPath,
+    };
+  }
+
+  return {
+    ok: false,
+    source: "unknown",
+    referenceAssembliesPath: referenceAssembliesPath || undefined,
+    error: "Developer Pack 4.7.2 not detected (NETFXSDK registry key/reference assemblies missing).",
+  };
+}
+
+async function getDotNetPrereqStatus(): Promise<DotNetPrereqStatus> {
+  const runtime472Plus = await detectWindowsDotNetFramework472();
+  const developerPack472 = await detectWindowsDotNetDeveloperPack472();
+  return {
+    platform: process.platform,
+    runtime472Plus,
+    developerPack472,
+    links: {
+      microsoftPage: MICROSOFT_DOTNET472_DOWNLOAD_URL,
+      githubMirror: PREREQS_RELEASE_URL,
+      githubRuntimeInstaller: GITHUB_DOTNET472_RUNTIME_URL,
+      githubDeveloperPackInstaller: GITHUB_DOTNET472_DEVPACK_URL,
+    },
+  };
 }
 
 function getBridgeRuntimeDir(): string {
@@ -905,7 +1041,7 @@ function setupIpcHandlers(): void {
     })();
 
     const deps = validateRuntimeDependencies(String(language || ""));
-    const dotnetFramework = await detectWindowsDotNetFramework472();
+    const dotnetPrereqs = await getDotNetPrereqStatus();
     return {
       success: true,
       devMode: !app.isPackaged,
@@ -919,11 +1055,7 @@ function setupIpcHandlers(): void {
         pluginsResourcesDir: getPluginsResourcesDir(),
       },
       runtimeDeps: deps,
-      dotnetFramework,
-      prereqLinks: {
-        microsoft: MICROSOFT_DOTNET472_DOWNLOAD_URL,
-        github: PREREQS_RELEASE_URL,
-      },
+      dotnetPrereqs,
       updaterState,
       bridgeBuildRunning: devBridgeBuildRunning,
     };
@@ -987,13 +1119,57 @@ function setupIpcHandlers(): void {
     }
   });
 
-  ipcMain.handle("dev:openPrereqLink", async (_event, source: "microsoft" | "github") => {
+  ipcMain.handle(
+    "dev:openPrereqLink",
+    async (
+      _event,
+      source: "microsoftPage" | "githubRelease" | "githubRuntime" | "githubDeveloperPack",
+    ) => {
     if (app.isPackaged) {
       return { success: false, unsupported: true, error: "Dev Tools are unavailable in packaged builds." };
     }
 
     const target =
-      source === "microsoft" ? MICROSOFT_DOTNET472_DOWNLOAD_URL : PREREQS_RELEASE_URL;
+      source === "microsoftPage"
+        ? MICROSOFT_DOTNET472_DOWNLOAD_URL
+        : source === "githubRuntime"
+          ? GITHUB_DOTNET472_RUNTIME_URL
+          : source === "githubDeveloperPack"
+            ? GITHUB_DOTNET472_DEVPACK_URL
+            : PREREQS_RELEASE_URL;
+    try {
+      await shell.openExternal(target);
+      return { success: true };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  });
+
+  ipcMain.handle("prereqs:getStatus", async () => {
+    const dotnetPrereqs = await getDotNetPrereqStatus();
+    return {
+      success: true,
+      dotnetPrereqs,
+    };
+  });
+
+  ipcMain.handle(
+    "prereqs:openLink",
+    async (
+      _event,
+      source: "microsoftPage" | "githubRelease" | "githubRuntime" | "githubDeveloperPack",
+    ) => {
+    const target =
+      source === "microsoftPage"
+        ? MICROSOFT_DOTNET472_DOWNLOAD_URL
+        : source === "githubRuntime"
+          ? GITHUB_DOTNET472_RUNTIME_URL
+          : source === "githubDeveloperPack"
+            ? GITHUB_DOTNET472_DEVPACK_URL
+            : PREREQS_RELEASE_URL;
     try {
       await shell.openExternal(target);
       return { success: true };
@@ -1650,7 +1826,8 @@ app.whenReady().then(async () => {
         }),
         "",
         `Microsoft: ${MICROSOFT_DOTNET472_DOWNLOAD_URL}`,
-        `GitHub: ${PREREQS_RELEASE_URL}`,
+        `GitHub Runtime (direct): ${GITHUB_DOTNET472_RUNTIME_URL}`,
+        `GitHub Release (all prereqs): ${PREREQS_RELEASE_URL}`,
       ].join("\n"),
       buttons: [
         tMain("main.dotnetPrereq.closeButton", {
@@ -1663,7 +1840,7 @@ app.whenReady().then(async () => {
         }),
         tMain("main.dotnetPrereq.githubButton", {
           lang: startupLanguage,
-          defaultValue: "Open GitHub Mirror",
+          defaultValue: "Open GitHub Runtime Mirror",
         }),
       ],
       defaultId: 1,
@@ -1679,7 +1856,7 @@ app.whenReady().then(async () => {
       }
     } else if (result.response === 2) {
       try {
-        await shell.openExternal(PREREQS_RELEASE_URL);
+        await shell.openExternal(GITHUB_DOTNET472_RUNTIME_URL);
       } catch {
         // ignore
       }

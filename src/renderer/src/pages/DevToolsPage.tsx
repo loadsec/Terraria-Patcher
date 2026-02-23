@@ -34,7 +34,9 @@ export default function DevToolsPage() {
   const [bridgeBuildResult, setBridgeBuildResult] = useState<DevBuildBridgeResult | null>(null);
   const [isBuildingBridge, setIsBuildingBridge] = useState(false);
   const [isRefreshingStatus, setIsRefreshingStatus] = useState(false);
-  const [openingPrereq, setOpeningPrereq] = useState<"microsoft" | "github" | null>(null);
+  const [openingPrereq, setOpeningPrereq] = useState<
+    "microsoftPage" | "githubRelease" | "githubRuntime" | "githubDeveloperPack" | null
+  >(null);
 
   const flashMessage = (message: string) => {
     setFlash(message);
@@ -111,7 +113,9 @@ export default function DevToolsPage() {
     }
   };
 
-  const openPrereqLink = async (source: "microsoft" | "github") => {
+  const openPrereqLink = async (
+    source: "microsoftPage" | "githubRelease" | "githubRuntime" | "githubDeveloperPack",
+  ) => {
     try {
       setOpeningPrereq(source);
       const result = await window.api.dev.openPrereqLink(source);
@@ -400,13 +404,13 @@ export default function DevToolsPage() {
                     "mt-1 text-sm font-semibold",
                     devStatus?.platform !== "win32"
                       ? "text-muted-foreground"
-                      : devStatus?.dotnetFramework.ok
+                      : devStatus?.dotnetPrereqs.runtime472Plus.ok
                         ? "text-emerald-600 dark:text-emerald-400"
                         : "text-amber-600 dark:text-amber-400",
                   )}>
                   {devStatus?.platform !== "win32"
                     ? t("devTools.dotnet.nonWindows", "Not applicable on this platform")
-                    : devStatus?.dotnetFramework.ok
+                    : devStatus?.dotnetPrereqs.runtime472Plus.ok
                       ? t("devTools.dotnet.detected", "Detected (compatible)")
                       : t("devTools.dotnet.missing", "Missing or incompatible")}
                 </p>
@@ -418,8 +422,8 @@ export default function DevToolsPage() {
                     size="sm"
                     variant="outline"
                     disabled={openingPrereq !== null}
-                    onClick={() => void openPrereqLink("microsoft")}>
-                    {openingPrereq === "microsoft" ? (
+                    onClick={() => void openPrereqLink("microsoftPage")}>
+                    {openingPrereq === "microsoftPage" ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <ExternalLink className="h-4 w-4" />
@@ -431,13 +435,35 @@ export default function DevToolsPage() {
                     size="sm"
                     variant="secondary"
                     disabled={openingPrereq !== null}
-                    onClick={() => void openPrereqLink("github")}>
-                    {openingPrereq === "github" ? (
+                    onClick={() => void openPrereqLink("githubRuntime")}>
+                    {openingPrereq === "githubRuntime" ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <ExternalLink className="h-4 w-4" />
                     )}
-                    {t("devTools.dotnet.githubBtn", "Open GitHub Mirror")}
+                    {t("devTools.dotnet.githubRuntimeBtn", "Open GitHub Runtime")}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={openingPrereq !== null}
+                    onClick={() => void openPrereqLink("githubDeveloperPack")}>
+                    {openingPrereq === "githubDeveloperPack" ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ExternalLink className="h-4 w-4" />
+                    )}
+                    {t("devTools.dotnet.githubDevPackBtn", "Open GitHub Dev Pack")}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={openingPrereq !== null}
+                    onClick={() => void openPrereqLink("githubRelease")}>
+                    <ExternalLink className="h-4 w-4" />
+                    {t("devTools.dotnet.githubReleaseBtn", "Open GitHub Release")}
                   </Button>
                 </div>
               ) : null}
@@ -449,7 +475,7 @@ export default function DevToolsPage() {
                   {t("devTools.dotnet.requiredRelease", "Required Release")}
                 </span>
                 <div className="font-mono mt-1">
-                  {devStatus?.dotnetFramework.requiredRelease ?? 461808}
+                  {devStatus?.dotnetPrereqs.runtime472Plus.requiredRelease ?? 461808}
                 </div>
               </div>
               <div className="rounded-md border border-border/50 bg-muted/20 p-2">
@@ -457,14 +483,46 @@ export default function DevToolsPage() {
                   {t("devTools.dotnet.detectedRelease", "Detected Release")}
                 </span>
                 <div className="font-mono mt-1">
-                  {typeof devStatus?.dotnetFramework.detectedRelease === "number"
-                    ? devStatus.dotnetFramework.detectedRelease
+                  {typeof devStatus?.dotnetPrereqs.runtime472Plus.detectedRelease === "number"
+                    ? devStatus.dotnetPrereqs.runtime472Plus.detectedRelease
                     : t("devTools.dotnet.notDetected", "Not detected")}
                 </div>
               </div>
             </div>
 
-            {devStatus?.platform === "win32" && !devStatus?.dotnetFramework.ok ? (
+            <div className="rounded-md border border-border/50 bg-muted/20 p-2 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-muted-foreground">
+                  {t("devTools.dotnet.developerPack", "Developer Pack 4.7.2")}
+                </span>
+                <span
+                  className={cn(
+                    "font-medium",
+                    devStatus?.platform !== "win32"
+                      ? "text-muted-foreground"
+                      : devStatus?.dotnetPrereqs.developerPack472.ok
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-amber-600 dark:text-amber-400",
+                  )}>
+                  {devStatus?.platform !== "win32"
+                    ? t("devTools.dotnet.nonWindows", "Not applicable on this platform")
+                    : devStatus?.dotnetPrereqs.developerPack472.ok
+                      ? t("devTools.dotnet.detected", "Detected (compatible)")
+                      : t("devTools.dotnet.notDetected", "Not detected")}
+                </span>
+              </div>
+              {devStatus?.dotnetPrereqs.developerPack472.installationFolder ? (
+                <div className="mt-1 break-all text-muted-foreground">
+                  {devStatus.dotnetPrereqs.developerPack472.installationFolder}
+                </div>
+              ) : devStatus?.dotnetPrereqs.developerPack472.referenceAssembliesPath ? (
+                <div className="mt-1 break-all text-muted-foreground">
+                  {devStatus.dotnetPrereqs.developerPack472.referenceAssembliesPath}
+                </div>
+              ) : null}
+            </div>
+
+            {devStatus?.platform === "win32" && !devStatus?.dotnetPrereqs.runtime472Plus.ok ? (
               <p className="text-xs text-muted-foreground">
                 {t(
                   "devTools.dotnet.recommendation",
@@ -473,10 +531,16 @@ export default function DevToolsPage() {
               </p>
             ) : null}
 
-            {devStatus?.dotnetFramework.error ? (
+            {devStatus?.dotnetPrereqs.runtime472Plus.error ? (
               <p className="text-xs text-muted-foreground break-words">
                 {t("devTools.dotnet.errorPrefix", "Detection error")}:{" "}
-                {devStatus.dotnetFramework.error}
+                {devStatus.dotnetPrereqs.runtime472Plus.error}
+              </p>
+            ) : null}
+            {devStatus?.dotnetPrereqs.developerPack472.error ? (
+              <p className="text-xs text-muted-foreground break-words">
+                {t("devTools.dotnet.devPackErrorPrefix", "Developer Pack detection")}:{" "}
+                {devStatus.dotnetPrereqs.developerPack472.error}
               </p>
             ) : null}
           </div>

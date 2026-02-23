@@ -36,6 +36,34 @@ type RuntimeDependencyCheck = {
   details?: string[];
 };
 
+type DotNetFrameworkCheck = {
+  ok: boolean;
+  requiredRelease: number;
+  detectedRelease?: number;
+  source?: "registry" | "unknown";
+  error?: string;
+};
+
+type DotNetDeveloperPackCheck = {
+  ok: boolean;
+  source?: "registry" | "filesystem" | "unknown";
+  installationFolder?: string;
+  referenceAssembliesPath?: string;
+  error?: string;
+};
+
+type DotNetPrereqStatus = {
+  platform: NodeJS.Platform;
+  runtime472Plus: DotNetFrameworkCheck;
+  developerPack472: DotNetDeveloperPackCheck;
+  links: {
+    microsoftPage: string;
+    githubMirror: string;
+    githubRuntimeInstaller: string;
+    githubDeveloperPackInstaller: string;
+  };
+};
+
 const api = {
   config: {
     get: (key: string): Promise<unknown> =>
@@ -107,6 +135,18 @@ const api = {
       };
     },
   },
+  prereqs: {
+    getStatus: (): Promise<{
+      success: boolean;
+      dotnetPrereqs: DotNetPrereqStatus;
+    }> => ipcRenderer.invoke("prereqs:getStatus"),
+    openLink: (
+      source: "microsoftPage" | "githubRelease" | "githubRuntime" | "githubDeveloperPack",
+    ): Promise<{
+      success: boolean;
+      error?: string;
+    }> => ipcRenderer.invoke("prereqs:openLink", source),
+  },
   dev: {
     getStatus: (): Promise<{
       success: boolean;
@@ -122,6 +162,7 @@ const api = {
         pluginsResourcesDir: string;
       };
       runtimeDeps: RuntimeDependencyCheck;
+      dotnetPrereqs: DotNetPrereqStatus;
       updaterState: UpdaterState;
     }> => ipcRenderer.invoke("dev:getStatus"),
     buildBridge: (): Promise<{
@@ -135,7 +176,7 @@ const api = {
       durationMs?: number;
     }> => ipcRenderer.invoke("dev:buildBridge"),
     openPrereqLink: (
-      source: "microsoft" | "github",
+      source: "microsoftPage" | "githubRelease" | "githubRuntime" | "githubDeveloperPack",
     ): Promise<{
       success: boolean;
       unsupported?: boolean;

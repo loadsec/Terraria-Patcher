@@ -70,12 +70,17 @@
       "nonWindows": "Não se aplica nesta plataforma",
       "requiredRelease": "Release Mínimo",
       "detectedRelease": "Release Detectado",
+      "developerPack": "Developer Pack 4.7.2",
       "notDetected": "Não detectado",
       "recommendation": "Recomendação: tente primeiro o download oficial da Microsoft. Se não estiver disponível, use o mirror de pré-requisitos no GitHub.",
       "microsoftBtn": "Abrir Microsoft",
       "githubBtn": "Abrir Mirror GitHub",
+      "githubRuntimeBtn": "Abrir Runtime no GitHub",
+      "githubDevPackBtn": "Abrir Dev Pack no GitHub",
+      "githubReleaseBtn": "Abrir Release no GitHub",
       "openFailed": "Falha ao abrir link de pré-requisitos.",
-      "errorPrefix": "Erro de detecção"
+      "errorPrefix": "Erro de detecção",
+      "devPackErrorPrefix": "Detecção do Developer Pack"
     },
     "updater": {
       "title": "Simulação do Updater",
@@ -106,7 +111,7 @@
       "recommendMirror": "Se o download da Microsoft estiver indisponível, use o mirror de pré-requisitos no GitHub.",
       "closeButton": "Fechar",
       "microsoftButton": "Abrir Microsoft",
-      "githubButton": "Abrir Mirror GitHub"
+      "githubButton": "Abrir Mirror Runtime GitHub"
     },
     "runtimeDeps": {
       "title": "Arquivos de Runtime Ausentes",
@@ -460,6 +465,30 @@
         "noUpdateToDownload": "Não há atualização disponível para baixar.",
         "installNotReady": "Baixe uma atualização antes de instalar.",
         "installStarting": "Reiniciando o app para instalar a atualização..."
+      }
+    },
+    "prereqs": {
+      "title": "Pré-requisitos do .NET Framework",
+      "desc": "Verifique se o .NET Framework 4.7.2+ está disponível no seu Windows. O Terraria Patcher precisa dele para executar a bridge em C#.",
+      "runtimeStatus": "Runtime (.NET 4.7.2+)",
+      "devPackStatus": "Developer Pack (contribuidores)",
+      "detected": "Detectado (compatível)",
+      "missing": "Ausente ou incompatível",
+      "optionalMissing": "Não detectado (opcional para usuários normais)",
+      "notDetected": "Não detectado",
+      "releaseValues": "Release detectado: {{detected}} • Necessário: {{required}}",
+      "recommendation": "Recomendado: baixe primeiro o instalador Runtime pela Microsoft. Se estiver indisponível, use o mirror de pré-requisitos no GitHub.",
+      "refreshBtn": "Atualizar Status",
+      "microsoftBtn": "Abrir Microsoft (página .NET)",
+      "githubBtn": "Abrir Mirror GitHub",
+      "githubRuntimeBtn": "Abrir Mirror Runtime GitHub",
+      "githubDevPackBtn": "Abrir Mirror Dev Pack GitHub",
+      "githubReleaseBtn": "Abrir Release de Pré-requisitos",
+      "userVsContributor": "Usuários normais geralmente precisam apenas do instalador Runtime. Contribuidores que compilam a bridge em C# podem precisar também do Developer Pack.",
+      "messages": {
+        "refreshed": "Status de pré-requisitos atualizado.",
+        "refreshFailed": "Falha ao atualizar status de pré-requisitos: {{error}}",
+        "openFailed": "Falha ao abrir link: {{error}}"
       }
     },
     "language": {

@@ -99,6 +99,34 @@ export interface RuntimeDependencyCheck {
   details?: string[];
 }
 
+export interface DotNetFrameworkCheck {
+  ok: boolean;
+  requiredRelease: number;
+  detectedRelease?: number;
+  source?: "registry" | "unknown";
+  error?: string;
+}
+
+export interface DotNetDeveloperPackCheck {
+  ok: boolean;
+  source?: "registry" | "filesystem" | "unknown";
+  installationFolder?: string;
+  referenceAssembliesPath?: string;
+  error?: string;
+}
+
+export interface DotNetPrereqStatus {
+  platform: NodeJS.Platform;
+  runtime472Plus: DotNetFrameworkCheck;
+  developerPack472: DotNetDeveloperPackCheck;
+  links: {
+    microsoftPage: string;
+    githubMirror: string;
+    githubRuntimeInstaller: string;
+    githubDeveloperPackInstaller: string;
+  };
+}
+
 export interface DevStatusResult {
   success: boolean;
   devMode: boolean;
@@ -113,17 +141,7 @@ export interface DevStatusResult {
     pluginsResourcesDir: string;
   };
   runtimeDeps: RuntimeDependencyCheck;
-  dotnetFramework: {
-    ok: boolean;
-    requiredRelease: number;
-    detectedRelease?: number;
-    source?: "registry" | "unknown";
-    error?: string;
-  };
-  prereqLinks: {
-    microsoft: string;
-    github: string;
-  };
+  dotnetPrereqs: DotNetPrereqStatus;
   updaterState: UpdaterState;
 }
 
@@ -190,11 +208,23 @@ declare global {
         debugMock: (mode: UpdaterDebugMockMode) => Promise<UpdaterActionResult>;
         onStateChange: (callback: (state: UpdaterState) => void) => () => void;
       };
+      prereqs: {
+        getStatus: () => Promise<{
+          success: boolean;
+          dotnetPrereqs: DotNetPrereqStatus;
+        }>;
+        openLink: (
+          source: "microsoftPage" | "githubRelease" | "githubRuntime" | "githubDeveloperPack",
+        ) => Promise<{
+          success: boolean;
+          error?: string;
+        }>;
+      };
       dev: {
         getStatus: () => Promise<DevStatusResult>;
         buildBridge: () => Promise<DevBuildBridgeResult>;
         openPrereqLink: (
-          source: "microsoft" | "github",
+          source: "microsoftPage" | "githubRelease" | "githubRuntime" | "githubDeveloperPack",
         ) => Promise<{
           success: boolean;
           unsupported?: boolean;

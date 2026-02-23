@@ -50,6 +50,10 @@ type UpdaterState = {
   lastCheckedAt?: string;
 };
 
+type DotNetPrereqStatus = Awaited<
+  ReturnType<typeof window.api.prereqs.getStatus>
+>["dotnetPrereqs"];
+
 function formatUpdateDate(value?: string, locale = "en"): string | null {
   if (!value) return null;
   const date = new Date(value);
@@ -80,6 +84,11 @@ export default function ConfigPage() {
   const [updaterState, setUpdaterState] = useState<UpdaterState | null>(null);
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
   const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
+  const [dotnetPrereqs, setDotnetPrereqs] = useState<DotNetPrereqStatus | null>(null);
+  const [isRefreshingPrereqs, setIsRefreshingPrereqs] = useState(false);
+  const [openingPrereqLink, setOpeningPrereqLink] = useState<
+    "microsoftPage" | "githubRelease" | "githubRuntime" | "githubDeveloperPack" | null
+  >(null);
 
   const flashMessage = (message: string) => {
     setSaveMessage(message);
@@ -108,6 +117,27 @@ export default function ConfigPage() {
       }
     };
     loadConfig();
+  }, []);
+
+  useEffect(() => {
+    let disposed = false;
+
+    const loadPrereqs = async () => {
+      try {
+        const result = await window.api.prereqs.getStatus();
+        if (!disposed && result.success) {
+          setDotnetPrereqs(result.dotnetPrereqs);
+        }
+      } catch (err) {
+        console.error("Failed to load prereq status:", err);
+      }
+    };
+
+    void loadPrereqs();
+
+    return () => {
+      disposed = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -360,6 +390,56 @@ export default function ConfigPage() {
     }
   };
 
+  const refreshPrereqStatus = async () => {
+    try {
+      setIsRefreshingPrereqs(true);
+      const result = await window.api.prereqs.getStatus();
+      if (result.success) {
+        setDotnetPrereqs(result.dotnetPrereqs);
+        flashMessage(
+          t("config.prereqs.messages.refreshed", "Prerequisites status refreshed."),
+        );
+      }
+    } catch (err) {
+      console.error("Failed to refresh prerequisites status:", err);
+      flashMessage(
+        t("config.prereqs.messages.refreshFailed", {
+          error: String(err),
+          defaultValue: `Failed to refresh prerequisites status: ${String(err)}`,
+        }),
+      );
+    } finally {
+      setIsRefreshingPrereqs(false);
+    }
+  };
+
+  const openPrereqLink = async (
+    source: "microsoftPage" | "githubRelease" | "githubRuntime" | "githubDeveloperPack",
+  ) => {
+    try {
+      setOpeningPrereqLink(source);
+      const result = await window.api.prereqs.openLink(source);
+      if (!result.success) {
+        flashMessage(
+          t("config.prereqs.messages.openFailed", {
+            error: result.error || "Unknown error",
+            defaultValue: `Failed to open link: ${result.error || "Unknown error"}`,
+          }),
+        );
+      }
+    } catch (err) {
+      console.error("Failed to open prerequisites link:", err);
+      flashMessage(
+        t("config.prereqs.messages.openFailed", {
+          error: String(err),
+          defaultValue: `Failed to open link: ${String(err)}`,
+        }),
+      );
+    } finally {
+      setOpeningPrereqLink(null);
+    }
+  };
+
   const updatePhaseLabel = updaterState
     ? t(`config.updates.phase.${updaterState.phase}`, updaterState.phase)
     : t("config.updates.phase.idle", "Idle");
@@ -560,6 +640,152 @@ export default function ConfigPage() {
 
           </div>
         </div>
+
+        {dotnetPrereqs?.platform === "win32" && (
+          <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
+            <div className="flex flex-col space-y-1.5 p-6 border-b bg-muted/20">
+              <h3 className="font-semibold leading-none tracking-tight">
+                {t("config.prereqs.title", ".NET Framework Prerequisites")}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {t(
+                  "config.prereqs.desc",
+                  "Check whether .NET Framework 4.7.2+ is available on your Windows system. Terraria Patcher needs it to run the C# bridge.",
+                )}
+              </p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+                  <p className="text-xs text-muted-foreground">
+                    {t("config.prereqs.runtimeStatus", "Runtime (.NET 4.7.2+)")}
+                  </p>
+                  <p
+                    className={cn(
+                      "text-sm font-semibold",
+                      dotnetPrereqs.runtime472Plus.ok
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-amber-600 dark:text-amber-400",
+                    )}>
+                    {dotnetPrereqs.runtime472Plus.ok
+                      ? t("config.prereqs.detected", "Detected (compatible)")
+                      : t("config.prereqs.missing", "Missing or incompatible")}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t("config.prereqs.releaseValues", {
+                      detected:
+                        typeof dotnetPrereqs.runtime472Plus.detectedRelease === "number"
+                          ? dotnetPrereqs.runtime472Plus.detectedRelease
+                          : t("config.prereqs.notDetected", "Not detected"),
+                      required: dotnetPrereqs.runtime472Plus.requiredRelease,
+                      defaultValue:
+                        "Detected Release: {{detected}} • Required: {{required}}",
+                    })}
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
+                  <p className="text-xs text-muted-foreground">
+                    {t("config.prereqs.devPackStatus", "Developer Pack (contributors)")}
+                  </p>
+                  <p
+                    className={cn(
+                      "text-sm font-semibold",
+                      dotnetPrereqs.developerPack472.ok
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-muted-foreground",
+                    )}>
+                    {dotnetPrereqs.developerPack472.ok
+                      ? t("config.prereqs.detected", "Detected (compatible)")
+                      : t(
+                          "config.prereqs.optionalMissing",
+                          "Not detected (optional for normal users)",
+                        )}
+                  </p>
+                  {(dotnetPrereqs.developerPack472.installationFolder ||
+                    dotnetPrereqs.developerPack472.referenceAssembliesPath) && (
+                    <p className="mt-1 text-xs text-muted-foreground break-all">
+                      {dotnetPrereqs.developerPack472.installationFolder ||
+                        dotnetPrereqs.developerPack472.referenceAssembliesPath}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {!dotnetPrereqs.runtime472Plus.ok && (
+                <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-3">
+                  <p className="text-sm text-muted-foreground">
+                    {t(
+                      "config.prereqs.recommendation",
+                      "Recommended: download the Runtime installer from Microsoft first. If it is unavailable, use the GitHub prerequisites mirror.",
+                    )}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="gap-2"
+                  onClick={() => void refreshPrereqStatus()}
+                  disabled={isRefreshingPrereqs}>
+                  {isRefreshingPrereqs ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  {t("config.prereqs.refreshBtn", "Refresh Status")}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => void openPrereqLink("microsoftPage")}
+                  disabled={openingPrereqLink !== null}>
+                  {openingPrereqLink === "microsoftPage" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  {t("config.prereqs.microsoftBtn", "Open Microsoft (.NET page)")}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => void openPrereqLink("githubRuntime")}
+                  disabled={openingPrereqLink !== null}>
+                  {openingPrereqLink === "githubRuntime" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                  {t("config.prereqs.githubRuntimeBtn", "Open GitHub Runtime Mirror")}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="gap-2"
+                  onClick={() => void openPrereqLink("githubRelease")}
+                  disabled={openingPrereqLink !== null}>
+                  <Download className="h-4 w-4" />
+                  {t("config.prereqs.githubReleaseBtn", "Open GitHub Prereqs Release")}
+                </Button>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                {t(
+                  "config.prereqs.userVsContributor",
+                  "Normal users usually only need the Runtime installer. Contributors who compile the C# bridge may also need the Developer Pack.",
+                )}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Language Preferences */}
         <div className="rounded-xl border bg-card text-card-foreground shadow-sm">

@@ -70,12 +70,17 @@
       "nonWindows": "Not applicable on this platform",
       "requiredRelease": "Required Release",
       "detectedRelease": "Detected Release",
+      "developerPack": "Developer Pack 4.7.2",
       "notDetected": "Not detected",
       "recommendation": "Recommendation: try the official Microsoft download first. If it is unavailable, use the GitHub prerequisites mirror.",
       "microsoftBtn": "Open Microsoft",
       "githubBtn": "Open GitHub Mirror",
+      "githubRuntimeBtn": "Open GitHub Runtime",
+      "githubDevPackBtn": "Open GitHub Dev Pack",
+      "githubReleaseBtn": "Open GitHub Release",
       "openFailed": "Failed to open prerequisites link.",
-      "errorPrefix": "Detection error"
+      "errorPrefix": "Detection error",
+      "devPackErrorPrefix": "Developer Pack detection"
     },
     "updater": {
       "title": "Updater Simulation",
@@ -106,7 +111,7 @@
       "recommendMirror": "If the Microsoft download is unavailable, use the GitHub prerequisites mirror.",
       "closeButton": "Close",
       "microsoftButton": "Open Microsoft",
-      "githubButton": "Open GitHub Mirror"
+      "githubButton": "Open GitHub Runtime Mirror"
     },
     "runtimeDeps": {
       "title": "Missing Runtime Files",
@@ -460,6 +465,30 @@
         "noUpdateToDownload": "No available update to download.",
         "installNotReady": "Download an update before installing.",
         "installStarting": "Restarting app to install the update..."
+      }
+    },
+    "prereqs": {
+      "title": ".NET Framework Prerequisites",
+      "desc": "Check whether .NET Framework 4.7.2+ is available on your Windows system. Terraria Patcher needs it to run the C# bridge.",
+      "runtimeStatus": "Runtime (.NET 4.7.2+)",
+      "devPackStatus": "Developer Pack (contributors)",
+      "detected": "Detected (compatible)",
+      "missing": "Missing or incompatible",
+      "optionalMissing": "Not detected (optional for normal users)",
+      "notDetected": "Not detected",
+      "releaseValues": "Detected Release: {{detected}} • Required: {{required}}",
+      "recommendation": "Recommended: download the Runtime installer from Microsoft first. If it is unavailable, use the GitHub prerequisites mirror.",
+      "refreshBtn": "Refresh Status",
+      "microsoftBtn": "Open Microsoft (.NET page)",
+      "githubBtn": "Open GitHub Mirror",
+      "githubRuntimeBtn": "Open GitHub Runtime Mirror",
+      "githubDevPackBtn": "Open GitHub Developer Pack Mirror",
+      "githubReleaseBtn": "Open GitHub Prereqs Release",
+      "userVsContributor": "Normal users usually only need the Runtime installer. Contributors who compile the C# bridge may also need the Developer Pack.",
+      "messages": {
+        "refreshed": "Prerequisites status refreshed.",
+        "refreshFailed": "Failed to refresh prerequisites status: {{error}}",
+        "openFailed": "Failed to open link: {{error}}"
       }
     },
     "language": {
