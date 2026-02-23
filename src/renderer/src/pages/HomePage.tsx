@@ -129,7 +129,7 @@ export default function HomePage() {
     <div className="mx-auto max-w-6xl space-y-6 animate-in fade-in duration-500">
       <section className="relative overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.12),transparent_55%),radial-gradient(circle_at_bottom_left,rgba(34,197,94,0.08),transparent_45%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.2),transparent_55%),radial-gradient(circle_at_bottom_left,rgba(34,197,94,0.12),transparent_45%)]" />
-        <div className="relative grid gap-4 p-5 lg:grid-cols-[1.25fr_0.75fr] lg:p-6">
+        <div className="relative p-5 lg:p-6">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center rounded-full border border-border/70 bg-background/70 px-2.5 py-1 text-xs font-medium text-muted-foreground backdrop-blur-sm">
@@ -204,83 +204,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="space-y-4">
-            <PanelCard
-              title={t("home.status.title", "System Status")}
-              subtitle={t(
-                "home.status.subtitle",
-                "Quick visibility into configuration, update state and runtime requirements.",
-              )}>
-              <StatusRow
-                label={t("home.status.terrariaPath", "Terraria path")}
-                value={
-                  terrariaPathConfigured
-                    ? t("home.status.configured", "Configured")
-                    : t("home.status.notConfigured", "Not configured")
-                }
-                tone={terrariaPathConfigured ? "success" : "warning"}
-              />
-              <StatusRow
-                label={t("home.status.pluginSupport", "Plugin support")}
-                value={
-                  pluginSupport === null
-                    ? t("home.status.loading", "Loading...")
-                    : pluginSupport
-                      ? t("home.status.enabled", "Enabled")
-                      : t("home.status.disabled", "Disabled")
-                }
-                tone={
-                  pluginSupport === null
-                    ? "neutral"
-                    : pluginSupport
-                      ? "success"
-                      : "warning"
-                }
-              />
-              <StatusRow
-                label={t("home.status.updates", "Updater")}
-                value={updaterPhaseLabel}
-                tone={
-                  updaterState?.phase === "error"
-                    ? "warning"
-                    : updaterState?.phase === "downloaded"
-                      ? "success"
-                      : "neutral"
-                }
-                hint={updaterState?.message}
-              />
-              <StatusRow
-                label={t("home.status.runtime.label", ".NET 4.7.2+ Runtime")}
-                value={
-                  runtimeStatus === "ok"
-                    ? t("home.status.runtime.ok", "Detected")
-                    : runtimeStatus === "missing"
-                      ? t("home.status.runtime.missing", "Missing / incompatible")
-                      : t("home.status.runtime.na", "Not applicable")
-                }
-                tone={
-                  runtimeStatus === "ok"
-                    ? "success"
-                    : runtimeStatus === "missing"
-                      ? "warning"
-                      : "neutral"
-                }
-                hint={
-                  isWindows && dotnetPrereqs
-                    ? t("home.status.runtime.releaseHint", {
-                        detected:
-                          typeof dotnetPrereqs.runtime472Plus.detectedRelease === "number"
-                            ? dotnetPrereqs.runtime472Plus.detectedRelease
-                            : t("home.status.notDetectedShort", "N/A"),
-                        required: dotnetPrereqs.runtime472Plus.requiredRelease,
-                        defaultValue:
-                          "Release: {{detected}} / required {{required}}",
-                      })
-                    : undefined
-                }
-              />
-            </PanelCard>
-          </div>
         </div>
       </section>
 
@@ -344,6 +267,79 @@ export default function HomePage() {
         <PanelCard
           compact
           className="h-full"
+          title={t("home.status.title", "System Status")}
+          subtitle={t(
+            "home.status.subtitle",
+            "Quick visibility into configuration, update state and runtime requirements.",
+          )}>
+          <StatusRow
+            label={t("home.status.terrariaPath", "Terraria path")}
+            value={
+              terrariaPathConfigured
+                ? t("home.status.configured", "Configured")
+                : t("home.status.notConfigured", "Not configured")
+            }
+            tone={terrariaPathConfigured ? "success" : "warning"}
+          />
+          <StatusRow
+            label={t("home.status.pluginSupport", "Plugin support")}
+            value={
+              pluginSupport === null
+                ? t("home.status.loading", "Loading...")
+                : pluginSupport
+                  ? t("home.status.enabled", "Enabled")
+                  : t("home.status.disabled", "Disabled")
+            }
+            tone={
+              pluginSupport === null ? "neutral" : pluginSupport ? "success" : "warning"
+            }
+          />
+          <StatusRow
+            label={t("home.status.updates", "Updater")}
+            value={updaterPhaseLabel}
+            tone={
+              updaterState?.phase === "error"
+                ? "warning"
+                : updaterState?.phase === "downloaded"
+                  ? "success"
+                  : "neutral"
+            }
+            hint={updaterState?.message}
+          />
+          <StatusRow
+            label={t("home.status.runtime.label", ".NET 4.7.2+ Runtime")}
+            value={
+              runtimeStatus === "ok"
+                ? t("home.status.runtime.ok", "Detected")
+                : runtimeStatus === "missing"
+                  ? t("home.status.runtime.missing", "Missing / incompatible")
+                  : t("home.status.runtime.na", "Not applicable")
+            }
+            tone={
+              runtimeStatus === "ok"
+                ? "success"
+                : runtimeStatus === "missing"
+                  ? "warning"
+                  : "neutral"
+            }
+            hint={
+              isWindows && dotnetPrereqs
+                ? t("home.status.runtime.releaseHint", {
+                    detected:
+                      typeof dotnetPrereqs.runtime472Plus.detectedRelease === "number"
+                        ? dotnetPrereqs.runtime472Plus.detectedRelease
+                        : t("home.status.notDetectedShort", "N/A"),
+                    required: dotnetPrereqs.runtime472Plus.requiredRelease,
+                    defaultValue: "Release: {{detected}} / required {{required}}",
+                  })
+                : undefined
+            }
+          />
+        </PanelCard>
+
+        <PanelCard
+          compact
+          className="h-full"
           title={t("home.shortcuts.title", "Quick Access")}
           subtitle={t(
             "home.shortcuts.subtitle",
@@ -375,50 +371,6 @@ export default function HomePage() {
               onClick={() => navigate("/changelog")}
             />
           </div>
-        </PanelCard>
-
-        <PanelCard
-          compact
-          className="h-full"
-          title={t("home.cards.notes.title", "Important Notes")}
-          subtitle={t(
-            "home.cards.notes.subtitle",
-            "Things worth knowing before patching.",
-          )}>
-          <ul className="m-0 list-none space-y-2 p-0 text-sm text-muted-foreground">
-            <li className="relative pl-4 leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-foreground/70 before:content-['']">
-              <span>
-                {t(
-                  "home.notes.backup",
-                  "Use backup/restore before repatching to avoid stacking patches on an already modified Terraria.exe.",
-                )}
-              </span>
-            </li>
-            <li className="relative pl-4 leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-foreground/70 before:content-['']">
-              <span>
-                {t(
-                  "home.notes.pluginsIni",
-                  "If Plugins.ini does not exist yet, patch with plugin support enabled and launch Terraria once to generate it.",
-                )}
-              </span>
-            </li>
-            <li className="relative pl-4 leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-foreground/70 before:content-['']">
-              <span>
-                {t(
-                  "home.notes.recovery",
-                  "If something goes wrong and you use Steam, try verifying file integrity. In more extreme cases, fully uninstall Terraria, check for leftover files in the installation folder, and then try patching again.",
-                )}
-              </span>
-            </li>
-            <li className="relative pl-4 leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-foreground/70 before:content-['']">
-              <span>
-                {t(
-                  "home.notes.repatchAfterUpdate",
-                  "Whenever Terraria updates, you will need to patch again. The update process restores Terraria.exe, so a re-patch is required.",
-                )}
-              </span>
-            </li>
-          </ul>
         </PanelCard>
 
         <PanelCard
@@ -466,6 +418,49 @@ export default function HomePage() {
           </div>
         </PanelCard>
       </div>
+
+      <PanelCard
+        compact
+        title={t("home.cards.notes.title", "Important Notes")}
+        subtitle={t(
+          "home.cards.notes.subtitle",
+          "Things worth knowing before patching.",
+        )}>
+        <ul className="m-0 list-none space-y-2 p-0 text-sm text-muted-foreground">
+          <li className="relative pl-4 leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-foreground/70 before:content-['']">
+            <span>
+              {t(
+                "home.notes.backup",
+                "Use backup/restore before repatching to avoid stacking patches on an already modified Terraria.exe.",
+              )}
+            </span>
+          </li>
+          <li className="relative pl-4 leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-foreground/70 before:content-['']">
+            <span>
+              {t(
+                "home.notes.pluginsIni",
+                "If Plugins.ini does not exist yet, patch with plugin support enabled and launch Terraria once to generate it.",
+              )}
+            </span>
+          </li>
+          <li className="relative pl-4 leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-foreground/70 before:content-['']">
+            <span>
+              {t(
+                "home.notes.recovery",
+                "If something goes wrong and you use Steam, try verifying file integrity. In more extreme cases, fully uninstall Terraria, check for leftover files in the installation folder, and then try patching again.",
+              )}
+            </span>
+          </li>
+          <li className="relative pl-4 leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-foreground/70 before:content-['']">
+            <span>
+              {t(
+                "home.notes.repatchAfterUpdate",
+                "Whenever Terraria updates, you will need to patch again. The update process restores Terraria.exe, so a re-patch is required.",
+              )}
+            </span>
+          </li>
+        </ul>
+      </PanelCard>
     </div>
   );
 }
@@ -620,7 +615,7 @@ function MiniStep({
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium leading-tight">{title}</p>
           {desc ? (
-            <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-muted-foreground">
+            <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
               {desc}
             </p>
           ) : null}
