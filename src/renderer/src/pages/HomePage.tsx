@@ -148,7 +148,7 @@ export default function HomePage() {
               <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
                 {t(
                   "home.hero.description",
-                  "Use IL patching features, plugin sync, Plugins.ini editing, profiles, and update checks from a single modern desktop interface.",
+                  "Use IL patching features, plugin sync, Plugins.ini editing, configuration profiles, and update checks from a single modern desktop interface.",
                 )}
               </p>
             </div>

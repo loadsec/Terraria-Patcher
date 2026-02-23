@@ -283,7 +283,7 @@
     "hero": {
       "badge": "Toolkit desktop de patching para Terraria",
       "title": "Aplique patches, configure e gerencie o Terraria em um só lugar",
-      "description": "Use recursos de patching IL, sincronização de plugins, edição de Plugins.ini, perfis e verificação de atualizações em uma interface desktop moderna.",
+      "description": "Use recursos de patching IL, sincronização de plugins, edição de Plugins.ini, perfis de configuração e verificação de atualizações em uma interface desktop moderna.",
       "primaryBtn": "Abrir Patcher",
       "configBtn": "Abrir Configurações",
       "pluginsIniBtn": "Abrir Editor do Plugins.ini",
