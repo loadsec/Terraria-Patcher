@@ -528,7 +528,24 @@
       "label": "Localização do Executável do Terraria",
       "placeholder": "Selecione o caminho do Terraria.exe...",
       "browse": "Procurar...",
-      "help": "O patcher precisa localizar o executável principal do seu jogo para poder modificá-lo e aplicar os patches."
+      "autoDetectBtn": "Auto Detectar",
+      "autoDetectSearching": "Detectando...",
+      "help": "O patcher precisa localizar o executável principal do seu jogo para poder modificá-lo e aplicar os patches.",
+      "autoDetectHelp": "Caminhos comuns do Steam/GOG são detectados automaticamente quando possível. Se não for encontrado, selecione manualmente.",
+      "detectDialog": {
+        "titleFound": "Terraria encontrado",
+        "titleNotFound": "Terraria não encontrado",
+        "titleError": "Falha na detecção",
+        "descFound": "Uma instalação do Terraria foi detectada e o campo de caminho foi preenchido. Revise e salve a configuração.",
+        "descNotFound": "A busca automática não encontrou o Terraria em locais conhecidos do Steam/GOG após cerca de {{seconds}} segundos. Selecione o caminho manualmente.",
+        "descError": "Ocorreu um erro ao procurar o Terraria: {{error}}",
+        "pathLabel": "Caminho detectado",
+        "durationLabel": "Tempo de busca: {{duration}}",
+        "closeBtn": "Fechar"
+      },
+      "messages": {
+        "detectFailed": "Falha ao detectar automaticamente o caminho do Terraria: {{error}}"
+      }
     },
     "appPreferences": {
       "title": "Preferências do App",
@@ -542,12 +559,17 @@
       "includes": "Inclui opções de patch, buffs persistentes selecionados, plugins ativos, suporte a plugins, idioma e caminho do Terraria.",
       "exportBtn": "Exportar Perfil",
       "importBtn": "Importar Perfil",
+      "resetBtn": "Resetar Dados do App",
+      "resetHint": "Reseta os dados salvos de configuração/perfil para os padrões. Caminhos comuns do Terraria podem ser detectados automaticamente novamente.",
+      "resetConfirm": "Isso vai resetar configurações/dados de perfil salvos (caminho, idioma, seleções de patch e plugins). Continuar?",
       "messages": {
         "exportSuccess": "Perfil exportado com sucesso.",
         "exportFailed": "Falha ao exportar perfil: {{error}}",
         "importSuccess": "Perfil importado com sucesso.",
         "importFailed": "Falha ao importar perfil: {{error}}",
-        "importInvalid": "Formato de arquivo de perfil inválido."
+        "importInvalid": "Formato de arquivo de perfil inválido.",
+        "resetSuccess": "Os dados de perfil/app foram resetados com sucesso.",
+        "resetFailed": "Falha ao resetar dados de perfil/app: {{error}}"
       }
     },
     "updates": {
@@ -556,7 +578,12 @@
       "currentVersion": "Versão atual",
       "latestVersion": "Última versão",
       "unknown": "Desconhecida",
+      "installedBuild": "Build instalada",
+      "behindCountOne": "1 versão atrás",
+      "behindCountMany": "{{count}} versões atrás",
       "releaseNotes": "Notas da versão",
+      "releaseNotesShow": "Mostrar patch notes",
+      "releaseNotesHide": "Ocultar patch notes",
       "checkBtn": "Verificar Atualizações",
       "downloadBtn": "Baixar Atualização",
       "installBtn": "Instalar e Reiniciar",

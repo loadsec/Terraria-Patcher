@@ -70,6 +70,16 @@ const api = {
       ipcRenderer.invoke("config:get", key),
     set: (key: string, value: unknown): Promise<void> =>
       ipcRenderer.invoke("config:set", key, value),
+    autoDetectTerrariaPath: (): Promise<{
+      success: boolean;
+      found: boolean;
+      path?: string;
+      timedOut?: boolean;
+      durationMs?: number;
+      timeoutMs?: number;
+      key?: string;
+      args?: Record<string, string>;
+    }> => ipcRenderer.invoke("config:autoDetectTerrariaPath"),
   },
   dialog: {
     openFile: (): Promise<string | null> =>
@@ -95,6 +105,16 @@ const api = {
         pluginSupport: boolean;
       };
     }> => ipcRenderer.invoke("profile:import"),
+    reset: (): Promise<{
+      success: boolean;
+      key?: string;
+      args?: Record<string, string>;
+      data?: {
+        terrariaPath: string;
+        language: string;
+        pluginSupport: boolean;
+      };
+    }> => ipcRenderer.invoke("profile:reset"),
   },
   updater: {
     getState: (): Promise<UpdaterState> => ipcRenderer.invoke("updater:getState"),

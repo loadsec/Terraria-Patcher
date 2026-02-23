@@ -9,12 +9,26 @@ import {
   DownloadCloud,
   Rocket,
   Loader2,
+  ChevronDown,
+  PackageCheck,
+  Clock3,
+  Tag,
+  Trash2,
+  FolderOpen,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useTranslation, Trans } from "react-i18next";
 import { useState, useEffect } from "react";
@@ -22,6 +36,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
+import appInfo from "../../../../version.json";
 
 const AVAILABLE_LANGUAGES = [
   { id: "en", label: "English" },
@@ -58,6 +73,20 @@ type DotNetPrereqStatus = Awaited<
   ReturnType<typeof window.api.prereqs.getStatus>
 >["dotnetPrereqs"];
 
+type VersionInfo = {
+  version?: string;
+  app?: {
+    name?: string;
+    version?: string;
+  };
+  releases?: Array<{
+    id: string;
+    version: string;
+    date?: string;
+    latest?: boolean;
+  }>;
+};
+
 function formatUpdateDate(value?: string, locale = "en"): string | null {
   if (!value) return null;
   const date = new Date(value);
@@ -71,6 +100,44 @@ function formatUpdateDate(value?: string, locale = "en"): string | null {
   } catch {
     return value;
   }
+}
+
+function normalizeVersion(version?: string | null): string {
+  return String(version || "").trim().replace(/^v/i, "");
+}
+
+function parseSemver(version?: string | null): [number, number, number] | null {
+  const normalized = normalizeVersion(version);
+  const match = normalized.match(/^(\d+)\.(\d+)\.(\d+)$/);
+  if (!match) return null;
+  return [Number(match[1]), Number(match[2]), Number(match[3])];
+}
+
+function getReleaseDistance(
+  currentVersion?: string | null,
+  latestVersion?: string | null,
+  releases?: VersionInfo["releases"],
+): number | null {
+  const current = normalizeVersion(currentVersion);
+  const latest = normalizeVersion(latestVersion);
+  if (!current || !latest) return null;
+  if (current === latest) return 0;
+
+  if (releases?.length) {
+    const currentIndex = releases.findIndex((release) => normalizeVersion(release.version) === current);
+    const latestIndex = releases.findIndex((release) => normalizeVersion(release.version) === latest);
+    if (currentIndex >= 0 && latestIndex >= 0) {
+      return Math.max(0, currentIndex - latestIndex);
+    }
+  }
+
+  const currentSemver = parseSemver(current);
+  const latestSemver = parseSemver(latest);
+  if (!currentSemver || !latestSemver) return null;
+  const [cMaj, cMin, cPatch] = currentSemver;
+  const [lMaj, lMin, lPatch] = latestSemver;
+  if (cMaj !== lMaj || cMin !== lMin) return 6;
+  return Math.max(0, lPatch - cPatch);
 }
 
 function ReleaseNotesContent({ value }: { value: string }) {
@@ -110,6 +177,7 @@ function ReleaseNotesContent({ value }: { value: string }) {
 
 export default function ConfigPage() {
   const { t, i18n } = useTranslation();
+  const versionInfo = appInfo as VersionInfo;
 
   const [selectedLang, setSelectedLang] = useState(
     i18n.resolvedLanguage || "en",
@@ -125,6 +193,17 @@ export default function ConfigPage() {
   const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
   const [dotnetPrereqs, setDotnetPrereqs] = useState<DotNetPrereqStatus | null>(null);
   const [isRefreshingPrereqs, setIsRefreshingPrereqs] = useState(false);
+  const [isResettingProfile, setIsResettingProfile] = useState(false);
+  const [releaseNotesExpanded, setReleaseNotesExpanded] = useState(false);
+  const [isAutoDetectingTerraria, setIsAutoDetectingTerraria] = useState(false);
+  const [autoDetectDialogOpen, setAutoDetectDialogOpen] = useState(false);
+  const [autoDetectDialogState, setAutoDetectDialogState] = useState<{
+    kind: "success" | "not-found" | "error";
+    path?: string;
+    durationMs?: number;
+    timeoutMs?: number;
+    error?: string;
+  } | null>(null);
   const [openingPrereqLink, setOpeningPrereqLink] = useState<
     "microsoftPage" | "githubRelease" | "githubRuntime" | "githubDeveloperPack" | null
   >(null);
@@ -180,6 +259,12 @@ export default function ConfigPage() {
   }, []);
 
   useEffect(() => {
+    if (!updaterState?.releaseNotes) {
+      setReleaseNotesExpanded(false);
+    }
+  }, [updaterState?.releaseNotes]);
+
+  useEffect(() => {
     let disposed = false;
 
     const loadUpdaterState = async () => {
@@ -231,6 +316,61 @@ export default function ConfigPage() {
     } catch (err) {
       console.error("Failed to save config:", err);
       flashMessage(t("config.saveFailed", "Failed to save configuration."));
+    }
+  };
+
+  const handleAutoDetectTerraria = async () => {
+    try {
+      setIsAutoDetectingTerraria(true);
+      const result = await window.api.config.autoDetectTerrariaPath();
+
+      if (!result.success) {
+        const message = t(
+          result.key || "config.gameDirectory.messages.detectFailed",
+          result.args ?? { error: "Unknown error" },
+        );
+        flashMessage(message);
+        setAutoDetectDialogState({
+          kind: "error",
+          error: message,
+          timeoutMs: result.timeoutMs,
+        });
+        setAutoDetectDialogOpen(true);
+        return;
+      }
+
+      if (result.found && result.path) {
+        setTerrariaPath(result.path);
+        setAutoDetectDialogState({
+          kind: "success",
+          path: result.path,
+          durationMs: result.durationMs,
+          timeoutMs: result.timeoutMs,
+        });
+        setAutoDetectDialogOpen(true);
+        return;
+      }
+
+      setAutoDetectDialogState({
+        kind: "not-found",
+        durationMs: result.durationMs,
+        timeoutMs: result.timeoutMs,
+      });
+      setAutoDetectDialogOpen(true);
+    } catch (err) {
+      console.error("Failed to auto-detect Terraria path:", err);
+      const message = t("config.gameDirectory.messages.detectFailed", {
+        error: String(err),
+        defaultValue: `Failed to auto-detect Terraria path: ${String(err)}`,
+      });
+      flashMessage(message);
+      setAutoDetectDialogState({
+        kind: "error",
+        error: message,
+      });
+      setAutoDetectDialogOpen(true);
+    } finally {
+      setIsAutoDetectingTerraria(false);
     }
   };
 
@@ -298,6 +438,51 @@ export default function ConfigPage() {
       );
     } finally {
       setIsImportingProfile(false);
+    }
+  };
+
+  const handleResetProfile = async () => {
+    const confirmed = window.confirm(
+      t(
+        "config.profile.resetConfirm",
+        "This will reset saved app/profile settings (path, language, patch selections and plugins). Continue?",
+      ),
+    );
+    if (!confirmed) return;
+
+    setIsResettingProfile(true);
+    try {
+      const result = await window.api.profile.reset();
+      if (!result.success) {
+        flashMessage(
+          t(
+            result.key || "config.profile.messages.resetFailed",
+            result.args ?? { error: "Unknown error" },
+          ),
+        );
+        return;
+      }
+
+      if (result.data) {
+        setTerrariaPath(result.data.terrariaPath || "");
+        setPluginSupport(Boolean(result.data.pluginSupport));
+        if (result.data.language) {
+          setSelectedLang(result.data.language);
+          i18n.changeLanguage(result.data.language);
+        }
+      }
+
+      flashMessage(t(result.key || "config.profile.messages.resetSuccess"));
+    } catch (err) {
+      console.error("Failed to reset profile:", err);
+      flashMessage(
+        t("config.profile.messages.resetFailed", {
+          error: String(err),
+          defaultValue: `Failed to reset profile: ${String(err)}`,
+        }),
+      );
+    } finally {
+      setIsResettingProfile(false);
     }
   };
 
@@ -487,6 +672,43 @@ export default function ConfigPage() {
     Math.min(100, Math.round(updaterState?.percent ?? 0)),
   );
   const formattedReleaseDate = formatUpdateDate(updaterState?.releaseDate, i18n.language);
+  const updaterLagCount = getReleaseDistance(
+    updaterState?.currentVersion,
+    updaterState?.latestVersion,
+    versionInfo.releases,
+  );
+  const updaterStatusTone: "neutral" | "success" | "warning" | "danger" =
+    updaterState?.phase === "error"
+      ? "danger"
+      : updaterState?.phase === "not-available"
+        ? "success"
+        : updaterState?.phase === "available" ||
+            updaterState?.phase === "downloading" ||
+            updaterState?.phase === "downloaded"
+          ? updaterLagCount !== null && updaterLagCount > 5
+            ? "danger"
+            : "warning"
+          : "neutral";
+  const updaterStatusBadgeClass = cn(
+    "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold border",
+    updaterStatusTone === "success" &&
+      "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+    updaterStatusTone === "warning" &&
+      "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    updaterStatusTone === "danger" &&
+      "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300",
+    updaterStatusTone === "neutral" &&
+      "border-border/60 bg-muted/30 text-muted-foreground",
+  );
+  const updaterBehindText =
+    typeof updaterLagCount === "number" && updaterLagCount > 0
+      ? updaterLagCount === 1
+        ? t("config.updates.behindCountOne", "1 release behind")
+        : t("config.updates.behindCountMany", {
+            count: updaterLagCount,
+            defaultValue: `${updaterLagCount} releases behind`,
+          })
+      : null;
   const updaterUiMessage = (() => {
     const raw =
       updaterState?.message ||
@@ -524,6 +746,17 @@ export default function ConfigPage() {
     }
     return raw;
   })();
+
+  const autoDetectTimeoutSeconds = Math.max(
+    1,
+    Math.round((autoDetectDialogState?.timeoutMs ?? 8000) / 1000),
+  );
+  const autoDetectDurationText =
+    typeof autoDetectDialogState?.durationMs === "number"
+      ? `${(autoDetectDialogState.durationMs / 1000).toFixed(
+          autoDetectDialogState.durationMs >= 10000 ? 0 : 1,
+        )}s`
+      : null;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -569,52 +802,69 @@ export default function ConfigPage() {
             </p>
           </div>
           <div className="p-6 space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
-                <p className="text-xs text-muted-foreground">
-                  {t("config.updates.currentVersion", "Current version")}
-                </p>
-                <p className="text-sm font-semibold">
-                  v{updaterState?.currentVersion || "1.0.0"}
-                </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+                <div className="flex items-start gap-3">
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <PackageCheck className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      {t("config.updates.currentVersion", "Current version")}
+                    </p>
+                    <p className="text-lg font-semibold leading-none">
+                      v{updaterState?.currentVersion || "1.0.0"}
+                    </p>
+                    {updaterBehindText ? (
+                      <p className="text-xs text-muted-foreground">{updaterBehindText}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        {t("config.updates.installedBuild", "Installed build")}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
-                <p className="text-xs text-muted-foreground">
-                  {t("config.updates.latestVersion", "Latest version")}
-                </p>
-                <p className="text-sm font-semibold">
-                  {updaterState?.latestVersion
-                    ? `v${updaterState.latestVersion}`
-                    : t("config.updates.unknown", "Unknown")}
-                </p>
-                {formattedReleaseDate ? (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {formattedReleaseDate}
-                  </p>
-                ) : null}
+
+              <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+                <div className="flex items-start gap-3">
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Tag className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      {t("config.updates.latestVersion", "Latest version")}
+                    </p>
+                    <p className="text-lg font-semibold leading-none">
+                      {updaterState?.latestVersion
+                        ? `v${updaterState.latestVersion}`
+                        : t("config.updates.unknown", "Unknown")}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      {formattedReleaseDate ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Clock3 className="h-3.5 w-3.5" />
+                          {formattedReleaseDate}
+                        </span>
+                      ) : null}
+                      {updaterState?.releaseName ? (
+                        <span className="truncate">{updaterState.releaseName}</span>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
             <div className="rounded-lg border border-border/60 bg-background/60 p-3 space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold border",
-                      updaterState?.phase === "error"
-                        ? "border-destructive/30 bg-destructive/10 text-destructive"
-                        : updaterState?.phase === "downloaded"
-                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
-                          : updaterState?.phase === "available" ||
-                              updaterState?.phase === "downloading"
-                            ? "border-blue-500/30 bg-blue-500/10 text-blue-500"
-                            : "border-border/60 bg-muted/30 text-muted-foreground",
-                    )}>
+                  <span className={updaterStatusBadgeClass}>
                     {updatePhaseLabel}
                   </span>
-                  {updaterState?.releaseName ? (
+                  {updaterState?.latestVersion ? (
                     <span className="text-sm text-muted-foreground">
-                      {updaterState.releaseName}
+                      v{updaterState.latestVersion}
                     </span>
                   ) : null}
                 </div>
@@ -655,11 +905,33 @@ export default function ConfigPage() {
               )}
 
               {updaterState?.releaseNotes ? (
-                <div className="rounded-md border border-border/50 bg-muted/20 p-3">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {t("config.updates.releaseNotes", "Release notes")}
-                  </p>
-                  <ReleaseNotesContent value={updaterState.releaseNotes} />
+                <div className="rounded-md border border-border/50 bg-muted/20">
+                  <button
+                    type="button"
+                    onClick={() => setReleaseNotesExpanded((prev) => !prev)}
+                    className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-muted/20 transition-colors">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {t("config.updates.releaseNotes", "Release notes")}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {releaseNotesExpanded
+                          ? t("config.updates.releaseNotesHide", "Hide patch notes")
+                          : t("config.updates.releaseNotesShow", "Show patch notes")}
+                      </p>
+                    </div>
+                    <ChevronDown
+                      className={cn(
+                        "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
+                        releaseNotesExpanded && "rotate-180",
+                      )}
+                    />
+                  </button>
+                  {releaseNotesExpanded ? (
+                    <div className="border-t border-border/40 p-3 pt-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <ReleaseNotesContent value={updaterState.releaseNotes} />
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -906,7 +1178,26 @@ export default function ConfigPage() {
                 )}
                 {t("config.profile.importBtn", "Import Profile")}
               </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                className="gap-2"
+                onClick={handleResetProfile}
+                disabled={isResettingProfile || isImportingProfile || isExportingProfile}>
+                {isResettingProfile ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                {t("config.profile.resetBtn", "Reset App Data")}
+              </Button>
             </div>
+            <p className="text-xs text-muted-foreground">
+              {t(
+                "config.profile.resetHint",
+                "Resets saved configuration/profile data to defaults. Common Terraria paths may be auto-detected again.",
+              )}
+            </p>
           </div>
         </div>
 
@@ -996,7 +1287,7 @@ export default function ConfigPage() {
                 className="text-sm font-medium leading-none">
                 {t("config.gameDirectory.label")}
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <input
                   id="terraria-path"
                   value={terrariaPath}
@@ -1007,14 +1298,36 @@ export default function ConfigPage() {
                   )}
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
-                <button
+                <Button
+                  variant="secondary"
                   onClick={handleBrowse}
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 h-9 px-4 py-2">
+                  className="h-9 gap-2">
+                  <FolderOpen className="h-4 w-4" />
                   {t("config.gameDirectory.browse")}
-                </button>
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleAutoDetectTerraria}
+                  disabled={isAutoDetectingTerraria}
+                  className="h-9 gap-2">
+                  {isAutoDetectingTerraria ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
+                  {isAutoDetectingTerraria
+                    ? t("config.gameDirectory.autoDetectSearching", "Detecting...")
+                    : t("config.gameDirectory.autoDetectBtn", "Auto Detect")}
+                </Button>
               </div>
               <p className="text-[13px] text-muted-foreground mt-1">
                 {t("config.gameDirectory.help")}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t(
+                  "config.gameDirectory.autoDetectHelp",
+                  "Common Steam/GOG install paths are auto-detected when possible. If not found, select the path manually.",
+                )}
               </p>
             </div>
           </div>
@@ -1065,6 +1378,70 @@ export default function ConfigPage() {
           {t("config.saveBtn", "Save Configuration")}
         </Button>
       </div>
+
+      <Dialog open={autoDetectDialogOpen} onOpenChange={setAutoDetectDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {autoDetectDialogState?.kind === "success"
+                ? t("config.gameDirectory.detectDialog.titleFound", "Terraria found")
+                : autoDetectDialogState?.kind === "not-found"
+                  ? t("config.gameDirectory.detectDialog.titleNotFound", "Terraria not found")
+                  : t("config.gameDirectory.detectDialog.titleError", "Detection failed")}
+            </DialogTitle>
+            <DialogDescription>
+              {autoDetectDialogState?.kind === "success"
+                ? t(
+                    "config.gameDirectory.detectDialog.descFound",
+                    "A Terraria installation was detected and the path field has been filled. Review it and save the configuration.",
+                  )
+                : autoDetectDialogState?.kind === "not-found"
+                  ? t("config.gameDirectory.detectDialog.descNotFound", {
+                      seconds: autoDetectTimeoutSeconds,
+                      defaultValue:
+                        "The automatic search did not find Terraria in known Steam/GOG locations after about {{seconds}} seconds. Select the path manually.",
+                    })
+                  : t("config.gameDirectory.detectDialog.descError", {
+                      error:
+                        autoDetectDialogState?.error ||
+                        t("config.gameDirectory.messages.detectFailed", {
+                          error: "Unknown error",
+                          defaultValue: "Unknown error",
+                        }),
+                      defaultValue:
+                        "An error occurred while searching for Terraria: {{error}}",
+                    })}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            {autoDetectDialogState?.kind === "success" && autoDetectDialogState.path && (
+              <div className="rounded-md border bg-muted/25 p-3">
+                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  {t("config.gameDirectory.detectDialog.pathLabel", "Detected path")}
+                </div>
+                <div className="mt-1 break-all text-sm text-foreground">
+                  {autoDetectDialogState.path}
+                </div>
+              </div>
+            )}
+            {autoDetectDurationText && (
+              <div className="text-xs text-muted-foreground">
+                {t("config.gameDirectory.detectDialog.durationLabel", {
+                  duration: autoDetectDurationText,
+                  defaultValue: "Search time: {{duration}}",
+                })}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAutoDetectDialogOpen(false)}>
+              {t("config.gameDirectory.detectDialog.closeBtn", "Close")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -12,6 +12,19 @@
     "noEntriesDesc": "Adicione versões no version.json e traduções no changelog.json."
   },
   "releases": {
+    "v1_0_3": {
+      "title": "Melhorias de UX na Home e Configurações",
+      "summary": "Melhorada a visibilidade do status de updates, refinado o painel de atualizações em Configurações e adicionado reset de perfil com auto-detecção do caminho do Terraria.",
+      "changes": [
+        "Adicionadas cores de severidade no status do updater (verde/amarelo/vermelho) com base em quantas versões atrás a instalação está.",
+        "Melhorada a consistência visual do status de updates na Home e em Configurações usando a mesma lógica de cores.",
+        "Refinado o layout do painel de Atualizações do App em Configurações (melhor espaçamento e cards de versão).",
+        "Adicionada seção recolhível (collapse) para patch notes em Configurações, deixando os detalhes de atualização mais limpos.",
+        "Adicionado botão para resetar dados do app/perfil e restaurar configurações padrão.",
+        "Adicionada auto-detecção do caminho do Terraria em locais comuns de instalação (Steam/GOG) no Windows, macOS e Linux.",
+        "Melhorados os filtros do seletor de arquivo por plataforma ao escolher manualmente o executável/app do Terraria."
+      ]
+    },
     "v1_0_2": {
       "title": "Correções do Updater e Pipeline de Release",
       "summary": "Corrigido o download do updater causado por inconsistência no nome dos artefatos e melhorada a confiabilidade do pipeline de release.",

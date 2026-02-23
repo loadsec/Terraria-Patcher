@@ -528,7 +528,24 @@
       "label": "Terraria Executable Location",
       "placeholder": "Select the Terraria.exe path...",
       "browse": "Browse...",
-      "help": "The patcher needs to locate your main game executable to apply modifications."
+      "autoDetectBtn": "Auto Detect",
+      "autoDetectSearching": "Detecting...",
+      "help": "The patcher needs to locate your main game executable to apply modifications.",
+      "autoDetectHelp": "Common Steam/GOG install paths are auto-detected when possible. If not found, select the path manually.",
+      "detectDialog": {
+        "titleFound": "Terraria found",
+        "titleNotFound": "Terraria not found",
+        "titleError": "Detection failed",
+        "descFound": "A Terraria installation was detected and the path field has been filled. Review it and save the configuration.",
+        "descNotFound": "The automatic search did not find Terraria in known Steam/GOG locations after about {{seconds}} seconds. Select the path manually.",
+        "descError": "An error occurred while searching for Terraria: {{error}}",
+        "pathLabel": "Detected path",
+        "durationLabel": "Search time: {{duration}}",
+        "closeBtn": "Close"
+      },
+      "messages": {
+        "detectFailed": "Failed to auto-detect Terraria path: {{error}}"
+      }
     },
     "appPreferences": {
       "title": "App Preferences",
@@ -542,12 +559,17 @@
       "includes": "Includes patch options, selected persistent buffs, active plugins, plugin support, language, and Terraria path.",
       "exportBtn": "Export Profile",
       "importBtn": "Import Profile",
+      "resetBtn": "Reset App Data",
+      "resetHint": "Resets saved configuration/profile data to defaults. Common Terraria paths may be auto-detected again.",
+      "resetConfirm": "This will reset saved app/profile settings (path, language, patch selections and plugins). Continue?",
       "messages": {
         "exportSuccess": "Profile exported successfully.",
         "exportFailed": "Failed to export profile: {{error}}",
         "importSuccess": "Profile imported successfully.",
         "importFailed": "Failed to import profile: {{error}}",
-        "importInvalid": "Invalid profile file format."
+        "importInvalid": "Invalid profile file format.",
+        "resetSuccess": "App/profile data was reset successfully.",
+        "resetFailed": "Failed to reset app/profile data: {{error}}"
       }
     },
     "updates": {
@@ -556,7 +578,12 @@
       "currentVersion": "Current version",
       "latestVersion": "Latest version",
       "unknown": "Unknown",
+      "installedBuild": "Installed build",
+      "behindCountOne": "1 release behind",
+      "behindCountMany": "{{count}} releases behind",
       "releaseNotes": "Release notes",
+      "releaseNotesShow": "Show patch notes",
+      "releaseNotesHide": "Hide patch notes",
       "checkBtn": "Check for Updates",
       "downloadBtn": "Download Update",
       "installBtn": "Install & Restart",

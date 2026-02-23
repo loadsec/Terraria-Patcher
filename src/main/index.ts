@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
-import { join, dirname } from "path";
+import { join, dirname, normalize as normalizePath } from "path";
 import { spawn } from "child_process";
 import { autoUpdater, type ProgressInfo, type UpdateInfo } from "electron-updater";
 import icon from "../../resources/terraria-logo.png?asset";
@@ -52,6 +52,376 @@ interface PluginIniSection {
 
 function getPluginsIniPath(terrariaPath: string): string {
   return join(dirname(terrariaPath), "Plugins.ini");
+}
+
+const TERRARIA_STEAM_APP_ID = "105600";
+const TERRARIA_AUTODETECT_TIMEOUT_MS = 8000;
+
+type TerrariaAutoDetectResult = {
+  path: string | null;
+  timedOut: boolean;
+  durationMs: number;
+};
+
+async function findFirstExistingPath(paths: string[]): Promise<string | null> {
+  for (const candidate of paths) {
+    if (!candidate) continue;
+    try {
+      if (await fse.pathExists(candidate)) return candidate;
+    } catch {
+      // ignore invalid paths
+    }
+  }
+  return null;
+}
+
+function unescapeVdfString(value: string): string {
+  return value.replace(/\\\\/g, "\\");
+}
+
+async function readTextIfExists(filePath: string): Promise<string | null> {
+  try {
+    if (!(await fse.pathExists(filePath))) return null;
+    return await fse.readFile(filePath, "utf8");
+  } catch {
+    return null;
+  }
+}
+
+function extractQuotedValue(content: string, key: string): string | null {
+  const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = content.match(new RegExp(`"${escapedKey}"\\s+"([^"]+)"`, "i"));
+  return match?.[1] ? unescapeVdfString(match[1]) : null;
+}
+
+function parseSteamLibraryRootsFromVdf(content: string): string[] {
+  const roots: string[] = [];
+  const seen = new Set<string>();
+  const regex = /"path"\s+"([^"]+)"/gi;
+  let match: RegExpExecArray | null = null;
+  while ((match = regex.exec(content))) {
+    const raw = match[1] ? unescapeVdfString(match[1]) : "";
+    const normalized = raw ? normalizePath(raw) : "";
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    roots.push(normalized);
+  }
+  return roots;
+}
+
+async function detectTerrariaExecutableInDirectory(rootDir: string): Promise<string | null> {
+  if (!rootDir) return null;
+
+  if (process.platform === "win32") {
+    return findFirstExistingPath([join(rootDir, "Terraria.exe")]);
+  }
+
+  if (process.platform === "darwin") {
+    const exact = await findFirstExistingPath([
+      join(rootDir, "Terraria.app", "Contents", "MacOS", "Terraria"),
+      join(rootDir, "Terraria"),
+    ]);
+    if (exact) return exact;
+
+    try {
+      if (await fse.pathExists(rootDir)) {
+        const entries = readdirSync(rootDir);
+        const appCandidate = entries.find((entry) => /^Terraria(\.app)?$/i.test(entry));
+        if (appCandidate) {
+          const bundleBinary = join(rootDir, appCandidate, "Contents", "MacOS", "Terraria");
+          if (await fse.pathExists(bundleBinary)) return bundleBinary;
+          const plain = join(rootDir, appCandidate);
+          if (await fse.pathExists(plain)) return plain;
+        }
+      }
+    } catch {
+      // ignore scan errors
+    }
+    return null;
+  }
+
+  const linuxExact = await findFirstExistingPath([
+    join(rootDir, "Terraria.bin.x86_64"),
+    join(rootDir, "Terraria.bin.x86"),
+    join(rootDir, "Terraria"),
+    join(rootDir, "start.sh"),
+  ]);
+  if (linuxExact) return linuxExact;
+
+  try {
+    if (await fse.pathExists(rootDir)) {
+      const entries = readdirSync(rootDir);
+      const candidate = entries.find((entry) =>
+        /^(Terraria(\.bin\.(x86|x86_64))?|start\.sh)$/i.test(entry),
+      );
+      if (candidate) {
+        const path = join(rootDir, candidate);
+        if (await fse.pathExists(path)) return path;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+async function getWindowsSteamInstallRootsFromRegistry(): Promise<string[]> {
+  if (process.platform !== "win32") return [];
+
+  const keys = [
+    "HKCU\\SOFTWARE\\Valve\\Steam",
+    "HKLM\\SOFTWARE\\WOW6432Node\\Valve\\Steam",
+    "HKLM\\SOFTWARE\\Valve\\Steam",
+  ];
+  const valueNames = ["SteamPath", "InstallPath", "SteamExe"];
+  const found = new Set<string>();
+
+  for (const key of keys) {
+    for (const valueName of valueNames) {
+      const result = await queryRegistryValue(["query", key, "/v", valueName]);
+      if (result.code !== 0) continue;
+      const raw = parseRegistryStringValue(result.stdout, valueName);
+      if (!raw) continue;
+      const normalizedRaw = normalizePath(raw.replace(/\//g, "\\"));
+      const candidate =
+        /steamexe$/i.test(valueName) || /steam\.exe$/i.test(normalizedRaw)
+          ? dirname(normalizedRaw)
+          : normalizedRaw;
+      if (!candidate) continue;
+      found.add(normalizePath(candidate));
+    }
+  }
+
+  return [...found];
+}
+
+async function getWindowsTerrariaRegistryPaths(): Promise<string[]> {
+  if (process.platform !== "win32") return [];
+
+  const keys = [
+    "HKLM\\SOFTWARE\\Re-Logic\\Terraria",
+    "HKLM\\SOFTWARE\\WOW6432Node\\Re-Logic\\Terraria",
+    "HKCU\\SOFTWARE\\Re-Logic\\Terraria",
+  ];
+  const candidates: string[] = [];
+
+  for (const key of keys) {
+    const exeQuery = await queryRegistryValue(["query", key, "/v", "exe_path"]);
+    if (exeQuery.code === 0) {
+      const exePath = parseRegistryStringValue(exeQuery.stdout, "exe_path");
+      if (exePath) candidates.push(normalizePath(exePath));
+    }
+
+    const installQuery = await queryRegistryValue(["query", key, "/v", "install_path"]);
+    if (installQuery.code === 0) {
+      const installPath = parseRegistryStringValue(installQuery.stdout, "install_path");
+      if (installPath) {
+        const normalizedInstall = normalizePath(installPath);
+        candidates.push(join(normalizedInstall, "Terraria.exe"));
+      }
+    }
+  }
+
+  return candidates;
+}
+
+async function detectTerrariaPathFromSteam(homeDir: string): Promise<string | null> {
+  const steamRoots = new Set<string>();
+
+  if (process.platform === "win32") {
+    for (const root of await getWindowsSteamInstallRootsFromRegistry()) {
+      steamRoots.add(root);
+    }
+    const programFilesX86 = process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)";
+    const programFiles = process.env["ProgramFiles"] || "C:\\Program Files";
+    steamRoots.add(join(programFilesX86, "Steam"));
+    steamRoots.add(join(programFiles, "Steam"));
+  } else if (process.platform === "darwin") {
+    steamRoots.add(join(homeDir, "Library", "Application Support", "Steam"));
+  } else if (process.platform === "linux") {
+    steamRoots.add(join(homeDir, ".steam", "steam"));
+    steamRoots.add(join(homeDir, ".local", "share", "Steam"));
+    steamRoots.add(join(homeDir, ".var", "app", "com.valvesoftware.Steam", ".steam", "steam"));
+  }
+
+  for (const steamRoot of steamRoots) {
+    const libraryFoldersPath = join(steamRoot, "steamapps", "libraryfolders.vdf");
+    const libraryFoldersContent = await readTextIfExists(libraryFoldersPath);
+    const libraryRoots = new Set<string>([normalizePath(steamRoot)]);
+
+    if (libraryFoldersContent) {
+      for (const libRoot of parseSteamLibraryRootsFromVdf(libraryFoldersContent)) {
+        libraryRoots.add(normalizePath(libRoot));
+      }
+    }
+
+    for (const libraryRoot of libraryRoots) {
+      const manifestPath = join(libraryRoot, "steamapps", `appmanifest_${TERRARIA_STEAM_APP_ID}.acf`);
+      const manifestContent = await readTextIfExists(manifestPath);
+      const installDir = manifestContent ? extractQuotedValue(manifestContent, "installdir") : null;
+
+      const candidateDirs = [
+        installDir ? join(libraryRoot, "steamapps", "common", installDir) : "",
+        join(libraryRoot, "steamapps", "common", "Terraria"),
+      ].filter(Boolean);
+
+      for (const candidateDir of candidateDirs) {
+        const detected = await detectTerrariaExecutableInDirectory(candidateDir);
+        if (detected) return detected;
+      }
+    }
+  }
+
+  return null;
+}
+
+async function detectTerrariaPath(): Promise<string | null> {
+  const homeDir = app.getPath("home");
+
+  if (process.platform === "win32") {
+    const registryPath = await findFirstExistingPath(await getWindowsTerrariaRegistryPaths());
+    if (registryPath) return registryPath;
+
+    const steamPath = await detectTerrariaPathFromSteam(homeDir);
+    if (steamPath) return steamPath;
+
+    const programFilesX86 = process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)";
+    const programFiles = process.env["ProgramFiles"] || "C:\\Program Files";
+
+    return findFirstExistingPath([
+      join(programFilesX86, "Steam", "steamapps", "common", "Terraria", "Terraria.exe"),
+      join(programFiles, "Steam", "steamapps", "common", "Terraria", "Terraria.exe"),
+      "C:\\GOG Games\\Terraria\\Terraria.exe",
+      join(homeDir, "GOG Games", "Terraria", "Terraria.exe"),
+    ]);
+  }
+
+  if (process.platform === "darwin") {
+    const steamPath = await detectTerrariaPathFromSteam(homeDir);
+    if (steamPath) return steamPath;
+
+    const gogCandidates = await findFirstExistingPath([
+      join("/", "Applications", "Terraria.app", "Contents", "MacOS", "Terraria"),
+      join(homeDir, "Applications", "Terraria.app", "Contents", "MacOS", "Terraria"),
+      join("/", "Applications", "GOG Games", "Terraria", "Terraria.app", "Contents", "MacOS", "Terraria"),
+      join(homeDir, "GOG Games", "Terraria", "Terraria.app", "Contents", "MacOS", "Terraria"),
+      join(homeDir, "Applications", "GOG Games", "Terraria", "Terraria.app", "Contents", "MacOS", "Terraria"),
+    ]);
+    if (gogCandidates) return gogCandidates;
+
+    const macRoot = join(
+      homeDir,
+      "Library",
+      "Application Support",
+      "Steam",
+      "steamapps",
+      "common",
+      "Terraria",
+    );
+
+    const exact = await findFirstExistingPath([
+      join(macRoot, "Terraria.app", "Contents", "MacOS", "Terraria"),
+      join(macRoot, "Terraria"),
+    ]);
+    if (exact) return exact;
+
+    try {
+      if (await fse.pathExists(macRoot)) {
+        const entries = readdirSync(macRoot);
+        const candidate = entries.find((entry) => /^Terraria(\.app)?$/i.test(entry));
+        if (!candidate) return null;
+
+        const appBundleBinary = join(macRoot, candidate, "Contents", "MacOS", "Terraria");
+        if (await fse.pathExists(appBundleBinary)) return appBundleBinary;
+
+        const plainCandidate = join(macRoot, candidate);
+        if (await fse.pathExists(plainCandidate)) return plainCandidate;
+      }
+    } catch {
+      // ignore fs errors and fall back to null
+    }
+    return null;
+  }
+
+  if (process.platform === "linux") {
+    const steamPath = await detectTerrariaPathFromSteam(homeDir);
+    if (steamPath) return steamPath;
+
+    const gogPath = await findFirstExistingPath([
+      join(homeDir, "GOG Games", "Terraria", "start.sh"),
+      join(homeDir, "GOG Games", "Terraria", "Terraria"),
+      join(homeDir, "GOG Games", "Terraria", "game", "Terraria"),
+      join(homeDir, "Games", "Terraria", "start.sh"),
+      join(homeDir, "Games", "Terraria", "Terraria"),
+    ]);
+    if (gogPath) return gogPath;
+
+    const linuxRoots = [
+      join(homeDir, ".steam", "steam", "steamapps", "common", "Terraria"),
+      join(homeDir, ".local", "share", "Steam", "steamapps", "common", "Terraria"),
+    ];
+
+    for (const root of linuxRoots) {
+      const exact = await findFirstExistingPath([
+        join(root, "Terraria.bin.x86_64"),
+        join(root, "Terraria.bin.x86"),
+        join(root, "Terraria"),
+      ]);
+      if (exact) return exact;
+
+      try {
+        if (await fse.pathExists(root)) {
+          const entries = readdirSync(root);
+          const candidate = entries.find((entry) =>
+            /^Terraria(\.bin\.(x86|x86_64))?$/i.test(entry),
+          );
+          if (candidate) {
+            const path = join(root, candidate);
+            if (await fse.pathExists(path)) return path;
+          }
+        }
+      } catch {
+        // ignore and continue
+      }
+    }
+  }
+
+  return null;
+}
+
+async function detectTerrariaPathWithTimeout(
+  timeoutMs = TERRARIA_AUTODETECT_TIMEOUT_MS,
+): Promise<TerrariaAutoDetectResult> {
+  const startedAt = Date.now();
+  const timeoutMarker = { __timeout: true } as const;
+  let timeoutHandle: NodeJS.Timeout | null = null;
+
+  try {
+    const winner = await Promise.race<
+      { path: string | null } | typeof timeoutMarker
+    >([
+      detectTerrariaPath().then((path) => ({ path })),
+      new Promise<typeof timeoutMarker>((resolve) => {
+        timeoutHandle = setTimeout(() => resolve(timeoutMarker), timeoutMs);
+      }),
+    ]);
+
+    if ("__timeout" in winner) {
+      return {
+        path: null,
+        timedOut: true,
+        durationMs: Date.now() - startedAt,
+      };
+    }
+
+    return {
+      path: winner.path,
+      timedOut: false,
+      durationMs: Date.now() - startedAt,
+    };
+  } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+  }
 }
 
 function parsePluginIni(content: string): PluginIniSection[] {
@@ -1238,6 +1608,19 @@ function setupIpcHandlers(): void {
   // Config
   ipcMain.handle("config:get", async (_event, key: string) => {
     const store = await getStore();
+    if (key === "terrariaPath") {
+      const storedPath = store.get("terrariaPath");
+      if (typeof storedPath === "string" && storedPath.trim().length > 0) {
+        return storedPath;
+      }
+
+      const detected = await detectTerrariaPathWithTimeout();
+      if (detected.path) {
+        store.set("terrariaPath", detected.path);
+        return detected.path;
+      }
+      return "";
+    }
     return store.get(key);
   });
 
@@ -1246,6 +1629,28 @@ function setupIpcHandlers(): void {
     store.set(key, value);
     if (key === "language" && typeof value === "string") {
       mainLanguageHint = value;
+    }
+  });
+
+  ipcMain.handle("config:autoDetectTerrariaPath", async () => {
+    try {
+      const result = await detectTerrariaPathWithTimeout();
+      return {
+        success: true,
+        found: Boolean(result.path),
+        path: result.path || "",
+        timedOut: result.timedOut,
+        durationMs: result.durationMs,
+        timeoutMs: TERRARIA_AUTODETECT_TIMEOUT_MS,
+      };
+    } catch (err: unknown) {
+      return {
+        success: false,
+        found: false,
+        key: "config.gameDirectory.messages.detectFailed",
+        args: { error: err instanceof Error ? err.message : String(err) },
+        timeoutMs: TERRARIA_AUTODETECT_TIMEOUT_MS,
+      };
     }
   });
 
@@ -1348,6 +1753,44 @@ function setupIpcHandlers(): void {
       return {
         success: false,
         key: "config.profile.messages.importFailed",
+        args: { error: msg },
+      };
+    }
+  });
+
+  ipcMain.handle("profile:reset", async () => {
+    try {
+      const store = await getStore();
+      store.clear();
+      store.set("language", "en");
+      store.set("pluginSupport", true);
+      store.set("patchOptions", {});
+      store.set("activePlugins", []);
+      store.set("terrariaPath", "");
+
+      const detectedTerrariaPathResult = await detectTerrariaPathWithTimeout();
+      const detectedTerrariaPath = detectedTerrariaPathResult.path;
+      if (detectedTerrariaPath) {
+        store.set("terrariaPath", detectedTerrariaPath);
+      }
+
+      const language = ((store.get("language") as string) || "en") as string;
+      mainLanguageHint = language;
+
+      return {
+        success: true,
+        key: "config.profile.messages.resetSuccess",
+        data: {
+          terrariaPath: detectedTerrariaPath || "",
+          language,
+          pluginSupport: Boolean(store.get("pluginSupport")),
+        },
+      };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return {
+        success: false,
+        key: "config.profile.messages.resetFailed",
         args: { error: msg },
       };
     }
@@ -1477,9 +1920,19 @@ function setupIpcHandlers(): void {
 
   // Dialog
   ipcMain.handle("dialog:openFile", async () => {
+    const filters =
+      process.platform === "win32"
+        ? [{ name: "Terraria Executable", extensions: ["exe"] }]
+        : process.platform === "darwin"
+          ? [
+              { name: "Terraria", extensions: ["app"] },
+              { name: "All Files", extensions: ["*"] },
+            ]
+          : [{ name: "All Files", extensions: ["*"] }];
+
     const result = await dialog.showOpenDialog({
       properties: ["openFile"],
-      filters: [{ name: "Terraria Executable", extensions: ["exe"] }],
+      filters,
     });
     if (result.canceled || result.filePaths.length === 0) return null;
     return result.filePaths[0];

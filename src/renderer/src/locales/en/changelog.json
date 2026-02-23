@@ -12,6 +12,19 @@
     "noEntriesDesc": "Add release entries to version.json and translations to changelog.json."
   },
   "releases": {
+    "v1_0_3": {
+      "title": "Home & Config Update UX Improvements",
+      "summary": "Improved updater status visibility, polished the Config updates panel, and added profile reset plus Terraria path auto-detection.",
+      "changes": [
+        "Added updater status severity colors (green/yellow/red) based on how many releases behind the installed version is.",
+        "Improved Home and Config updater status consistency using the same update-state color logic.",
+        "Refined the App Updates panel layout in Config (better spacing and version cards).",
+        "Added a collapsible patch notes section in Config for cleaner update details viewing.",
+        "Added a Reset App Data button to clear saved profile/config settings and restore defaults.",
+        "Added Terraria path auto-detection for common Steam/GOG install locations on Windows, macOS, and Linux.",
+        "Improved platform-specific file picker filters when selecting the Terraria executable/game app manually."
+      ]
+    },
     "v1_0_2": {
       "title": "Updater & Release Pipeline Fixes",
       "summary": "Fixed updater download issues caused by release asset naming mismatches and improved release pipeline reliability.",

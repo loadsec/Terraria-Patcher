@@ -57,6 +57,47 @@ function formatDate(value?: string, locale = "en"): string | null {
   }
 }
 
+function normalizeVersion(version?: string | null): string {
+  return String(version || "").trim().replace(/^v/i, "");
+}
+
+function parseSemver(version?: string | null): [number, number, number] | null {
+  const normalized = normalizeVersion(version);
+  const match = normalized.match(/^(\d+)\.(\d+)\.(\d+)$/);
+  if (!match) return null;
+  return [Number(match[1]), Number(match[2]), Number(match[3])];
+}
+
+function getReleaseDistance(
+  currentVersion?: string | null,
+  latestVersion?: string | null,
+  releases?: VersionInfo["releases"],
+): number | null {
+  const current = normalizeVersion(currentVersion);
+  const latest = normalizeVersion(latestVersion);
+  if (!current || !latest) return null;
+  if (current === latest) return 0;
+
+  if (releases?.length) {
+    const currentIndex = releases.findIndex((release) => normalizeVersion(release.version) === current);
+    const latestIndex = releases.findIndex((release) => normalizeVersion(release.version) === latest);
+    if (currentIndex >= 0 && latestIndex >= 0) {
+      return Math.max(0, currentIndex - latestIndex);
+    }
+  }
+
+  const currentSemver = parseSemver(current);
+  const latestSemver = parseSemver(latest);
+  if (!currentSemver || !latestSemver) return null;
+
+  const [cMaj, cMin, cPatch] = currentSemver;
+  const [lMaj, lMin, lPatch] = latestSemver;
+  if (cMaj !== lMaj || cMin !== lMin) {
+    return 6;
+  }
+  return Math.max(0, lPatch - cPatch);
+}
+
 export default function HomePage() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
@@ -124,6 +165,32 @@ export default function HomePage() {
       ? "ok"
       : "missing"
     : "n/a";
+  const updaterLagCount = getReleaseDistance(
+    updaterState?.currentVersion,
+    updaterState?.latestVersion,
+    versionInfo.releases,
+  );
+  const updaterTone: "neutral" | "success" | "warning" | "danger" =
+    updaterState?.phase === "error"
+      ? "danger"
+      : updaterState?.phase === "not-available"
+        ? "success"
+        : updaterState?.phase === "available" ||
+            updaterState?.phase === "downloading" ||
+            updaterState?.phase === "downloaded"
+          ? updaterLagCount !== null && updaterLagCount > 5
+            ? "danger"
+            : "warning"
+          : "neutral";
+  const updaterHint =
+    updaterLagCount && updaterLagCount > 0
+      ? updaterLagCount === 1
+        ? t("config.updates.behindCountOne", "1 release behind.")
+        : t("config.updates.behindCountMany", {
+            count: updaterLagCount,
+            defaultValue: `${updaterLagCount} releases behind.`,
+          })
+      : updaterState?.message;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 animate-in fade-in duration-500">
@@ -299,14 +366,8 @@ export default function HomePage() {
           <StatusRow
             label={t("home.status.updates", "Updater")}
             value={updaterPhaseLabel}
-            tone={
-              updaterState?.phase === "error"
-                ? "warning"
-                : updaterState?.phase === "downloaded"
-                  ? "success"
-                  : "neutral"
-            }
-            hint={updaterState?.message}
+            tone={updaterTone}
+            hint={updaterHint}
           />
           <StatusRow
             label={t("home.status.runtime.label", ".NET 4.7.2+ Runtime")}
@@ -574,7 +635,7 @@ function StatusRow({
 }: {
   label: string;
   value: string;
-  tone?: "neutral" | "success" | "warning";
+  tone?: "neutral" | "success" | "warning" | "danger";
   hint?: string;
 }) {
   return (
@@ -588,6 +649,8 @@ function StatusRow({
               "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
             tone === "warning" &&
               "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+            tone === "danger" &&
+              "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300",
             tone === "neutral" &&
               "border-border/60 bg-muted/30 text-muted-foreground",
           )}>

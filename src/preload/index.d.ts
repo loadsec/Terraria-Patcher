@@ -184,6 +184,16 @@ declare global {
       config: {
         get: (key: string) => Promise<unknown>;
         set: (key: string, value: unknown) => Promise<void>;
+        autoDetectTerrariaPath: () => Promise<{
+          success: boolean;
+          found: boolean;
+          path?: string;
+          timedOut?: boolean;
+          durationMs?: number;
+          timeoutMs?: number;
+          key?: string;
+          args?: Record<string, string>;
+        }>;
       };
       dialog: {
         openFile: () => Promise<string | null>;
@@ -191,6 +201,15 @@ declare global {
       profile: {
         export: () => Promise<SimpleApiResult>;
         import: () => Promise<
+          SimpleApiResult & {
+            data?: {
+              terrariaPath: string;
+              language: string;
+              pluginSupport: boolean;
+            };
+          }
+        >;
+        reset: () => Promise<
           SimpleApiResult & {
             data?: {
               terrariaPath: string;
