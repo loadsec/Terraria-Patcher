@@ -185,6 +185,7 @@ type UpdaterDebugMockMode = "available" | "downloading" | "downloaded" | "reset"
 type MainLocaleDict = Record<string, unknown>;
 
 let mainLocalesCache: Record<string, MainLocaleDict> | null = null;
+let mainLanguageHint: string | null = null;
 const PREREQS_RELEASE_URL =
   "https://github.com/loadsec/Terraria-Patcher-Prereqs/releases/tag/dotnet472-prereqs";
 const MICROSOFT_DOTNET472_DOWNLOAD_URL =
@@ -661,6 +662,26 @@ function normalizeReleaseNotes(notes: UpdateInfo["releaseNotes"]): string | unde
   return String(notes);
 }
 
+function normalizeUpdaterErrorMessage(rawMessage: string): string {
+  const message = rawMessage || "";
+  const lower = message.toLowerCase();
+
+  const looksLikeGithubAtom404 =
+    lower.includes("releases.atom") &&
+    (lower.includes("404") || lower.includes("status maybe not reported"));
+  const mentionsAuthToken = lower.includes("authentication token");
+
+  if (looksLikeGithubAtom404 || mentionsAuthToken) {
+    return tMain("main.updater.privateRepoOrNoRelease", {
+      lang: mainLanguageHint || app.getLocale(),
+      defaultValue:
+        "Updates are unavailable right now. This usually happens when the GitHub repository is private or no release has been published yet.",
+    });
+  }
+
+  return message;
+}
+
 function broadcastUpdaterState(): void {
   for (const window of BrowserWindow.getAllWindows()) {
     window.webContents.send("updater:state", updaterState);
@@ -774,12 +795,13 @@ function initializeAutoUpdater(): void {
   });
 
   autoUpdater.on("error", (error) => {
-    const message = error instanceof Error ? error.message : String(error);
+    const rawMessage = error instanceof Error ? error.message : String(error);
+    const message = normalizeUpdaterErrorMessage(rawMessage);
     setUpdaterState({
       phase: "error",
       checking: false,
       downloading: false,
-      error: message,
+      error: rawMessage,
       message,
     });
   });
@@ -946,12 +968,13 @@ function setupIpcHandlers(): void {
       await autoUpdater.checkForUpdates();
       return { success: true, state: updaterState };
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+      const rawMessage = err instanceof Error ? err.message : String(err);
+      const message = normalizeUpdaterErrorMessage(rawMessage);
       setUpdaterState({
         phase: "error",
         checking: false,
         downloading: false,
-        error: message,
+        error: rawMessage,
         message,
       });
       return { success: false, error: message, state: updaterState };
@@ -977,12 +1000,13 @@ function setupIpcHandlers(): void {
       await autoUpdater.downloadUpdate();
       return { success: true, state: updaterState };
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+      const rawMessage = err instanceof Error ? err.message : String(err);
+      const message = normalizeUpdaterErrorMessage(rawMessage);
       setUpdaterState({
         phase: "error",
         checking: false,
         downloading: false,
-        error: message,
+        error: rawMessage,
         message,
       });
       return { success: false, error: message, state: updaterState };
@@ -1190,6 +1214,9 @@ function setupIpcHandlers(): void {
   ipcMain.handle("config:set", async (_event, key: string, value: unknown) => {
     const store = await getStore();
     store.set(key, value);
+    if (key === "language" && typeof value === "string") {
+      mainLanguageHint = value;
+    }
   });
 
   ipcMain.handle("profile:export", async () => {
@@ -1741,6 +1768,7 @@ app.whenReady().then(async () => {
   } catch {
     startupLanguage = app.getLocale();
   }
+  mainLanguageHint = startupLanguage;
 
   const depsCheck = validateRuntimeDependencies(startupLanguage);
   if (!depsCheck.ok) {

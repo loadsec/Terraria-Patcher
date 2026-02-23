@@ -101,6 +101,9 @@
     }
   },
   "main": {
+    "updater": {
+      "privateRepoOrNoRelease": "As atualizações estão indisponíveis no momento. Isso geralmente acontece quando o repositório no GitHub está privado ou ainda não existe nenhuma release publicada."
+    },
     "dotnetPrereq": {
       "title": ".NET Framework 4.7.2+ Necessário",
       "message": "O Terraria Patcher precisa do .NET Framework 4.7.2 ou mais novo para executar a bridge em C#.",
