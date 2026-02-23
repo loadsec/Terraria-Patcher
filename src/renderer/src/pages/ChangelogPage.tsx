@@ -229,18 +229,15 @@ export default function ChangelogPage() {
                         </p>
                       ) : null}
                       {changes.length > 0 ? (
-                        <ul className="space-y-2">
+                        <ul className="m-0 list-none space-y-2 p-0">
                           {changes.map((change, index) => (
                             <li
                               key={`${release.id}-${index}`}
-                              className="flex items-start gap-2 text-sm leading-relaxed">
-                              <span
-                                className={
-                                  isLatest
-                                    ? "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-400/90"
-                                    : "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#5865F2]/85"
-                                }
-                              />
+                              className={
+                                isLatest
+                                  ? "relative pl-4 text-sm leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-emerald-400/90 before:content-['']"
+                                  : "relative pl-4 text-sm leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-[#5865F2]/85 before:content-['']"
+                              }>
                               <span>{change}</span>
                             </li>
                           ))}
