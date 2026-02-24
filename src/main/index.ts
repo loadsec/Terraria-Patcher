@@ -2197,6 +2197,15 @@ function setupIpcHandlers(): void {
               args: { path: terrariaPath },
             };
           }
+          const isPluginsFnaUnsupported =
+            backendMessage.includes("PluginLoader.XNA.dll is not compatible with FNA builds") ||
+            backendMessage.includes("not compatible with FNA builds");
+          if (isPluginsFnaUnsupported) {
+            return {
+              success: false,
+              key: "patcher.errors.pluginsFnaUnsupported",
+            };
+          }
           const errorMessage = backendMessage.replace(/^Patch failed:\s*/, "");
           return {
             success: false,

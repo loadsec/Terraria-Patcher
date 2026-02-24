@@ -173,7 +173,8 @@
     "errors": {
       "unexpected": "Erro inesperado: ",
       "noPath": "Nenhum caminho para o Terraria foi configurado. Vá para Configurações para defini-lo.",
-      "doublePatch": "Tanto o Terraria.exe quanto o backup JÁ ESTÃO MODIFICADOS. Por favor, verifique a integridade dos arquivos do jogo na Steam para restaurar uma versão limpa antes de aplicar o patch novamente!"
+      "doublePatch": "Tanto o Terraria.exe quanto o backup JÁ ESTÃO MODIFICADOS. Por favor, verifique a integridade dos arquivos do jogo na Steam para restaurar uma versão limpa antes de aplicar o patch novamente!",
+      "pluginsFnaUnsupported": "O suporte a plugins ainda não é compatível com builds FNA (builds nativos de Terraria no Linux/macOS). Desative o Suporte a Plugins e aplique os outros patches, ou use um plugin loader compatível com FNA."
     },
     "tabs": {
       "qol": "Qualidade de Vida",
