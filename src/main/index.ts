@@ -893,6 +893,19 @@ function tMain(
   return interpolateMainText(resolved, options?.args);
 }
 
+const PLUGIN_LOADER_DLLS = ["PluginLoader.XNA.dll", "PluginLoader.FNA.dll"] as const;
+
+function copyPluginLoaderDlls(resourcesPluginsDir: string, terrariaDir: string): number {
+  let copied = 0;
+  for (const loaderName of PLUGIN_LOADER_DLLS) {
+    const loaderSrc = join(resourcesPluginsDir, loaderName);
+    if (!existsSync(loaderSrc)) continue;
+    copyFileSync(loaderSrc, join(terrariaDir, loaderName));
+    copied++;
+  }
+  return copied;
+}
+
 function validateRuntimeDependencies(language?: string | null): RuntimeDependencyCheck {
   const missing: string[] = [];
   const bridgeDir = getBridgeRuntimeDir();
@@ -913,7 +926,7 @@ function validateRuntimeDependencies(language?: string | null): RuntimeDependenc
     missing.push(pluginsDir);
   } else {
     const requiredPluginFiles = [
-      join(pluginsDir, "PluginLoader.XNA.dll"),
+      ...PLUGIN_LOADER_DLLS.map((loaderName) => join(pluginsDir, loaderName)),
       join(pluginsDir, "Shared"),
     ];
     for (const file of requiredPluginFiles) {
@@ -2085,11 +2098,13 @@ function setupIpcHandlers(): void {
         const terrariaDir = dirname(terrariaPath);
         const resourcesPluginsDir = getPluginsResourcesDir();
 
-        // 1. Copy PluginLoader.XNA.dll
-        const loaderSrc = join(resourcesPluginsDir, "PluginLoader.XNA.dll");
-        const loaderDest = join(terrariaDir, "PluginLoader.XNA.dll");
-        if (existsSync(loaderSrc)) {
-          copyFileSync(loaderSrc, loaderDest);
+        // 1. Copy plugin loader DLLs (XNA/FNA)
+        if (copyPluginLoaderDlls(resourcesPluginsDir, terrariaDir) === 0) {
+          return {
+            success: false,
+            key: "plugins.error.missingLoader",
+            message: "Plugin loader DLLs are missing from resources.",
+          };
         }
 
         // 2. Setup Plugins directory
@@ -2140,17 +2155,12 @@ function setupIpcHandlers(): void {
           const terrariaDir = dirname(terrariaPath);
           const resourcesPluginsDir = getPluginsResourcesDir();
 
-          // 1. Copy PluginLoader.XNA.dll next to Terraria.exe
-          const loaderSrc = join(resourcesPluginsDir, "PluginLoader.XNA.dll");
-          const loaderDest = join(terrariaDir, "PluginLoader.XNA.dll");
-          if (existsSync(loaderSrc)) {
-            copyFileSync(loaderSrc, loaderDest);
-          } else {
+          // 1. Copy plugin loader DLLs (XNA/FNA) next to Terraria.exe
+          if (copyPluginLoaderDlls(resourcesPluginsDir, terrariaDir) === 0) {
             return {
               success: false,
               key: "plugins.error.missingLoader",
-              args: { path: loaderSrc },
-              message: "PluginLoader.XNA.dll is missing from resources.",
+              message: "Plugin loader DLLs are missing from resources.",
             };
           }
 

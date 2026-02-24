@@ -415,7 +415,7 @@
       "pluginsIni": "Se o Plugins.ini ainda não existir, aplique patch com suporte a plugins ativo e execute o Terraria uma vez para gerar o arquivo.",
       "recovery": "Se algo der errado e você usar a Steam, tente verificar a integridade dos arquivos. Em casos mais extremos, desinstale completamente o Terraria, verifique se ficaram arquivos na pasta de instalação e tente aplicar o patch novamente.",
       "repatchAfterUpdate": "Sempre que o Terraria atualizar, será necessário aplicar o patch novamente. A atualização restaura o Terraria.exe, então o re-patch é obrigatório.",
-      "platform": "O app desktop roda em Windows, Linux e macOS, mas o suporte completo de patching está atualmente focado no Terraria 1.4.5.x (fluxo Windows).",
+      "platform": "O app desktop roda em Windows, Linux e macOS. O patching do Terraria agora é suportado em Windows e Linux (Terraria 1.4.5.x), enquanto o suporte a patching no macOS ainda está em desenvolvimento.",
       "aboutBtn": "Sobre & Créditos"
     }
   },
@@ -431,7 +431,7 @@
     "vision": {
       "title": "Nossa Visão",
       "p1": "Enquanto o Patcher original foca apenas no Windows, nosso objetivo aqui é trazer esta ferramenta para todos. Nossa plataforma é desenhada desde o princípio para rodar nativamente em <1>Windows, Linux, e macOS</1>.",
-      "note": "<0>Aviso:</0> Embora o software em si rode lisinho em qualquer sistema operacional, a funcionalidade real de alterar os arquivos do jogo no Linux e macOS ainda está em desenvolvimento e não tem suporte total.",
+      "note": "<0>Aviso:</0> O aplicativo roda em qualquer sistema operacional, e o patching do Terraria agora é suportado em Windows e Linux. O suporte a patching no macOS ainda está em desenvolvimento.",
       "p3": "Você pode acompanhar nosso progresso e ajudar a construir o projeto através do código aberto no link:"
     },
     "stack": {
@@ -472,7 +472,7 @@
       "desc": "Esta seção listará todos os plugins disponíveis que forem detectados no diretório resources/plugins/."
     },
     "error": {
-      "missingLoader": "PluginLoader.XNA.dll não foi encontrado nos recursos."
+      "missingLoader": "As DLLs do plugin loader (XNA/FNA) não foram encontradas nos recursos."
     },
     "ini": {
       "title": "Editor do Plugins.ini",

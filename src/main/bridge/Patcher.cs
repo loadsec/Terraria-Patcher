@@ -1309,11 +1309,14 @@ namespace TerrariaPatcherBridge
 
         private static void Plugins(string resourcesDir)
         {
-            if (_mainModule.AssemblyReferences.Any(r => r.Name == "FNA"))
-                throw new NotSupportedException("PluginLoader.XNA.dll is not compatible with FNA builds.");
+            bool isFnaBuild = _mainModule.AssemblyReferences.Any(r => r.Name == "FNA");
 
             TypeDefinition loader;
-            var loaderFileName = Path.Combine(resourcesDir, "PluginLoader.XNA.dll");
+            var loaderDllName = isFnaBuild ? "PluginLoader.FNA.dll" : "PluginLoader.XNA.dll";
+            var loaderFileName = Path.Combine(resourcesDir, loaderDllName);
+            if (!File.Exists(loaderFileName))
+                throw new FileNotFoundException("Required plugin loader DLL not found for this Terraria build.", loaderFileName);
+
             using (var pluginAsm = AssemblyDefinition.ReadAssembly(loaderFileName))
             {
                 loader = _mainModule
@@ -1321,38 +1324,50 @@ namespace TerrariaPatcherBridge
                     .Resolve();
             }
 
-            var onInitialize = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnInitialize"));
-            var onDrawSplash = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnDrawSplash"));
-            var onDrawInterface = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnDrawInterface"));
-            var onDrawInventory = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnDrawInventory"));
-            var onPreUpdate = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPreUpdate"));
-            var onUpdate = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnUpdate"));
-            var onUpdateTime = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnUpdateTime"));
-            var onCheckXmas = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnCheckXmas"));
-            var onCheckHalloween = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnCheckHalloween"));
-            var onPlaySound = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlaySound"));
-            var onPlayerPreSpawn = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerPreSpawn"));
-            var onPlayerSpawn = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerSpawn"));
-            var onPlayerLoad = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerLoad"));
-            var onPlayerSave = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerSave"));
-            var onPlayerPreUpdate = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerPreUpdate"));
-            var onPlayerUpdate = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerUpdate"));
-            var onPlayerUpdateBuffs = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerUpdateBuffs"));
-            var onPlayerUpdateEquips = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerUpdateEquips"));
-            var onPlayerUpdateArmorSets = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerUpdateArmorSets"));
-            var onPlayerKillMe = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerKillMe"));
-            var onPlayerHurt = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerHurt"));
-            var onPlayerPickAmmo = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerPickAmmo"));
-            var onItemSetDefaults = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnItemSetDefaults"));
-            var onProjectileAI = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnProjectileAI001"));
-            var onRightClick = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnItemSlotRightClick"));
-            var onItemRollAPrefix = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnItemRollAPrefix"));
-            var onSendChatMessageFromClient = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnSendChatMessageFromClient"));
-            var onGetColor = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnLightingGetColor"));
-            var onGetItem = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerGetItem"));
-            var onChestSetupShop = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnChestSetupShop"));
-            var onPlayerQuickBuff = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnPlayerQuickBuff"));
-            var onNPCLoot = _mainModule.ImportReference(IL.GetMethodDefinition(loader, "OnNPCLoot"));
+            MethodReference ImportLoaderMethodRequired(string name)
+            {
+                var method = IL.GetMethodDefinition(loader, name);
+                return _mainModule.ImportReference(method);
+            }
+
+            MethodReference ImportLoaderMethodOptional(string name)
+            {
+                var method = IL.GetMethodDefinition(loader, name, -1, false);
+                return method == null ? null : _mainModule.ImportReference(method);
+            }
+
+            var onInitialize = ImportLoaderMethodRequired("OnInitialize");
+            var onDrawSplash = ImportLoaderMethodOptional("OnDrawSplash");
+            var onDrawInterface = ImportLoaderMethodRequired("OnDrawInterface");
+            var onDrawInventory = ImportLoaderMethodRequired("OnDrawInventory");
+            var onPreUpdate = ImportLoaderMethodRequired("OnPreUpdate");
+            var onUpdate = ImportLoaderMethodRequired("OnUpdate");
+            var onUpdateTime = ImportLoaderMethodRequired("OnUpdateTime");
+            var onCheckXmas = ImportLoaderMethodRequired("OnCheckXmas");
+            var onCheckHalloween = ImportLoaderMethodRequired("OnCheckHalloween");
+            var onPlaySound = ImportLoaderMethodRequired("OnPlaySound");
+            var onPlayerPreSpawn = ImportLoaderMethodRequired("OnPlayerPreSpawn");
+            var onPlayerSpawn = ImportLoaderMethodRequired("OnPlayerSpawn");
+            var onPlayerLoad = ImportLoaderMethodRequired("OnPlayerLoad");
+            var onPlayerSave = ImportLoaderMethodRequired("OnPlayerSave");
+            var onPlayerPreUpdate = ImportLoaderMethodRequired("OnPlayerPreUpdate");
+            var onPlayerUpdate = ImportLoaderMethodRequired("OnPlayerUpdate");
+            var onPlayerUpdateBuffs = ImportLoaderMethodRequired("OnPlayerUpdateBuffs");
+            var onPlayerUpdateEquips = ImportLoaderMethodRequired("OnPlayerUpdateEquips");
+            var onPlayerUpdateArmorSets = ImportLoaderMethodRequired("OnPlayerUpdateArmorSets");
+            var onPlayerKillMe = ImportLoaderMethodRequired("OnPlayerKillMe");
+            var onPlayerHurt = ImportLoaderMethodRequired("OnPlayerHurt");
+            var onPlayerPickAmmo = ImportLoaderMethodRequired("OnPlayerPickAmmo");
+            var onItemSetDefaults = ImportLoaderMethodRequired("OnItemSetDefaults");
+            var onProjectileAI = ImportLoaderMethodRequired("OnProjectileAI001");
+            var onRightClick = ImportLoaderMethodRequired("OnItemSlotRightClick");
+            var onItemRollAPrefix = ImportLoaderMethodOptional("OnItemRollAPrefix");
+            var onSendChatMessageFromClient = ImportLoaderMethodRequired("OnSendChatMessageFromClient");
+            var onGetColor = ImportLoaderMethodRequired("OnLightingGetColor");
+            var onGetItem = ImportLoaderMethodRequired("OnPlayerGetItem");
+            var onChestSetupShop = ImportLoaderMethodRequired("OnChestSetupShop");
+            var onPlayerQuickBuff = ImportLoaderMethodRequired("OnPlayerQuickBuff");
+            var onNPCLoot = ImportLoaderMethodRequired("OnNPCLoot");
 
             // Types
             var main = IL.GetTypeDefinition(_mainModule, "Main");
@@ -1386,7 +1401,7 @@ namespace TerrariaPatcherBridge
             var hurt = IL.GetMethodDefinition(player, "Hurt");
             var pickAmmo = IL.GetMethodDefinition(player, "PickAmmo");
             var setDefaults = IL.GetMethodDefinition(item, "SetDefaults", 2);
-            var rollAPrefix = IL.GetMethodDefinition(item, "RollAPrefix");
+            var rollAPrefix = IL.GetMethodDefinition(item, "RollAPrefix", verbose: onItemRollAPrefix != null);
             var ai = IL.GetMethodDefinition(projectile, "AI_001");
             var rightClick = IL.GetMethodDefinition(itemSlot, "RightClick", 3);
             var doUpdateHandleChat = IL.GetMethodDefinition(main, "DoUpdate_HandleChat");
@@ -1396,7 +1411,13 @@ namespace TerrariaPatcherBridge
                                   m.Parameters[0].ParameterType.FullName == "System.Int32" &&
                                   m.Parameters[1].ParameterType.FullName == "System.Int32"
                             select m).FirstOrDefault();
-            var getItem = IL.GetMethodDefinition(player, "GetItem");
+            var expectedGetItemArgType = onGetItem.Parameters.Count > 1 ? onGetItem.Parameters[1].ParameterType.Name : "WorldItem";
+            var getItem = (from MethodDefinition m in player.Methods
+                           where m.Name == "GetItem" &&
+                                 m.Parameters.Count == 2 &&
+                                 m.Parameters[0].ParameterType.Name == expectedGetItemArgType
+                           select m).FirstOrDefault()
+                          ?? IL.GetMethodDefinition(player, "GetItem");
             var setupShop = IL.GetMethodDefinition(chest, "SetupShop");
             var quickBuff = IL.GetMethodDefinition(player, "QuickBuff");
             var npcLoot = IL.GetMethodDefinition(npc, "NPCLoot");
@@ -1410,12 +1431,15 @@ namespace TerrariaPatcherBridge
                 });
             }
 
-            using (drawSplash.JumpFix())
+            if (onDrawSplash != null)
             {
-                IL.MethodPrepend(drawSplash, new[]
+                using (drawSplash.JumpFix())
                 {
-                    Instruction.Create(OpCodes.Call, onDrawSplash)
-                });
+                    IL.MethodPrepend(drawSplash, new[]
+                    {
+                        Instruction.Create(OpCodes.Call, onDrawSplash)
+                    });
+                }
             }
 
             using (drawInventory.JumpFix())
@@ -1521,14 +1545,26 @@ namespace TerrariaPatcherBridge
 
             using (savePlayer.JumpFix())
             {
-                IL.MethodAppend(savePlayer, savePlayer.Body.Instructions.Count - 1, 1, new[]
+                var saveHookArgs = new List<Instruction>
                 {
-                    Instruction.Create(OpCodes.Ldarg_0),
-                    Instruction.Create(OpCodes.Ldarg_1),
-                    Instruction.Create(OpCodes.Ldarg_2),
-                    Instruction.Create(OpCodes.Call, onPlayerSave),
-                    Instruction.Create(OpCodes.Ret)
-                });
+                    Instruction.Create(OpCodes.Ldarg_0)
+                };
+                if (onPlayerSave.Parameters.Count == 3)
+                {
+                    saveHookArgs.Add(Instruction.Create(OpCodes.Ldarg_1));
+                    saveHookArgs.Add(Instruction.Create(OpCodes.Ldarg_2));
+                }
+                else if (onPlayerSave.Parameters.Count == 2)
+                {
+                    saveHookArgs.Add(Instruction.Create(OpCodes.Ldarg_2));
+                }
+                else
+                {
+                    throw new NotSupportedException("Unsupported PluginLoader.OnPlayerSave signature.");
+                }
+                saveHookArgs.Add(Instruction.Create(OpCodes.Call, onPlayerSave));
+                saveHookArgs.Add(Instruction.Create(OpCodes.Ret));
+                IL.MethodAppend(savePlayer, savePlayer.Body.Instructions.Count - 1, 1, saveHookArgs);
             }
 
             using (spawn.JumpFix())
@@ -1614,7 +1650,7 @@ namespace TerrariaPatcherBridge
                 var firstInstr = EnsureEntryInstruction(hurt);
                 var varDbl = new VariableDefinition(_mainModule.ImportReference(typeof(double)));
                 hurt.Body.Variables.Add(varDbl);
-                IL.MethodPrepend(hurt, new[]
+                var hurtHookArgs = new List<Instruction>
                 {
                     Instruction.Create(OpCodes.Ldarg_0),
                     Instruction.Create(OpCodes.Ldarg_1),
@@ -1623,19 +1659,24 @@ namespace TerrariaPatcherBridge
                     Instruction.Create(OpCodes.Ldarg_S, hurt.Parameters.FirstOrDefault(def => def.Name == "pvp")),
                     Instruction.Create(OpCodes.Ldarg_S, hurt.Parameters.FirstOrDefault(def => def.Name == "quiet")),
                     Instruction.Create(OpCodes.Ldarg_S, hurt.Parameters.FirstOrDefault(def => def.Name == "Crit")),
-                    Instruction.Create(OpCodes.Ldarg_S, hurt.Parameters.FirstOrDefault(def => def.Name == "cooldownCounter")),
-                    Instruction.Create(OpCodes.Ldarg_S, hurt.Parameters.FirstOrDefault(def => def.Name == "dodgeable")),
-                    Instruction.Create(OpCodes.Ldloca_S, varDbl),
-                    Instruction.Create(OpCodes.Call, onPlayerHurt),
-                    Instruction.Create(OpCodes.Brfalse_S, firstInstr),
-                    Instruction.Create(OpCodes.Ldloc, varDbl),
-                    Instruction.Create(OpCodes.Ret)
-                });
+                    Instruction.Create(OpCodes.Ldarg_S, hurt.Parameters.FirstOrDefault(def => def.Name == "cooldownCounter"))
+                };
+                if (onPlayerHurt.Parameters.Count == 10)
+                    hurtHookArgs.Add(Instruction.Create(OpCodes.Ldarg_S, hurt.Parameters.FirstOrDefault(def => def.Name == "dodgeable")));
+                else if (onPlayerHurt.Parameters.Count != 9)
+                    throw new NotSupportedException("Unsupported PluginLoader.OnPlayerHurt signature.");
+
+                hurtHookArgs.Add(Instruction.Create(OpCodes.Ldloca_S, varDbl));
+                hurtHookArgs.Add(Instruction.Create(OpCodes.Call, onPlayerHurt));
+                hurtHookArgs.Add(Instruction.Create(OpCodes.Brfalse_S, firstInstr));
+                hurtHookArgs.Add(Instruction.Create(OpCodes.Ldloc, varDbl));
+                hurtHookArgs.Add(Instruction.Create(OpCodes.Ret));
+                IL.MethodPrepend(hurt, hurtHookArgs);
             }
 
             using (pickAmmo.JumpFix())
             {
-                IL.MethodAppend(pickAmmo, pickAmmo.Body.Instructions.Count - 1, 1, new[]
+                var pickAmmoHookArgs = new List<Instruction>
                 {
                     Instruction.Create(OpCodes.Ldarg_0),
                     Instruction.Create(OpCodes.Ldarg_1),
@@ -1643,12 +1684,20 @@ namespace TerrariaPatcherBridge
                     Instruction.Create(OpCodes.Ldarga_S, pickAmmo.Parameters.FirstOrDefault(def => def.Name == "speed")),
                     Instruction.Create(OpCodes.Ldarga_S, pickAmmo.Parameters.FirstOrDefault(def => def.Name == "canShoot")),
                     Instruction.Create(OpCodes.Ldarga_S, pickAmmo.Parameters.FirstOrDefault(def => def.Name == "Damage")),
-                    Instruction.Create(OpCodes.Ldarga_S, pickAmmo.Parameters.FirstOrDefault(def => def.Name == "KnockBack")),
-                    Instruction.Create(OpCodes.Ldarga_S, pickAmmo.Parameters.FirstOrDefault(def => def.Name == "usedAmmoItemId")),
-                    Instruction.Create(OpCodes.Ldarg_S, pickAmmo.Parameters.FirstOrDefault(def => def.Name == "dontConsume")),
-                    Instruction.Create(OpCodes.Call, onPlayerPickAmmo),
-                    Instruction.Create(OpCodes.Ret)
-                });
+                    Instruction.Create(OpCodes.Ldarga_S, pickAmmo.Parameters.FirstOrDefault(def => def.Name == "KnockBack"))
+                };
+                if (onPlayerPickAmmo.Parameters.Count == 9)
+                {
+                    pickAmmoHookArgs.Add(Instruction.Create(OpCodes.Ldarga_S, pickAmmo.Parameters.FirstOrDefault(def => def.Name == "usedAmmoItemId")));
+                    pickAmmoHookArgs.Add(Instruction.Create(OpCodes.Ldarg_S, pickAmmo.Parameters.FirstOrDefault(def => def.Name == "dontConsume")));
+                }
+                else if (onPlayerPickAmmo.Parameters.Count != 7)
+                {
+                    throw new NotSupportedException("Unsupported PluginLoader.OnPlayerPickAmmo signature.");
+                }
+                pickAmmoHookArgs.Add(Instruction.Create(OpCodes.Call, onPlayerPickAmmo));
+                pickAmmoHookArgs.Add(Instruction.Create(OpCodes.Ret));
+                IL.MethodAppend(pickAmmo, pickAmmo.Body.Instructions.Count - 1, 1, pickAmmoHookArgs);
             }
 
             using (setDefaults.JumpFix())
@@ -1685,22 +1734,25 @@ namespace TerrariaPatcherBridge
                 });
             }
 
-            using (rollAPrefix.JumpFix())
+            if (onItemRollAPrefix != null && rollAPrefix != null)
             {
-                var varResult = new VariableDefinition(_mainModule.ImportReference(typeof(bool)));
-                rollAPrefix.Body.Variables.Add(varResult);
-                var firstInstr = EnsureEntryInstruction(rollAPrefix);
-                IL.MethodPrepend(rollAPrefix, new[]
+                using (rollAPrefix.JumpFix())
                 {
-                    Instruction.Create(OpCodes.Ldarg_0),
-                    Instruction.Create(OpCodes.Ldarg_1),
-                    Instruction.Create(OpCodes.Ldarg_2),
-                    Instruction.Create(OpCodes.Ldloca_S, varResult),
-                    Instruction.Create(OpCodes.Call, onItemRollAPrefix),
-                    Instruction.Create(OpCodes.Brfalse_S, firstInstr),
-                    Instruction.Create(OpCodes.Ldloc, varResult),
-                    Instruction.Create(OpCodes.Ret)
-                });
+                    var varResult = new VariableDefinition(_mainModule.ImportReference(typeof(bool)));
+                    rollAPrefix.Body.Variables.Add(varResult);
+                    var firstInstr = EnsureEntryInstruction(rollAPrefix);
+                    IL.MethodPrepend(rollAPrefix, new[]
+                    {
+                        Instruction.Create(OpCodes.Ldarg_0),
+                        Instruction.Create(OpCodes.Ldarg_1),
+                        Instruction.Create(OpCodes.Ldarg_2),
+                        Instruction.Create(OpCodes.Ldloca_S, varResult),
+                        Instruction.Create(OpCodes.Call, onItemRollAPrefix),
+                        Instruction.Create(OpCodes.Brfalse_S, firstInstr),
+                        Instruction.Create(OpCodes.Ldloc, varResult),
+                        Instruction.Create(OpCodes.Ret)
+                    });
+                }
             }
 
             using (doUpdateHandleChat.JumpFix())
@@ -1748,17 +1800,22 @@ namespace TerrariaPatcherBridge
                 var firstInstr = EnsureEntryInstruction(getItem);
                 var varItem = new VariableDefinition(IL.GetTypeDefinition(_mainModule, "Item"));
                 getItem.Body.Variables.Add(varItem);
-                IL.MethodPrepend(getItem, new[]
+                var getItemHookArgs = new List<Instruction>
                 {
                     Instruction.Create(OpCodes.Ldarg_0),
-                    Instruction.Create(OpCodes.Ldarg_1),
-                    Instruction.Create(OpCodes.Ldarg_2),
-                    Instruction.Create(OpCodes.Ldloca_S, varItem),
-                    Instruction.Create(OpCodes.Call, onGetItem),
-                    Instruction.Create(OpCodes.Brfalse_S, firstInstr),
-                    Instruction.Create(OpCodes.Ldloc, varItem),
-                    Instruction.Create(OpCodes.Ret)
-                });
+                    Instruction.Create(OpCodes.Ldarg_1)
+                };
+                if (onGetItem.Parameters.Count == 4)
+                    getItemHookArgs.Add(Instruction.Create(OpCodes.Ldarg_2));
+                else if (onGetItem.Parameters.Count != 3)
+                    throw new NotSupportedException("Unsupported PluginLoader.OnPlayerGetItem signature.");
+
+                getItemHookArgs.Add(Instruction.Create(OpCodes.Ldloca_S, varItem));
+                getItemHookArgs.Add(Instruction.Create(OpCodes.Call, onGetItem));
+                getItemHookArgs.Add(Instruction.Create(OpCodes.Brfalse_S, firstInstr));
+                getItemHookArgs.Add(Instruction.Create(OpCodes.Ldloc, varItem));
+                getItemHookArgs.Add(Instruction.Create(OpCodes.Ret));
+                IL.MethodPrepend(getItem, getItemHookArgs);
             }
 
             using (setupShop.JumpFix())

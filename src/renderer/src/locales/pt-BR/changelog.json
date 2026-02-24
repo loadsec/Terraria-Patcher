@@ -14,8 +14,9 @@
   "releases": {
     "v1_0_3": {
       "title": "Melhorias de UX na Home e Configurações",
-      "summary": "Melhorada a visibilidade do status de updates, refinado o painel de atualizações em Configurações e adicionado reset de perfil com auto-detecção do caminho do Terraria.",
+      "summary": "Melhorada a visibilidade do status de updates, refinado o painel de atualizações em Configurações, adicionado reset de perfil com auto-detecção do caminho do Terraria e oficializado o suporte a patching no Linux.",
       "changes": [
+        "Oficializado o suporte a patching do Terraria no Linux (builds FNA), incluindo suporte a plugins com seleção automática do plugin loader FNA/XNA.",
         "Adicionadas cores de severidade no status do updater (verde/amarelo/vermelho) com base em quantas versões atrás a instalação está.",
         "Melhorada a consistência visual do status de updates na Home e em Configurações usando a mesma lógica de cores.",
         "Refinado o layout do painel de Atualizações do App em Configurações (melhor espaçamento e cards de versão).",

@@ -14,8 +14,9 @@
   "releases": {
     "v1_0_3": {
       "title": "Home & Config Update UX Improvements",
-      "summary": "Improved updater status visibility, polished the Config updates panel, and added profile reset plus Terraria path auto-detection.",
+      "summary": "Improved updater status visibility, polished the Config updates panel, added profile reset plus Terraria path auto-detection, and officially enabled Linux patching support.",
       "changes": [
+        "Officialized Terraria patching support on Linux (FNA builds), including plugin support with automatic FNA/XNA plugin loader selection.",
         "Added updater status severity colors (green/yellow/red) based on how many releases behind the installed version is.",
         "Improved Home and Config updater status consistency using the same update-state color logic.",
         "Refined the App Updates panel layout in Config (better spacing and version cards).",

@@ -415,7 +415,7 @@
       "pluginsIni": "If Plugins.ini does not exist yet, patch with plugin support enabled and launch Terraria once to generate it.",
       "recovery": "If something goes wrong and you use Steam, try verifying file integrity. In more extreme cases, fully uninstall Terraria, check for leftover files in the installation folder, and try patching again.",
       "repatchAfterUpdate": "Whenever Terraria updates, you will need to patch again. The update process restores Terraria.exe, so a re-patch is required.",
-      "platform": "The desktop app runs on Windows, Linux and macOS, but full patching support is currently focused on Terraria 1.4.5.x (Windows workflow).",
+      "platform": "The desktop app runs on Windows, Linux and macOS. Terraria patching is currently supported on Windows and Linux (Terraria 1.4.5.x), while macOS patching support is still in development.",
       "aboutBtn": "About & Credits"
     }
   },
@@ -431,7 +431,7 @@
     "vision": {
       "title": "Our Vision",
       "p1": "While the original Patcher is Windows-only, our goal is to bring this tool to everyone. Our platform is designed from the ground up to run on <1>Windows, Linux, and macOS</1>.",
-      "note": "<0>Note:</0> Although the application itself runs across all operating systems seamlessly, the actual Terraria patching functionality for Linux and macOS is still under development and not yet fully supported.",
+      "note": "<0>Note:</0> The application runs across all operating systems, and Terraria patching is now supported on Windows and Linux. macOS patching support is still under development.",
       "p3": "You can follow our progress and help build the project through open source at:"
     },
     "stack": {
@@ -472,7 +472,7 @@
       "desc": "This section lists all available plugins located natively in the resources/plugins dir."
     },
     "error": {
-      "missingLoader": "PluginLoader.XNA.dll is missing from resources."
+      "missingLoader": "Plugin loader DLLs (XNA/FNA) are missing from resources."
     },
     "ini": {
       "title": "Plugins.ini Editor",
