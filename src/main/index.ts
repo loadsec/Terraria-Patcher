@@ -118,6 +118,9 @@ async function detectTerrariaExecutableInDirectory(rootDir: string): Promise<str
 
   if (process.platform === "darwin") {
     const exact = await findFirstExistingPath([
+      join(rootDir, "Terraria.exe"),
+      join(rootDir, "Terraria.app", "Contents", "Resources", "Terraria.exe"),
+      join(rootDir, "Terraria.app", "Contents", "Resources", "game", "Terraria.exe"),
       join(rootDir, "Terraria.app", "Contents", "MacOS", "Terraria"),
       join(rootDir, "Terraria"),
     ]);
@@ -141,6 +144,7 @@ async function detectTerrariaExecutableInDirectory(rootDir: string): Promise<str
   }
 
   const linuxExact = await findFirstExistingPath([
+    join(rootDir, "Terraria.exe"),
     join(rootDir, "Terraria.bin.x86_64"),
     join(rootDir, "Terraria.bin.x86"),
     join(rootDir, "Terraria"),
@@ -152,7 +156,7 @@ async function detectTerrariaExecutableInDirectory(rootDir: string): Promise<str
     if (await fse.pathExists(rootDir)) {
       const entries = readdirSync(rootDir);
       const candidate = entries.find((entry) =>
-        /^(Terraria(\.bin\.(x86|x86_64))?|start\.sh)$/i.test(entry),
+        /^(Terraria(\.exe|\.bin\.(x86|x86_64))?|start\.sh)$/i.test(entry),
       );
       if (candidate) {
         const path = join(rootDir, candidate);
@@ -348,9 +352,12 @@ async function detectTerrariaPath(): Promise<string | null> {
     if (steamPath) return steamPath;
 
     const gogPath = await findFirstExistingPath([
+      join(homeDir, "GOG Games", "Terraria", "game", "Terraria.exe"),
+      join(homeDir, "GOG Games", "Terraria", "game", "Terraria"),
       join(homeDir, "GOG Games", "Terraria", "start.sh"),
       join(homeDir, "GOG Games", "Terraria", "Terraria"),
-      join(homeDir, "GOG Games", "Terraria", "game", "Terraria"),
+      join(homeDir, "Games", "Terraria", "game", "Terraria.exe"),
+      join(homeDir, "Games", "Terraria", "game", "Terraria"),
       join(homeDir, "Games", "Terraria", "start.sh"),
       join(homeDir, "Games", "Terraria", "Terraria"),
     ]);
