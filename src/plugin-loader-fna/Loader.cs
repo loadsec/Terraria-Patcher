@@ -202,15 +202,12 @@ namespace PluginLoader
             string[] compileReferences = references;
             string[] compileSources = sources;
 #if FNA
-            // Use original references/sources directly; avoid staging copies that break under WSL/Mono.
+            // Resolve ALL paths to absolute BEFORE anything changes CurrentDirectory.
             var compilerWorkDir = Path.Combine(Path.GetTempPath(), "TerrariaPluginLoaderFNA", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(compilerWorkDir);
             compileReferences = references.Where(r => !string.IsNullOrWhiteSpace(r)).Select(r => Path.GetFullPath(r)).ToArray();
             compileSources = sources.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => Path.GetFullPath(s)).ToArray();
-            var originalDir = Environment.CurrentDirectory;
-            Environment.CurrentDirectory = compilerWorkDir;
-            try
-            {
+            // Do NOT change Environment.CurrentDirectory — it breaks Path.GetFullPath in CompileFnaAssemblyWithMcs.
 #endif
             // http://ayende.com/blog/1376/solving-the-assembly-load-context-problem
             var compilerParams = new CompilerParameters();
@@ -284,13 +281,6 @@ namespace PluginLoader
             {
                 loadedPlugins.Add(Activator.CreateInstance(type) as IPlugin);
             }
-#if FNA
-            }
-            finally
-            {
-                Environment.CurrentDirectory = originalDir;
-            }
-#endif
         }
 
 #if FNA
@@ -336,7 +326,7 @@ namespace PluginLoader
                     "Failed to stage plugin source files:" + Environment.NewLine +
                     string.Join(Environment.NewLine, missingStagedSources));
 
-            // Build the mcs argument list directly — no response file needed, no shell quoting issues.
+            // Build the mcs argument list directly.
             var mcsArgs = new List<string>();
             mcsArgs.Add("-target:library");
             mcsArgs.Add("-optimize+");
@@ -352,12 +342,16 @@ namespace PluginLoader
                 "#!/usr/bin/env bash\nset -e\nmcs " +
                 string.Join(" ", mcsArgs.Select(ShellQuote)) + "\n");
 
+            // Write a response file to safely pass all arguments without risking shell/OS parsing or command line limits.
+            var rspPath = Path.Combine(absWorkDir, "args.rsp");
+            File.WriteAllLines(rspPath, mcsArgs.Select(a => "\"" + (a ?? "").Replace("\"", "\\\"") + "\""));
+
             // Locate mcs.
             var mcsPath = FindExecutable("mcs", new[] { "/usr/bin/mcs", "/usr/local/bin/mcs", "/opt/mono/bin/mcs" });
             if (mcsPath == null)
                 throw new Exception("mcs not found. Install Mono development tools (e.g. mono-devel or mono-complete).");
 
-            // Pass each argument individually via ProcessStartInfo so Mono doesn't re-parse a joined string.
+            // Pass the response file to mcs using @args.rsp
             var startInfo = new ProcessStartInfo();
             startInfo.FileName = mcsPath;
             startInfo.WorkingDirectory = absWorkDir;
@@ -365,7 +359,7 @@ namespace PluginLoader
             startInfo.RedirectStandardOutput = true;
             startInfo.RedirectStandardError = true;
             startInfo.CreateNoWindow = true;
-            startInfo.Arguments = string.Join(" ", mcsArgs.Select(ShellQuote));
+            startInfo.Arguments = "@\"" + rspPath + "\"";
             startInfo.EnvironmentVariables["PATH"] =
                 "/usr/bin:/usr/local/bin:/opt/mono/bin:" +
                 (startInfo.EnvironmentVariables.ContainsKey("PATH") ? startInfo.EnvironmentVariables["PATH"] : "");
