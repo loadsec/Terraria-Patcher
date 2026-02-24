@@ -458,7 +458,9 @@ export default function PatcherPage() {
     | "idle"
     | "checking"
     | "restorePrompt"
+    | "restoreSuccess"
     | "backupPrompt"
+    | "backupSuccess"
     | "patching"
     | "done"
     | "error"
@@ -727,6 +729,16 @@ export default function PatcherPage() {
           );
           return;
         }
+
+        setPatchMessage({
+          type: "success",
+          text: t(
+            result.key || "patcher.messages.restoreSuccess",
+            "Backup restored successfully.",
+          ),
+        });
+        setPatchStage("restoreSuccess");
+        return;
       }
       setPatchStage("backupPrompt");
     } catch (err) {
@@ -737,9 +749,7 @@ export default function PatcherPage() {
 
   const handleCreateBackup = async (createBackup: boolean) => {
     try {
-      const terrariaPath = (await window.api.config.get(
-        "terrariaPath",
-      )) as string;
+      const terrariaPath = (await window.api.config.get("terrariaPath")) as string;
       if (createBackup) {
         setPatchStage("patching"); // Let UI show patching/backup
         const backupResult = await window.api.patcher.backup(terrariaPath);
@@ -752,8 +762,36 @@ export default function PatcherPage() {
           );
           return;
         }
+
+        setPatchMessage({
+          type: "success",
+          text: backupResult.key
+            ? t(backupResult.key, backupResult.args)
+            : t("patcher.messages.backupSuccess", backupResult.args),
+        });
+        setPatchStage("backupSuccess");
+        return;
       }
 
+      await runPatcher(terrariaPath);
+    } catch (err) {
+      setPatchStage("error");
+      setPatchError(String(err));
+    }
+  };
+
+  const handleProceedToPatch = async () => {
+    try {
+      const terrariaPath = (await window.api.config.get("terrariaPath")) as string;
+      await runPatcher(terrariaPath);
+    } catch (err) {
+      setPatchStage("error");
+      setPatchError(String(err));
+    }
+  };
+
+  const runPatcher = async (terrariaPath: string) => {
+    try {
       // Proceed to patch
       setPatchStage("patching");
 
@@ -1600,6 +1638,58 @@ export default function PatcherPage() {
                   </Button>
                   <Button onClick={() => handleCreateBackup(true)}>
                     {t("patcher.modal.btnBackup", "Create Backup")}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {patchStage === "restoreSuccess" && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-emerald-500">
+                  <Sparkles className="h-5 w-5" />
+                  <p className="font-medium">
+                    {t("patcher.modal.restoreSuccessTitle", "Backup restored")}
+                  </p>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {patchMessage?.text ||
+                    t(
+                      "patcher.modal.restoreSuccessDesc",
+                      "The backup was restored successfully. Continue to the backup step before patching?",
+                    )}
+                </p>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button variant="outline" onClick={() => setPatchStage("idle")}>
+                    {t("patcher.modal.btnStopHere", "Stop here")}
+                  </Button>
+                  <Button onClick={() => setPatchStage("backupPrompt")}>
+                    {t("patcher.modal.btnContinueToBackup", "Continue to Backup")}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {patchStage === "backupSuccess" && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-emerald-500">
+                  <Sparkles className="h-5 w-5" />
+                  <p className="font-medium">
+                    {t("patcher.modal.backupSuccessTitle", "Backup created")}
+                  </p>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {patchMessage?.text ||
+                    t(
+                      "patcher.modal.backupSuccessDesc",
+                      "Backup completed successfully. Continue to apply patches now?",
+                    )}
+                </p>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button variant="outline" onClick={() => setPatchStage("idle")}>
+                    {t("patcher.modal.btnStopHere", "Stop here")}
+                  </Button>
+                  <Button onClick={handleProceedToPatch}>
+                    {t("patcher.modal.btnContinueToPatch", "Apply Patches")}
                   </Button>
                 </div>
               </div>
