@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>PluginLoader.FNA</AssemblyName>
+    <RootNamespace>PluginLoader</RootNamespace>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <DefineConstants>TRACE;FNA</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="FNA">
+      <HintPath>$(FNA_LIB_DIR)\FNA.dll</HintPath>
+    </Reference>
+    <Reference Include="Terraria">
+      <HintPath>$(FNA_LIB_DIR)\Terraria.exe</HintPath>
+    </Reference>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="Microsoft.CSharp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Hotkey.cs" />
+    <Compile Include="IPlugin.cs" />
+    <Compile Include="IniAPI.cs" />
+    <Compile Include="Loader.cs" />
+    <Compile Include="Utils.cs" />
+  </ItemGroup>
+</Project>
