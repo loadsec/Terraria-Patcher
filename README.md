@@ -72,6 +72,19 @@ Apply standalone patches directly to the Terraria executable:
 - [Node.js](https://nodejs.org/) `>= 18`
 - [pnpm](https://pnpm.io/) `>= 8`
 
+### Linux (Ubuntu/Debian) Build Prerequisites
+
+On Linux, `electron-edge-js` is compiled during install (`node-gyp`), so you need a native build toolchain available.
+
+Install the required system packages before running `pnpm install` / `npm install`:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y build-essential python3 pkg-config
+```
+
+If you see an error like `Error: not found: make`, it usually means `build-essential` is missing.
+
 ### Windows Runtime / Prerequisites
 
 Terraria Patcher may require the **.NET Framework 4.7.2 Runtime** on some Windows systems (mainly for the C# bridge used by patching features).
