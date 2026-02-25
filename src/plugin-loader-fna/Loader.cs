@@ -152,7 +152,34 @@ namespace PluginLoader
         private static bool fresh = true;
 
         private static List<IPlugin> loadedPlugins = new List<IPlugin>();
-        private static bool loaded, ingame;
+        private static bool loaded, ingame, startupMessageShown;
+
+        private static void TryShowStartupPluginCountMessage()
+        {
+            if (startupMessageShown)
+                return;
+
+            try
+            {
+#if FNA
+                Main.NewText("Loaded " + loadedPlugins.Count + " plugins", Color.Purple.R, Color.Purple.G, Color.Purple.B);
+#else
+                Main.NewText("Loaded " + loadedPlugins.Count + " plugins", Color.Purple.R, Color.Purple.G, Color.Purple.B, false);
+#endif
+                startupMessageShown = true;
+            }
+            catch (NullReferenceException ex)
+            {
+                // Chat UI can be uninitialized in early FNA update ticks.
+                AppendLog("WARN", "Deferring plugin count chat message until UI is ready: " + ex.Message);
+            }
+            catch (Exception ex)
+            {
+                // This is non-critical; never abort the game on a toast failure.
+                startupMessageShown = true;
+                AppendLog("WARN", "Skipping plugin count chat message due to unexpected error: " + ex);
+            }
+        }
 
         #endregion
         
@@ -445,7 +472,7 @@ namespace PluginLoader
             if (mcsPath == null)
                 throw new Exception("mcs not found. Install Mono development tools (e.g. mono-devel or mono-complete).");
 
-            string ShellQuote(string p) => "'" + (p ?? string.Empty).Replace("'", "'\"'\"'") + "'";
+            Func<string, string> shellQuote = p => "'" + (p ?? string.Empty).Replace("'", "'\"'\"'") + "'";
 
             // Write diagnostics artifacts, but execute through a shell script to avoid
             // Mono's command line / response-file parsing issues on some Linux setups.
@@ -457,11 +484,11 @@ namespace PluginLoader
                 scriptPath,
                 "#!/usr/bin/env bash\nset -e\n" +
                 "exec /usr/bin/env -i " +
-                "PATH=" + ShellQuote("/usr/bin:/usr/local/bin:/opt/mono/bin") + " " +
-                "HOME=" + ShellQuote(scriptHome) + " " +
-                "TMPDIR=" + ShellQuote(Path.GetTempPath()) + " " +
-                ShellQuote(mcsPath) + " " +
-                string.Join(" ", mcsArgs.Select(ShellQuote)) + "\n",
+                "PATH=" + shellQuote("/usr/bin:/usr/local/bin:/opt/mono/bin") + " " +
+                "HOME=" + shellQuote(scriptHome) + " " +
+                "TMPDIR=" + shellQuote(Path.GetTempPath()) + " " +
+                shellQuote(mcsPath) + " " +
+                string.Join(" ", mcsArgs.Select(shellQuote)) + "\n",
                 new UTF8Encoding(false));
 
             var rspPath = Path.Combine(absWorkDir, "args.rsp");
@@ -554,7 +581,7 @@ namespace PluginLoader
                     "Parent MONO_IOMAP: " + (Environment.GetEnvironmentVariable("MONO_IOMAP") ?? "<null>") + Environment.NewLine +
                     "Parent MONO_OPTIONS: " + (Environment.GetEnvironmentVariable("MONO_OPTIONS") ?? "<null>") + Environment.NewLine +
                     "Parent MONO_PATH: " + (Environment.GetEnvironmentVariable("MONO_PATH") ?? "<null>") + Environment.NewLine +
-                    "Args: " + string.Join(" ", mcsArgs.Select(ShellQuote)));
+                    "Args: " + string.Join(" ", mcsArgs.Select(shellQuote)));
             }
 
             if (!File.Exists(outputPath))
@@ -937,14 +964,9 @@ namespace PluginLoader
         public static void OnPreUpdate()
         {
             if (!ingame)
-            {
                 ingame = true;
-#if FNA
-                Main.NewText("Loaded " + loadedPlugins.Count + " plugins", Color.Purple.R, Color.Purple.G, Color.Purple.B);
-#else
-                Main.NewText("Loaded " + loadedPlugins.Count + " plugins", Color.Purple.R, Color.Purple.G, Color.Purple.B, false);
-#endif
-            }
+
+            TryShowStartupPluginCountMessage();
 
             if (!Main.blockInput && !Main.drawingPlayerChat && !Main.editSign && !Main.editChest)
             {
