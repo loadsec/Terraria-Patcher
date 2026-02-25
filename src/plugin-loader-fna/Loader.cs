@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 #if !FNA
 using System.CodeDom.Compiler;
 #endif
@@ -339,31 +340,38 @@ namespace PluginLoader
                 mcsArgs.Add("-r:" + Path.GetFullPath(reference));
             mcsArgs.AddRange(stagedSources);
 
-            // Write run-mcs.sh for diagnostics only.
-            string ShellQuote(string p) => "'" + (p ?? string.Empty).Replace("'", "'\"'\"'") + "'";
-            var scriptPath = Path.Combine(absWorkDir, "run-mcs.sh");
-            File.WriteAllText(scriptPath,
-                "#!/usr/bin/env bash\nset -e\nmcs " +
-                string.Join(" ", mcsArgs.Select(ShellQuote)) + "\n");
-
-            // Write a response file to safely pass all arguments without risking shell/OS parsing or command line limits.
-            var rspPath = Path.Combine(absWorkDir, "args.rsp");
-            File.WriteAllLines(rspPath, mcsArgs.Select(a => "\"" + (a ?? "").Replace("\"", "\\\"") + "\""));
-
             // Locate mcs.
             var mcsPath = FindExecutable("mcs", new[] { "/usr/bin/mcs", "/usr/local/bin/mcs", "/opt/mono/bin/mcs" });
             if (mcsPath == null)
                 throw new Exception("mcs not found. Install Mono development tools (e.g. mono-devel or mono-complete).");
 
-            // Pass the response file to mcs using @args.rsp
+            string ShellQuote(string p) => "'" + (p ?? string.Empty).Replace("'", "'\"'\"'") + "'";
+
+            // Write diagnostics artifacts, but execute through a shell script to avoid
+            // Mono's command line / response-file parsing issues on some Linux setups.
+            var scriptPath = Path.Combine(absWorkDir, "run-mcs.sh");
+            File.WriteAllText(
+                scriptPath,
+                "#!/usr/bin/env bash\nset -e\n" + ShellQuote(mcsPath) + " " +
+                string.Join(" ", mcsArgs.Select(ShellQuote)) + "\n",
+                new UTF8Encoding(false));
+
+            var rspPath = Path.Combine(absWorkDir, "args.rsp");
+            File.WriteAllLines(
+                rspPath,
+                mcsArgs.Select(a => "\"" + (a ?? "").Replace("\"", "\\\"") + "\""),
+                new UTF8Encoding(false));
+
+            var bashPath = FindExecutable("bash", new[] { "/usr/bin/bash", "/bin/bash" }) ?? "/bin/sh";
+
             var startInfo = new ProcessStartInfo();
-            startInfo.FileName = mcsPath;
+            startInfo.FileName = bashPath;
             startInfo.WorkingDirectory = absWorkDir;
             startInfo.UseShellExecute = false;
             startInfo.RedirectStandardOutput = true;
             startInfo.RedirectStandardError = true;
             startInfo.CreateNoWindow = true;
-            startInfo.Arguments = "@\"" + rspPath + "\"";
+            startInfo.Arguments = scriptPath;
             startInfo.EnvironmentVariables["PATH"] =
                 "/usr/bin:/usr/local/bin:/opt/mono/bin:" +
                 (startInfo.EnvironmentVariables.ContainsKey("PATH") ? startInfo.EnvironmentVariables["PATH"] : "");
@@ -383,10 +391,12 @@ namespace PluginLoader
                     var combinedError = string.IsNullOrWhiteSpace(stderr) ? stdout : stderr;
                     if (!string.IsNullOrWhiteSpace(stdout))
                         combinedError += Environment.NewLine + stdout;
+
                     throw new Exception(
                         combinedError.Trim() + Environment.NewLine +
                         "Compiler work dir: " + absWorkDir + Environment.NewLine +
                         "Script: " + scriptPath + Environment.NewLine +
+                        "Rsp: " + rspPath + Environment.NewLine +
                         "Args: " + string.Join(" ", mcsArgs.Select(ShellQuote)));
                 }
             }

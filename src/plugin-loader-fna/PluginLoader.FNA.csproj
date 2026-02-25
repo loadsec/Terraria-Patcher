@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net472</TargetFramework>
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <AssemblyName>PluginLoader.FNA</AssemblyName>
@@ -10,8 +10,6 @@
     <LangVersion>latest</LangVersion>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <GenerateDependencyFile>false</GenerateDependencyFile>
-    <GenerateRuntimeConfigurationFiles>false</GenerateRuntimeConfigurationFiles>
     <DefineConstants>TRACE;FNA</DefineConstants>
     <TerrariaReferencePath Condition="'$(TerrariaReferencePath)' == '' and '$(FNA_LIB_DIR)' != '' and Exists('$(FNA_LIB_DIR)/Terraria.dll')">$(FNA_LIB_DIR)/Terraria.dll</TerrariaReferencePath>
     <TerrariaReferencePath Condition="'$(TerrariaReferencePath)' == '' and '$(FNA_LIB_DIR)' != '' and Exists('$(FNA_LIB_DIR)/Terraria.exe')">$(FNA_LIB_DIR)/Terraria.exe</TerrariaReferencePath>

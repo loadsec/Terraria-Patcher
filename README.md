@@ -132,7 +132,7 @@ dotnet build -c Release
 
 ### FNA Plugin Loader (Linux/macOS Terraria)
 
-The FNA plugin loader (`resources/plugins/PluginLoader.FNA.dll`) can be rebuilt from source using the .NET 10 SDK.
+The FNA plugin loader (`resources/plugins/PluginLoader.FNA.dll`) should be built as a Mono-compatible assembly (for the Terraria/FNA runtime).
 
 Set `FNA_LIB_DIR` to the Terraria FNA managed files folder (must contain `FNA.dll` and `Terraria.dll` or `Terraria.exe`), then build:
 
@@ -148,6 +148,7 @@ This copies the compiled loader to:
 Runtime note (for plugin `.cs` compilation in FNA builds):
 
 - Install Mono compiler tools (`mcs`), e.g. `mono-devel` / `mono-complete`
+- `build:plugin-loader-fna` uses `msbuild` (Mono/VS Build Tools) to keep the output compatible with Terraria's runtime
 
 ### Build
 
