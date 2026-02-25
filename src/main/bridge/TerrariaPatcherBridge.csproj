@@ -1,20 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net472</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <OutputType>Library</OutputType>
     <AssemblyName>TerrariaPatcherBridge</AssemblyName>
     <RootNamespace>TerrariaPatcherBridge</RootNamespace>
     <LangVersion>latest</LangVersion>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+    <GenerateDependencyFile>true</GenerateDependencyFile>
   </PropertyGroup>
 
   <ItemGroup>
     <Reference Include="Mono.Cecil">
-      <HintPath>$(MSBuildThisFileDirectory)bin\Release\Mono.Cecil.dll</HintPath>
+      <HintPath>$(MSBuildThisFileDirectory)bin/Release/Mono.Cecil.dll</HintPath>
       <Private>true</Private>
     </Reference>
     <Reference Include="Mono.Cecil.Rocks">
-      <HintPath>$(MSBuildThisFileDirectory)bin\Release\Mono.Cecil.Rocks.dll</HintPath>
+      <HintPath>$(MSBuildThisFileDirectory)bin/Release/Mono.Cecil.Rocks.dll</HintPath>
       <Private>true</Private>
     </Reference>
   </ItemGroup>

@@ -397,26 +397,21 @@ export default function DevToolsPage() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {t("devTools.dotnet.title", ".NET Framework 4.7.2+")}
+                  {t("devTools.dotnet.title", ".NET 10 Runtime / SDK")}
                 </p>
                 <p
                   className={cn(
                     "mt-1 text-sm font-semibold",
-                    devStatus?.platform !== "win32"
-                      ? "text-muted-foreground"
-                      : devStatus?.dotnetPrereqs.runtime472Plus.ok
+                    devStatus?.dotnetPrereqs.runtime472Plus.ok
                         ? "text-emerald-600 dark:text-emerald-400"
                         : "text-amber-600 dark:text-amber-400",
                   )}>
-                  {devStatus?.platform !== "win32"
-                    ? t("devTools.dotnet.nonWindows", "Not applicable on this platform")
-                    : devStatus?.dotnetPrereqs.runtime472Plus.ok
+                  {devStatus?.dotnetPrereqs.runtime472Plus.ok
                       ? t("devTools.dotnet.detected", "Detected (compatible)")
                       : t("devTools.dotnet.missing", "Missing or incompatible")}
                 </p>
               </div>
-              {devStatus?.platform === "win32" ? (
-                <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
                     size="sm"
@@ -441,7 +436,7 @@ export default function DevToolsPage() {
                     ) : (
                       <ExternalLink className="h-4 w-4" />
                     )}
-                    {t("devTools.dotnet.githubRuntimeBtn", "Open GitHub Runtime")}
+                    {t("devTools.dotnet.githubRuntimeBtn", "Open .NET Runtime Download")}
                   </Button>
                   <Button
                     type="button"
@@ -454,7 +449,7 @@ export default function DevToolsPage() {
                     ) : (
                       <ExternalLink className="h-4 w-4" />
                     )}
-                    {t("devTools.dotnet.githubDevPackBtn", "Open GitHub Dev Pack")}
+                    {t("devTools.dotnet.githubDevPackBtn", "Open .NET SDK Download")}
                   </Button>
                   <Button
                     type="button"
@@ -463,10 +458,9 @@ export default function DevToolsPage() {
                     disabled={openingPrereq !== null}
                     onClick={() => void openPrereqLink("githubRelease")}>
                     <ExternalLink className="h-4 w-4" />
-                    {t("devTools.dotnet.githubReleaseBtn", "Open GitHub Release")}
+                    {t("devTools.dotnet.githubReleaseBtn", "Open .NET Downloads Page")}
                   </Button>
                 </div>
-              ) : null}
             </div>
 
             <div className="grid gap-2 text-xs sm:grid-cols-2">
@@ -475,12 +469,12 @@ export default function DevToolsPage() {
                   {t("devTools.dotnet.requiredRelease", "Required Release")}
                 </span>
                 <div className="font-mono mt-1">
-                  {devStatus?.dotnetPrereqs.runtime472Plus.requiredRelease ?? 461808}
+                  {devStatus?.dotnetPrereqs.runtime472Plus.requiredRelease ?? 10}
                 </div>
               </div>
               <div className="rounded-md border border-border/50 bg-muted/20 p-2">
                 <span className="text-muted-foreground">
-                  {t("devTools.dotnet.detectedRelease", "Detected Release")}
+                  {t("devTools.dotnet.detectedRelease", "Detected Major")}
                 </span>
                 <div className="font-mono mt-1">
                   {typeof devStatus?.dotnetPrereqs.runtime472Plus.detectedRelease === "number"
@@ -488,29 +482,43 @@ export default function DevToolsPage() {
                     : t("devTools.dotnet.notDetected", "Not detected")}
                 </div>
               </div>
+              {devStatus?.dotnetPrereqs.runtime472Plus.detectedVersion ? (
+                <div className="rounded-md border border-border/50 bg-muted/20 p-2 text-xs">
+                  <span className="text-muted-foreground">
+                    {t("devTools.dotnet.detectedVersion", "Detected Runtime Version")}
+                  </span>
+                  <div className="font-mono mt-1">
+                    {devStatus.dotnetPrereqs.runtime472Plus.detectedVersion}
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="rounded-md border border-border/50 bg-muted/20 p-2 text-xs">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-muted-foreground">
-                  {t("devTools.dotnet.developerPack", "Developer Pack 4.7.2")}
+                  {t("devTools.dotnet.developerPack", ".NET SDK 10+")}
                 </span>
                 <span
                   className={cn(
                     "font-medium",
-                    devStatus?.platform !== "win32"
-                      ? "text-muted-foreground"
-                      : devStatus?.dotnetPrereqs.developerPack472.ok
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-amber-600 dark:text-amber-400",
+                    devStatus?.dotnetPrereqs.developerPack472.ok
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-amber-600 dark:text-amber-400",
                   )}>
-                  {devStatus?.platform !== "win32"
-                    ? t("devTools.dotnet.nonWindows", "Not applicable on this platform")
-                    : devStatus?.dotnetPrereqs.developerPack472.ok
-                      ? t("devTools.dotnet.detected", "Detected (compatible)")
-                      : t("devTools.dotnet.notDetected", "Not detected")}
+                  {devStatus?.dotnetPrereqs.developerPack472.ok
+                    ? t("devTools.dotnet.detected", "Detected (compatible)")
+                    : t("devTools.dotnet.notDetected", "Not detected")}
                 </span>
               </div>
+              {devStatus?.dotnetPrereqs.developerPack472.detectedVersion ? (
+                <div className="mt-1 text-muted-foreground">
+                  {t("devTools.dotnet.sdkVersion", {
+                    version: devStatus.dotnetPrereqs.developerPack472.detectedVersion,
+                    defaultValue: "Detected SDK: {{version}}",
+                  })}
+                </div>
+              ) : null}
               {devStatus?.dotnetPrereqs.developerPack472.installationFolder ? (
                 <div className="mt-1 break-all text-muted-foreground">
                   {devStatus.dotnetPrereqs.developerPack472.installationFolder}
@@ -522,11 +530,11 @@ export default function DevToolsPage() {
               ) : null}
             </div>
 
-            {devStatus?.platform === "win32" && !devStatus?.dotnetPrereqs.runtime472Plus.ok ? (
+            {!devStatus?.dotnetPrereqs.runtime472Plus.ok ? (
               <p className="text-xs text-muted-foreground">
                 {t(
                   "devTools.dotnet.recommendation",
-                  "Recommendation: try the official Microsoft download first. If it is unavailable, use the GitHub prerequisites mirror.",
+                  "Recommendation: install the .NET 10 Runtime from Microsoft. If you build the bridge locally, install the .NET 10 SDK too.",
                 )}
               </p>
             ) : null}
@@ -539,7 +547,7 @@ export default function DevToolsPage() {
             ) : null}
             {devStatus?.dotnetPrereqs.developerPack472.error ? (
               <p className="text-xs text-muted-foreground break-words">
-                {t("devTools.dotnet.devPackErrorPrefix", "Developer Pack detection")}:{" "}
+                {t("devTools.dotnet.devPackErrorPrefix", ".NET SDK detection")}:{" "}
                 {devStatus.dotnetPrereqs.developerPack472.error}
               </p>
             ) : null}

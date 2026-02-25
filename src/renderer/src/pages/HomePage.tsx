@@ -159,12 +159,7 @@ export default function HomePage() {
     ? t(`config.updates.phase.${updaterState.phase}`, updaterState.phase)
     : t("home.status.loading", "Loading...");
   const latestReleaseDate = formatDate(latestRelease?.date, i18n.language);
-  const isWindows = dotnetPrereqs?.platform === "win32";
-  const runtimeStatus = isWindows
-    ? dotnetPrereqs?.runtime472Plus.ok
-      ? "ok"
-      : "missing"
-    : "n/a";
+  const runtimeStatus = dotnetPrereqs?.runtime472Plus.ok ? "ok" : "missing";
   const updaterLagCount = getReleaseDistance(
     updaterState?.currentVersion,
     updaterState?.latestVersion,
@@ -257,14 +252,10 @@ export default function HomePage() {
                 value={
                   runtimeStatus === "ok"
                     ? t("home.status.runtime.ok", "Detected")
-                    : runtimeStatus === "missing"
-                      ? t("home.status.runtime.missing", "Missing / incompatible")
-                      : t("home.status.runtime.na", "Not applicable")
+                    : t("home.status.runtime.missing", "Missing / incompatible")
                 }
                 subValue={
-                  isWindows
-                    ? t("home.hero.metrics.runtimeHint", ".NET Framework 4.7.2+")
-                    : t("home.hero.metrics.runtimeHintNonWindows", "Windows-only check")
+                  t("home.hero.metrics.runtimeHint", ".NET 10 Runtime (cross-platform)")
                 }
                 emphasize={runtimeStatus === "ok"}
               />
@@ -370,30 +361,26 @@ export default function HomePage() {
             hint={updaterHint}
           />
           <StatusRow
-            label={t("home.status.runtime.label", ".NET 4.7.2+ Runtime")}
+            label={t("home.status.runtime.label", ".NET 10 Runtime")}
             value={
               runtimeStatus === "ok"
                 ? t("home.status.runtime.ok", "Detected")
-                : runtimeStatus === "missing"
-                  ? t("home.status.runtime.missing", "Missing / incompatible")
-                  : t("home.status.runtime.na", "Not applicable")
+                : t("home.status.runtime.missing", "Missing / incompatible")
             }
             tone={
               runtimeStatus === "ok"
                 ? "success"
-                : runtimeStatus === "missing"
-                  ? "warning"
-                  : "neutral"
+                : "warning"
             }
             hint={
-              isWindows && dotnetPrereqs
+              dotnetPrereqs
                 ? t("home.status.runtime.releaseHint", {
                     detected:
                       typeof dotnetPrereqs.runtime472Plus.detectedRelease === "number"
                         ? dotnetPrereqs.runtime472Plus.detectedRelease
                         : t("home.status.notDetectedShort", "N/A"),
                     required: dotnetPrereqs.runtime472Plus.requiredRelease,
-                    defaultValue: "Release: {{detected}} / required {{required}}",
+                    defaultValue: "Major version: {{detected}} / required {{required}}",
                   })
                 : undefined
             }

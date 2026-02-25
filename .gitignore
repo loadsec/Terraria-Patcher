@@ -32,7 +32,12 @@ src/main/bridge/bin/*
 !src/main/bridge/bin/Release/
 src/main/bridge/bin/Release/*
 !src/main/bridge/bin/Release/*.dll
+!src/main/bridge/bin/Release/*.json
 src/main/bridge/bin/Release/*.pdb
+
+# FNA plugin loader build artifacts
+src/plugin-loader-fna/bin/
+src/plugin-loader-fna/obj/
 
 # -----------------------------------------------------------------------------
 # Logs / coverage / caches

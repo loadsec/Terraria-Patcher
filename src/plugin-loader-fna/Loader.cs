@@ -1,14 +1,18 @@
 ﻿using System;
-using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 #if !FNA
+using System.CodeDom.Compiler;
+#endif
+#if !FNA
 using System.Windows.Forms;
 #endif
+#if !FNA
 using Microsoft.CSharp;
+#endif
 using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.Chat;
@@ -209,19 +213,11 @@ namespace PluginLoader
             compileSources = sources.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => Path.GetFullPath(s)).ToArray();
             // Do NOT change Environment.CurrentDirectory — it breaks Path.GetFullPath in CompileFnaAssemblyWithMcs.
 #endif
-            // http://ayende.com/blog/1376/solving-the-assembly-load-context-problem
-            var compilerParams = new CompilerParameters();
-            compilerParams.GenerateInMemory = true;
-            compilerParams.GenerateExecutable = false;
-            compilerParams.TreatWarningsAsErrors = false;
-            compilerParams.CompilerOptions = "/optimize";
-            compilerParams.ReferencedAssemblies.AddRange(compileReferences);
-
 #if FNA
             Assembly compiledAssembly;
             try
             {
-                compiledAssembly = CompileFnaAssemblyWithMcs(compilerParams, compileSources, compilerWorkDir);
+                compiledAssembly = CompileFnaAssemblyWithMcs(compileReferences, compileSources, compilerWorkDir);
             }
             catch (Exception ex) when (
                 ex.Message != null &&
@@ -243,6 +239,14 @@ namespace PluginLoader
                     ex);
             }
 #else
+            // http://ayende.com/blog/1376/solving-the-assembly-load-context-problem
+            var compilerParams = new CompilerParameters();
+            compilerParams.GenerateInMemory = true;
+            compilerParams.GenerateExecutable = false;
+            compilerParams.TreatWarningsAsErrors = false;
+            compilerParams.CompilerOptions = "/optimize";
+            compilerParams.ReferencedAssemblies.AddRange(compileReferences);
+
             var provider = new CSharpCodeProvider();
             CompilerResults compile;
             try
@@ -284,7 +288,7 @@ namespace PluginLoader
         }
 
 #if FNA
-        private static Assembly CompileFnaAssemblyWithMcs(CompilerParameters compilerParams, IEnumerable<string> compileSources, string compilerWorkDir)
+        private static Assembly CompileFnaAssemblyWithMcs(IEnumerable<string> compileReferences, IEnumerable<string> compileSources, string compilerWorkDir)
         {
             // Resolve all paths to absolute BEFORE CurrentDirectory is changed anywhere.
             var absWorkDir = Path.GetFullPath(compilerWorkDir);
@@ -331,7 +335,7 @@ namespace PluginLoader
             mcsArgs.Add("-target:library");
             mcsArgs.Add("-optimize+");
             mcsArgs.Add("-out:" + outputPath);
-            foreach (var reference in compilerParams.ReferencedAssemblies.Cast<string>().Where(r => !string.IsNullOrWhiteSpace(r)))
+            foreach (var reference in compileReferences.Where(r => !string.IsNullOrWhiteSpace(r)))
                 mcsArgs.Add("-r:" + Path.GetFullPath(reference));
             mcsArgs.AddRange(stagedSources);
 

@@ -64,23 +64,23 @@
       "details": "Detalhes das Dependências Ausentes"
     },
     "dotnet": {
-      "title": ".NET Framework 4.7.2+",
+      "title": ".NET 10 Runtime / SDK",
       "detected": "Detectado (compatível)",
       "missing": "Ausente ou incompatível",
       "nonWindows": "Não se aplica nesta plataforma",
-      "requiredRelease": "Release Mínimo",
-      "detectedRelease": "Release Detectado",
-      "developerPack": "Developer Pack 4.7.2",
+      "requiredRelease": "Versão Principal Mínima",
+      "detectedRelease": "Versão Principal Detectada",
+      "developerPack": ".NET SDK 10+",
       "notDetected": "Não detectado",
-      "recommendation": "Recomendação: tente primeiro o download oficial da Microsoft. Se não estiver disponível, use o mirror de pré-requisitos no GitHub.",
+      "recommendation": "Recomendação: tente primeiro o download oficial da Microsoft. Se não estiver disponível, use a página de downloads do .NET.",
       "microsoftBtn": "Abrir Microsoft",
       "githubBtn": "Abrir Mirror GitHub",
-      "githubRuntimeBtn": "Abrir Runtime no GitHub",
-      "githubDevPackBtn": "Abrir Dev Pack no GitHub",
-      "githubReleaseBtn": "Abrir Release no GitHub",
+      "githubRuntimeBtn": "Abrir Download do Runtime .NET",
+      "githubDevPackBtn": "Abrir Download do SDK .NET",
+      "githubReleaseBtn": "Abrir Página de Downloads do .NET",
       "openFailed": "Falha ao abrir link de pré-requisitos.",
       "errorPrefix": "Erro de detecção",
-      "devPackErrorPrefix": "Detecção do Developer Pack"
+      "devPackErrorPrefix": "Detecção do SDK .NET"
     },
     "updater": {
       "title": "Simulação do Updater",
@@ -106,16 +106,16 @@
       "releaseAssetsNotReady": "Uma nova release foi detectada, mas os arquivos de atualização ainda não estão totalmente disponíveis (por exemplo: latest.yml, instalador ou blockmap). O GitHub Actions pode ainda estar gerando/enviando os artefatos. Tente novamente em alguns minutos."
     },
     "dotnetPrereq": {
-      "title": ".NET Framework 4.7.2+ Necessário",
-      "message": "O Terraria Patcher precisa do .NET Framework 4.7.2 ou mais novo para executar a bridge em C#.",
+      "title": ".NET 10 Runtime / SDK Necessário",
+      "message": "O Terraria Patcher precisa do Runtime do .NET 10 ou mais novo para executar a bridge em C#.",
       "notDetected": "Não detectado",
       "detectedRelease": "Valor Release detectado: {{value}}",
-      "requiredRelease": "Valor Release mínimo necessário: {{value}} (.NET Framework 4.7.2)",
+      "requiredRelease": "Versão principal mínima necessária: {{value}} (.NET 10)",
       "recommendOfficial": "Recomendado: baixe/instale primeiro pelo site da Microsoft.",
-      "recommendMirror": "Se o download da Microsoft estiver indisponível, use o mirror de pré-requisitos no GitHub.",
+      "recommendMirror": "Se o download da Microsoft estiver indisponível, use a página de downloads do .NET.",
       "closeButton": "Fechar",
       "microsoftButton": "Abrir Microsoft",
-      "githubButton": "Abrir Mirror Runtime GitHub"
+      "githubButton": "Abrir Download do Runtime .NET"
     },
     "runtimeDeps": {
       "title": "Arquivos de Runtime Ausentes",
@@ -127,7 +127,7 @@
       "bridgeFolder": "Pasta da bridge: {{path}}",
       "pluginsFolder": "Pasta dos plugins: {{path}}",
       "missingEntries": "Itens ausentes:",
-      "prereqsRelease": "Release de pré-requisitos do Windows: {{url}}",
+      "prereqsRelease": "página de downloads do .NET: {{url}}",
       "closeButton": "Fechar",
       "openPrereqsButton": "Abrir Pré-requisitos"
     }
@@ -306,8 +306,8 @@
         "pathMissing": "Não configurado",
         "pathHint": "Defina o caminho do Terraria.exe na Config antes de aplicar patches.",
         "runtimeLabel": "Runtime .NET",
-        "runtimeHint": ".NET Framework 4.7.2+",
-        "runtimeHintNonWindows": "Verificação apenas no Windows"
+        "runtimeHint": ".NET 10 Runtime / SDK",
+        "runtimeHintNonWindows": "Verificação multiplataforma"
       }
     },
     "status": {
@@ -323,11 +323,11 @@
       "loading": "Carregando...",
       "notDetectedShort": "N/D",
       "runtime": {
-        "label": "Runtime .NET 4.7.2+",
+        "label": "Runtime .NET 10",
         "ok": "Detectado",
         "missing": "Ausente / incompatível",
         "na": "Não se aplica",
-        "releaseHint": "Release: {{detected}} / necessário {{required}}"
+        "releaseHint": "Versão principal: {{detected}} / necessário {{required}}"
       }
     },
     "shortcuts": {
@@ -620,23 +620,23 @@
       }
     },
     "prereqs": {
-      "title": "Pré-requisitos do .NET Framework",
-      "desc": "Verifique se o .NET Framework 4.7.2+ está disponível no seu Windows. O Terraria Patcher precisa dele para executar a bridge em C#.",
-      "runtimeStatus": "Runtime (.NET 4.7.2+)",
-      "devPackStatus": "Developer Pack (contribuidores)",
+      "title": "Pré-requisitos do .NET",
+      "desc": "Verifique se o .NET 10 Runtime / SDK está disponível no seu Windows. O Terraria Patcher precisa dele para executar a bridge em C#.",
+      "runtimeStatus": "Runtime (.NET 10+)",
+      "devPackStatus": "SDK .NET (contribuidores)",
       "detected": "Detectado (compatível)",
       "missing": "Ausente ou incompatível",
       "optionalMissing": "Não detectado (opcional para usuários normais)",
       "notDetected": "Não detectado",
-      "releaseValues": "Release detectado: {{detected}} • Necessário: {{required}}",
-      "recommendation": "Recomendado: baixe primeiro o instalador Runtime pela Microsoft. Se estiver indisponível, use o mirror de pré-requisitos no GitHub.",
+      "releaseValues": "Versão principal detectada: {{detected}} • Necessário: {{required}}",
+      "recommendation": "Recomendado: baixe primeiro o instalador Runtime pela Microsoft. Se estiver indisponível, use a página de downloads do .NET.",
       "refreshBtn": "Atualizar Status",
       "microsoftBtn": "Abrir Microsoft (página .NET)",
       "githubBtn": "Abrir Mirror GitHub",
-      "githubRuntimeBtn": "Abrir Mirror Runtime GitHub",
-      "githubDevPackBtn": "Abrir Mirror Dev Pack GitHub",
-      "githubReleaseBtn": "Abrir Release de Pré-requisitos",
-      "userVsContributor": "Usuários normais geralmente precisam apenas do instalador Runtime. Contribuidores que compilam a bridge em C# podem precisar também do Developer Pack.",
+      "githubRuntimeBtn": "Abrir Download do Runtime .NET",
+      "githubDevPackBtn": "Abrir Download do SDK .NET",
+      "githubReleaseBtn": "Abrir Página de Downloads do .NET",
+      "userVsContributor": "Usuários normais geralmente precisam apenas do Runtime do .NET. Contribuidores que compilam a bridge em C# devem instalar o SDK do .NET.",
       "messages": {
         "refreshed": "Status de pré-requisitos atualizado.",
         "refreshFailed": "Falha ao atualizar status de pré-requisitos: {{error}}",

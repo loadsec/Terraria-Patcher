@@ -985,16 +985,16 @@ export default function ConfigPage() {
           </div>
         </div>
 
-        {dotnetPrereqs?.platform === "win32" && (
+        {dotnetPrereqs && (
           <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
             <div className="flex flex-col space-y-1.5 p-6 border-b bg-muted/20">
               <h3 className="font-semibold leading-none tracking-tight">
-                {t("config.prereqs.title", ".NET Framework Prerequisites")}
+                {t("config.prereqs.title", ".NET Runtime / SDK Prerequisites")}
               </h3>
               <p className="text-sm text-muted-foreground">
                 {t(
                   "config.prereqs.desc",
-                  "Check whether .NET Framework 4.7.2+ is available on your Windows system. Terraria Patcher needs it to run the C# bridge.",
+                  "Check whether .NET 10 Runtime / SDK are available on your system. Terraria Patcher uses them for the C# bridge.",
                 )}
               </p>
             </div>
@@ -1002,7 +1002,7 @@ export default function ConfigPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
                   <p className="text-xs text-muted-foreground">
-                    {t("config.prereqs.runtimeStatus", "Runtime (.NET 4.7.2+)")}
+                    {t("config.prereqs.runtimeStatus", "Runtime (.NET 10+)")}
                   </p>
                   <p
                     className={cn(
@@ -1023,14 +1023,22 @@ export default function ConfigPage() {
                           : t("config.prereqs.notDetected", "Not detected"),
                       required: dotnetPrereqs.runtime472Plus.requiredRelease,
                       defaultValue:
-                        "Detected Release: {{detected}} • Required: {{required}}",
+                        "Detected major: {{detected}} • Required: {{required}}",
                     })}
                   </p>
+                  {dotnetPrereqs.runtime472Plus.detectedVersion && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t("config.prereqs.detectedVersion", {
+                        version: dotnetPrereqs.runtime472Plus.detectedVersion,
+                        defaultValue: "Detected version: {{version}}",
+                      })}
+                    </p>
+                  )}
                 </div>
 
                 <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
                   <p className="text-xs text-muted-foreground">
-                    {t("config.prereqs.devPackStatus", "Developer Pack (contributors)")}
+                    {t("config.prereqs.devPackStatus", ".NET SDK (contributors)")}
                   </p>
                   <p
                     className={cn(
@@ -1046,6 +1054,14 @@ export default function ConfigPage() {
                           "Not detected (optional for normal users)",
                         )}
                   </p>
+                  {dotnetPrereqs.developerPack472.detectedVersion && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t("config.prereqs.sdkDetectedVersion", {
+                        version: dotnetPrereqs.developerPack472.detectedVersion,
+                        defaultValue: "Detected SDK: {{version}}",
+                      })}
+                    </p>
+                  )}
                   {(dotnetPrereqs.developerPack472.installationFolder ||
                     dotnetPrereqs.developerPack472.referenceAssembliesPath) && (
                     <p className="mt-1 text-xs text-muted-foreground break-all">
@@ -1061,7 +1077,7 @@ export default function ConfigPage() {
                   <p className="text-sm text-muted-foreground">
                     {t(
                       "config.prereqs.recommendation",
-                      "Recommended: download the Runtime installer from Microsoft first. If it is unavailable, use the GitHub prerequisites mirror.",
+                      "Recommended: install the .NET 10 Runtime from Microsoft first. Contributors building the bridge should also install the .NET 10 SDK.",
                     )}
                   </p>
                 </div>
@@ -1107,7 +1123,7 @@ export default function ConfigPage() {
                   ) : (
                     <Download className="h-4 w-4" />
                   )}
-                  {t("config.prereqs.githubRuntimeBtn", "Open GitHub Runtime Mirror")}
+                  {t("config.prereqs.githubRuntimeBtn", "Open .NET Runtime Download")}
                 </Button>
 
                 <Button
@@ -1117,14 +1133,14 @@ export default function ConfigPage() {
                   onClick={() => void openPrereqLink("githubRelease")}
                   disabled={openingPrereqLink !== null}>
                   <Download className="h-4 w-4" />
-                  {t("config.prereqs.githubReleaseBtn", "Open GitHub Prereqs Release")}
+                  {t("config.prereqs.githubReleaseBtn", "Open .NET Downloads Page")}
                 </Button>
               </div>
 
               <p className="text-xs text-muted-foreground">
                 {t(
                   "config.prereqs.userVsContributor",
-                  "Normal users usually only need the Runtime installer. Contributors who compile the C# bridge may also need the Developer Pack.",
+                  "Normal users usually only need the .NET Runtime. Contributors who compile the C# bridge should install the .NET SDK.",
                 )}
               </p>
             </div>

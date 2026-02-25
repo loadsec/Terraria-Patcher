@@ -103,15 +103,19 @@ export interface DotNetFrameworkCheck {
   ok: boolean;
   requiredRelease: number;
   detectedRelease?: number;
-  source?: "registry" | "unknown";
+  source?: "cli" | "unknown";
+  detectedVersion?: string;
   error?: string;
 }
 
 export interface DotNetDeveloperPackCheck {
   ok: boolean;
-  source?: "registry" | "filesystem" | "unknown";
+  source?: "cli" | "unknown";
   installationFolder?: string;
   referenceAssembliesPath?: string;
+  detectedVersion?: string;
+  requiredVersionMajor?: number;
+  detectedVersionMajor?: number;
   error?: string;
 }
 

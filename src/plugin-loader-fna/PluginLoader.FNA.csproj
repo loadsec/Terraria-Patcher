@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net472</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <AssemblyName>PluginLoader.FNA</AssemblyName>
@@ -9,22 +9,36 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <DefineConstants>TRACE;FNA</DefineConstants>
+    <TerrariaReferencePath Condition="'$(TerrariaReferencePath)' == '' and '$(FNA_LIB_DIR)' != '' and Exists('$(FNA_LIB_DIR)/Terraria.dll')">$(FNA_LIB_DIR)/Terraria.dll</TerrariaReferencePath>
+    <TerrariaReferencePath Condition="'$(TerrariaReferencePath)' == '' and '$(FNA_LIB_DIR)' != '' and Exists('$(FNA_LIB_DIR)/Terraria.exe')">$(FNA_LIB_DIR)/Terraria.exe</TerrariaReferencePath>
+    <FnaDllPath Condition="'$(FnaDllPath)' == '' and '$(FNA_LIB_DIR)' != ''">$(FNA_LIB_DIR)/FNA.dll</FnaDllPath>
+    <PluginLoaderOutputPath Condition="'$(PluginLoaderOutputPath)' == ''">$(MSBuildThisFileDirectory)..\..\resources\plugins\PluginLoader.FNA.dll</PluginLoaderOutputPath>
   </PropertyGroup>
+
+  <Target Name="ValidateFnaLibDir" BeforeTargets="ResolveReferences">
+    <Error Condition="'$(FNA_LIB_DIR)' == ''"
+           Text="FNA_LIB_DIR is not set. Point it to your Terraria FNA managed files folder (the one containing FNA.dll and Terraria.dll/Terraria.exe)." />
+    <Error Condition="!Exists('$(FnaDllPath)')"
+           Text="FNA.dll not found. Checked: $(FnaDllPath)" />
+    <Error Condition="'$(TerrariaReferencePath)' == '' or !Exists('$(TerrariaReferencePath)')"
+           Text="Terraria.dll/Terraria.exe not found in FNA_LIB_DIR. Checked folder: $(FNA_LIB_DIR)" />
+  </Target>
+
+  <Target Name="CopyPluginLoaderToResources" AfterTargets="Build">
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(PluginLoaderOutputPath)'))" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(PluginLoaderOutputPath)" OverwriteReadOnlyFiles="true" />
+    <Message Importance="high" Text="Copied PluginLoader.FNA.dll to $(PluginLoaderOutputPath)" />
+  </Target>
 
   <ItemGroup>
     <Reference Include="FNA">
-      <HintPath>$(FNA_LIB_DIR)\FNA.dll</HintPath>
+      <HintPath>$(FnaDllPath)</HintPath>
     </Reference>
     <Reference Include="Terraria">
-      <HintPath>$(FNA_LIB_DIR)\Terraria.exe</HintPath>
+      <HintPath>$(TerrariaReferencePath)</HintPath>
     </Reference>
-    <Reference Include="System.Windows.Forms" />
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
 
   <ItemGroup>

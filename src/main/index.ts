@@ -1,12 +1,12 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
 import { join, dirname, normalize as normalizePath } from "path";
 import { spawn } from "child_process";
+import { createRequire } from "module";
 import { autoUpdater, type ProgressInfo, type UpdateInfo } from "electron-updater";
 import icon from "../../resources/terraria-logo.png?asset";
 import * as fse from "fs-extra";
 import { copySync, emptyDirSync, ensureDirSync } from "fs-extra";
 import { existsSync, copyFileSync, readdirSync } from "fs";
-import edge from "electron-edge-js";
 
 // ─── Electron Store ──────────────────────────────────────────────────────────
 
@@ -502,15 +502,19 @@ type DotNetFrameworkCheck = {
   ok: boolean;
   requiredRelease: number;
   detectedRelease?: number;
-  source?: "registry" | "unknown";
+  source?: "cli" | "unknown";
+  detectedVersion?: string;
   error?: string;
 };
 
 type DotNetDeveloperPackCheck = {
   ok: boolean;
-  source?: "registry" | "filesystem" | "unknown";
+  source?: "cli" | "unknown";
   installationFolder?: string;
   referenceAssembliesPath?: string;
+  detectedVersion?: string;
+  requiredVersionMajor?: number;
+  detectedVersionMajor?: number;
   error?: string;
 };
 
@@ -564,15 +568,21 @@ type MainLocaleDict = Record<string, unknown>;
 let mainLocalesCache: Record<string, MainLocaleDict> | null = null;
 let mainLanguageHint: string | null = null;
 const PREREQS_RELEASE_URL =
-  "https://github.com/loadsec/Terraria-Patcher-Prereqs/releases/tag/dotnet472-prereqs";
-const MICROSOFT_DOTNET472_DOWNLOAD_URL =
-  "https://dotnet.microsoft.com/en-us/download/dotnet-framework/net472";
-const GITHUB_DOTNET472_DEVPACK_URL =
-  "https://github.com/loadsec/Terraria-Patcher-Prereqs/releases/download/dotnet472-prereqs/NDP472-DevPack-ENU.exe";
-const GITHUB_DOTNET472_RUNTIME_URL =
-  "https://github.com/loadsec/Terraria-Patcher-Prereqs/releases/download/dotnet472-prereqs/NDP472-KB4054530-x86-x64-AllOS-ENU.exe";
-const DOTNET_472_MIN_RELEASE = 461808;
+  "https://dotnet.microsoft.com/download/dotnet/10.0";
+const MICROSOFT_DOTNET_DOWNLOAD_URL =
+  "https://dotnet.microsoft.com/download/dotnet/10.0";
+const GITHUB_DOTNET_DEVPACK_URL =
+  "https://dotnet.microsoft.com/download/dotnet/10.0";
+const GITHUB_DOTNET_RUNTIME_URL =
+  "https://dotnet.microsoft.com/download/dotnet/10.0";
+const DOTNET_RUNTIME_MAJOR_REQUIRED = 10;
 let devBridgeBuildRunning = false;
+
+// VMs (notably VMware without 3D acceleration) can hang the first paint.
+// Disable hardware acceleration on Linux to avoid a hidden window in dev.
+if (process.platform === "linux") {
+  app.disableHardwareAcceleration();
+}
 
 function getProjectRootDir(): string {
   return join(__dirname, "..", "..");
@@ -582,108 +592,14 @@ function getBridgeProjectPath(): string {
   return join(getProjectRootDir(), "src", "main", "bridge", "TerrariaPatcherBridge.csproj");
 }
 
-function parseRegistryReleaseValue(output: string): number | null {
-  const line = output
-    .split(/\r?\n/)
-    .map((v) => v.trim())
-    .find((v) => /\bRelease\b/i.test(v) && /\bREG_DWORD\b/i.test(v));
-  if (!line) return null;
-
-  const parts = line.split(/\s+/);
-  const raw = parts[parts.length - 1];
-  if (!raw) return null;
-
-  if (/^0x/i.test(raw)) {
-    const parsedHex = Number.parseInt(raw.replace(/^0x/i, ""), 16);
-    return Number.isFinite(parsedHex) ? parsedHex : null;
-  }
-
-  const parsed = Number.parseInt(raw, 10);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-async function detectWindowsDotNetFramework472(): Promise<DotNetFrameworkCheck> {
-  const base: DotNetFrameworkCheck = {
-    ok: process.platform !== "win32",
-    requiredRelease: DOTNET_472_MIN_RELEASE,
-    source: "unknown",
-  };
-
-  if (process.platform !== "win32") {
-    return base;
-  }
-
-  const args = [
-    "query",
-    "HKLM\\SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v4\\Full",
-    "/v",
-    "Release",
-  ];
-
-  try {
-    const result = await new Promise<{ code: number; stdout: string; stderr: string }>(
-      (resolve) => {
-        let stdout = "";
-        let stderr = "";
-        const child = spawn("reg", args, {
-          windowsHide: true,
-        });
-
-        child.stdout.on("data", (chunk) => {
-          stdout += String(chunk);
-        });
-        child.stderr.on("data", (chunk) => {
-          stderr += String(chunk);
-        });
-        child.on("error", (err) => {
-          stderr += `${err instanceof Error ? err.message : String(err)}\n`;
-          resolve({ code: 1, stdout, stderr });
-        });
-        child.on("close", (code) => {
-          resolve({ code: code ?? 1, stdout, stderr });
-        });
-      },
-    );
-
-    if (result.code !== 0) {
-      return {
-        ...base,
-        ok: false,
-        error: (result.stderr || result.stdout || "Failed to query .NET Framework registry.").trim(),
-      };
-    }
-
-    const release = parseRegistryReleaseValue(result.stdout);
-    if (typeof release !== "number") {
-      return {
-        ...base,
-        ok: false,
-        error: "Unable to read .NET Framework v4 Full Release value from registry.",
-      };
-    }
-
-    return {
-      ok: release >= DOTNET_472_MIN_RELEASE,
-      requiredRelease: DOTNET_472_MIN_RELEASE,
-      detectedRelease: release,
-      source: "registry",
-    };
-  } catch (err) {
-    return {
-      ...base,
-      ok: false,
-      error: err instanceof Error ? err.message : String(err),
-    };
-  }
-}
-
-async function queryRegistryValue(
+async function runCommandCapture(
+  command: string,
   args: string[],
 ): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
     let stdout = "";
     let stderr = "";
-    const child = spawn("reg", args, { windowsHide: true });
+    const child = spawn(command, args, { windowsHide: true });
 
     child.stdout.on("data", (chunk) => {
       stdout += String(chunk);
@@ -701,90 +617,150 @@ async function queryRegistryValue(
   });
 }
 
-function parseRegistryStringValue(output: string, keyName: string): string | null {
-  const line = output
-    .split(/\r?\n/)
-    .map((v) => v.trim())
-    .find((v) => new RegExp(`\\b${keyName}\\b`, "i").test(v) && /\bREG_\w+\b/i.test(v));
-  if (!line) return null;
-  const match = line.match(new RegExp(`^${keyName}\\s+REG_\\w+\\s+(.+)$`, "i"));
-  if (match?.[1]) return match[1].trim();
-  const parts = line.split(/\s{2,}|\t+/).filter(Boolean);
-  return parts.length >= 3 ? parts.slice(2).join(" ").trim() : null;
-}
+function parseDotNetRuntimeList(output: string): {
+  highestMajor: number | null;
+  highestVersion: string | null;
+} {
+  let highestMajor: number | null = null;
+  let highestVersion: string | null = null;
 
-async function detectWindowsDotNetDeveloperPack472(): Promise<DotNetDeveloperPackCheck> {
-  const base: DotNetDeveloperPackCheck = {
-    ok: process.platform !== "win32",
-    source: "unknown",
-  };
+  for (const rawLine of output.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    // Example: Microsoft.NETCore.App 10.0.0 [/usr/share/dotnet/shared/Microsoft.NETCore.App]
+    const match = line.match(/^Microsoft\.NETCore\.App\s+(\d+)\.(\d+)\.(\d+)/i);
+    if (!match) continue;
 
-  if (process.platform !== "win32") {
-    return base;
-  }
+    const major = Number.parseInt(match[1] || "", 10);
+    if (!Number.isFinite(major)) continue;
 
-  const regKeys = [
-    "HKLM\\SOFTWARE\\Microsoft\\Microsoft SDKs\\NETFXSDK\\4.7.2",
-    "HKLM\\SOFTWARE\\WOW6432Node\\Microsoft\\Microsoft SDKs\\NETFXSDK\\4.7.2",
-  ];
-
-  for (const key of regKeys) {
-    const result = await queryRegistryValue(["query", key, "/v", "InstallationFolder"]);
-    if (result.code === 0) {
-      const installationFolder = parseRegistryStringValue(
-        result.stdout,
-        "InstallationFolder",
-      );
-      if (installationFolder) {
-        return {
-          ok: true,
-          source: "registry",
-          installationFolder,
-        };
-      }
+    if (highestMajor === null || major > highestMajor) {
+      highestMajor = major;
+      highestVersion = `${match[1]}.${match[2]}.${match[3]}`;
     }
   }
 
-  const pfX86 = process.env["ProgramFiles(x86)"] || process.env["ProgramFiles"];
-  const referenceAssembliesPath = pfX86
-    ? join(
-        pfX86,
-        "Reference Assemblies",
-        "Microsoft",
-        "Framework",
-        ".NETFramework",
-        "v4.7.2",
-      )
-    : "";
+  return { highestMajor, highestVersion };
+}
 
-  if (referenceAssembliesPath && existsSync(referenceAssembliesPath)) {
+function parseDotNetSdkList(output: string): {
+  highestMajor: number | null;
+  highestVersion: string | null;
+  sdkPath: string | null;
+} {
+  let highestMajor: number | null = null;
+  let highestVersion: string | null = null;
+  let sdkPath: string | null = null;
+
+  for (const rawLine of output.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    // Example: 10.0.100 [/usr/share/dotnet/sdk]
+    const match = line.match(/^(\d+)\.(\d+)\.(\d+)\s+\[(.+)\]$/);
+    if (!match) continue;
+
+    const major = Number.parseInt(match[1] || "", 10);
+    if (!Number.isFinite(major)) continue;
+
+    if (highestMajor === null || major > highestMajor) {
+      highestMajor = major;
+      highestVersion = `${match[1]}.${match[2]}.${match[3]}`;
+      sdkPath = match[4] || null;
+    }
+  }
+
+  return { highestMajor, highestVersion, sdkPath };
+}
+
+async function detectDotNetRuntime10(): Promise<DotNetFrameworkCheck> {
+  const base: DotNetFrameworkCheck = {
+    ok: false,
+    requiredRelease: DOTNET_RUNTIME_MAJOR_REQUIRED,
+    source: "unknown",
+  };
+
+  const result = await runCommandCapture("dotnet", ["--list-runtimes"]);
+  if (result.code !== 0) {
     return {
-      ok: true,
-      source: "filesystem",
-      referenceAssembliesPath,
+      ...base,
+      error: (result.stderr || result.stdout || "Failed to execute 'dotnet --list-runtimes'.").trim(),
+    };
+  }
+
+  const parsed = parseDotNetRuntimeList(result.stdout);
+  if (parsed.highestMajor === null) {
+    return {
+      ...base,
+      source: "cli",
+      error: "No Microsoft.NETCore.App runtime was found in 'dotnet --list-runtimes'.",
     };
   }
 
   return {
+    ok: parsed.highestMajor >= DOTNET_RUNTIME_MAJOR_REQUIRED,
+    requiredRelease: DOTNET_RUNTIME_MAJOR_REQUIRED,
+    detectedRelease: parsed.highestMajor,
+    detectedVersion: parsed.highestVersion || undefined,
+    source: "cli",
+    error:
+      parsed.highestMajor >= DOTNET_RUNTIME_MAJOR_REQUIRED
+        ? undefined
+        : `.NET runtime ${DOTNET_RUNTIME_MAJOR_REQUIRED}.x or newer is required. Detected ${parsed.highestVersion || `major ${parsed.highestMajor}`}.`,
+  };
+}
+
+async function detectDotNetSdk10(): Promise<DotNetDeveloperPackCheck> {
+  const base: DotNetDeveloperPackCheck = {
     ok: false,
     source: "unknown",
-    referenceAssembliesPath: referenceAssembliesPath || undefined,
-    error: "Developer Pack 4.7.2 not detected (NETFXSDK registry key/reference assemblies missing).",
+    requiredVersionMajor: DOTNET_RUNTIME_MAJOR_REQUIRED,
+  };
+
+  const result = await runCommandCapture("dotnet", ["--list-sdks"]);
+  if (result.code !== 0) {
+    return {
+      ...base,
+      error: (result.stderr || result.stdout || "Failed to execute 'dotnet --list-sdks'.").trim(),
+    };
+  }
+
+  const parsed = parseDotNetSdkList(result.stdout);
+  if (parsed.highestMajor === null) {
+    return {
+      ...base,
+      source: "cli",
+      error: "No .NET SDK was found in 'dotnet --list-sdks'.",
+    };
+  }
+
+  return {
+    ok: parsed.highestMajor >= DOTNET_RUNTIME_MAJOR_REQUIRED,
+    source: "cli",
+    installationFolder: parsed.sdkPath || undefined,
+    // Keep legacy field populated for compatibility with current UI.
+    referenceAssembliesPath: parsed.sdkPath || undefined,
+    detectedVersion: parsed.highestVersion || undefined,
+    detectedVersionMajor: parsed.highestMajor,
+    requiredVersionMajor: DOTNET_RUNTIME_MAJOR_REQUIRED,
+    error:
+      parsed.highestMajor >= DOTNET_RUNTIME_MAJOR_REQUIRED
+        ? undefined
+        : `.NET SDK ${DOTNET_RUNTIME_MAJOR_REQUIRED}.x or newer is required to build the bridge. Detected ${parsed.highestVersion || `major ${parsed.highestMajor}`}.`,
   };
 }
 
 async function getDotNetPrereqStatus(): Promise<DotNetPrereqStatus> {
-  const runtime472Plus = await detectWindowsDotNetFramework472();
-  const developerPack472 = await detectWindowsDotNetDeveloperPack472();
+  const runtime472Plus = await detectDotNetRuntime10();
+  const developerPack472 = await detectDotNetSdk10();
   return {
     platform: process.platform,
     runtime472Plus,
     developerPack472,
     links: {
-      microsoftPage: MICROSOFT_DOTNET472_DOWNLOAD_URL,
+      microsoftPage: MICROSOFT_DOTNET_DOWNLOAD_URL,
       githubMirror: PREREQS_RELEASE_URL,
-      githubRuntimeInstaller: GITHUB_DOTNET472_RUNTIME_URL,
-      githubDeveloperPackInstaller: GITHUB_DOTNET472_DEVPACK_URL,
+      githubRuntimeInstaller: GITHUB_DOTNET_RUNTIME_URL,
+      githubDeveloperPackInstaller: GITHUB_DOTNET_DEVPACK_URL,
     },
   };
 }
@@ -914,6 +890,8 @@ function validateRuntimeDependencies(language?: string | null): RuntimeDependenc
 
   const requiredBridgeFiles = [
     bridgeDll,
+    join(bridgeDir, "TerrariaPatcherBridge.runtimeconfig.json"),
+    join(bridgeDir, "TerrariaPatcherBridge.deps.json"),
     join(bridgeDir, "Mono.Cecil.dll"),
     join(bridgeDir, "Mono.Cecil.Rocks.dll"),
   ];
@@ -1337,11 +1315,51 @@ let patcherFunc:
     ) => void)
   | null = null;
 
+type EdgeModule = {
+  func: (options: {
+    assemblyFile: string;
+    typeName: string;
+    methodName: string;
+  }) => (
+    input: object,
+    callback: (error: unknown, result: unknown) => void,
+  ) => void;
+};
+
+let edgeModule: EdgeModule | null = null;
+const requireForMain = createRequire(import.meta.url);
+
+function getEdgeModule(): EdgeModule {
+  if (edgeModule) return edgeModule;
+
+  try {
+    process.env.EDGE_USE_CORECLR = "1";
+    process.env.EDGE_USE_RUNTIME_CONFIG = "1";
+    process.env.EDGE_APP_ROOT = getBridgeRuntimeDir();
+    edgeModule = requireForMain("electron-edge-js") as EdgeModule;
+    return edgeModule;
+  } catch (err: unknown) {
+    const rawMessage = err instanceof Error ? err.message : String(err);
+
+    if (
+      rawMessage.includes("Could not find any runtimeconfig file") ||
+      rawMessage.includes("CoreClrEmbedding::Initialize")
+    ) {
+      throw new Error(
+        "The .NET runtime for electron-edge-js is not configured on this system. Install .NET 10 Runtime (or SDK) and rebuild the C# bridge so runtimeconfig/deps files are generated.",
+      );
+    }
+
+    throw err;
+  }
+}
+
 function getEdgeFunc(): (
   input: object,
 ) => Promise<{ success: boolean; message: string }> {
   if (!patcherFunc) {
     const bridgeDllPath = getBridgeDllPath();
+    const edge = getEdgeModule();
 
     patcherFunc = edge.func({
       assemblyFile: bridgeDllPath,
@@ -1575,11 +1593,11 @@ function setupIpcHandlers(): void {
 
     const target =
       source === "microsoftPage"
-        ? MICROSOFT_DOTNET472_DOWNLOAD_URL
+        ? MICROSOFT_DOTNET_DOWNLOAD_URL
         : source === "githubRuntime"
-          ? GITHUB_DOTNET472_RUNTIME_URL
+          ? GITHUB_DOTNET_RUNTIME_URL
           : source === "githubDeveloperPack"
-            ? GITHUB_DOTNET472_DEVPACK_URL
+            ? GITHUB_DOTNET_DEVPACK_URL
             : PREREQS_RELEASE_URL;
     try {
       await shell.openExternal(target);
@@ -1608,11 +1626,11 @@ function setupIpcHandlers(): void {
     ) => {
     const target =
       source === "microsoftPage"
-        ? MICROSOFT_DOTNET472_DOWNLOAD_URL
+        ? MICROSOFT_DOTNET_DOWNLOAD_URL
         : source === "githubRuntime"
-          ? GITHUB_DOTNET472_RUNTIME_URL
+          ? GITHUB_DOTNET_RUNTIME_URL
           : source === "githubDeveloperPack"
-            ? GITHUB_DOTNET472_DEVPACK_URL
+            ? GITHUB_DOTNET_DEVPACK_URL
             : PREREQS_RELEASE_URL;
     try {
       await shell.openExternal(target);
@@ -2253,9 +2271,28 @@ function createWindow(): void {
     },
   });
 
-  mainWindow.on("ready-to-show", () => {
+  let shown = false;
+  const showWindow = () => {
+    if (shown || mainWindow.isDestroyed()) return;
+    shown = true;
     mainWindow.show();
+  };
+
+  mainWindow.on("ready-to-show", showWindow);
+  mainWindow.webContents.on("did-finish-load", showWindow);
+  mainWindow.webContents.on("did-fail-load", (_event, code, description, url) => {
+    console.error("[window] did-fail-load", { code, description, url });
+    showWindow();
   });
+  mainWindow.webContents.on("render-process-gone", (_event, details) => {
+    console.error("[window] render-process-gone", details);
+  });
+  mainWindow.webContents.on("unresponsive", () => {
+    console.error("[window] renderer became unresponsive");
+  });
+
+  const showFallbackTimer = setTimeout(showWindow, 4000);
+  mainWindow.on("closed", () => clearTimeout(showFallbackTimer));
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url);
@@ -2263,9 +2300,13 @@ function createWindow(): void {
   });
 
   if (process.env["ELECTRON_RENDERER_URL"]) {
-    mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
+    void mainWindow
+      .loadURL(process.env["ELECTRON_RENDERER_URL"])
+      .catch((err) => console.error("[window] loadURL failed:", err));
   } else {
-    mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
+    void mainWindow
+      .loadFile(join(__dirname, "../renderer/index.html"))
+      .catch((err) => console.error("[window] loadFile failed:", err));
   }
 }
 
@@ -2315,90 +2356,6 @@ app.whenReady().then(async () => {
         // Ignore browser launch failures and continue quitting the app.
       }
     }
-    app.quit();
-    return;
-  }
-
-  const dotnetCheck = await detectWindowsDotNetFramework472();
-  if (process.platform === "win32" && !dotnetCheck.ok) {
-    const detectedReleaseText =
-      typeof dotnetCheck.detectedRelease === "number"
-        ? String(dotnetCheck.detectedRelease)
-        : tMain("main.dotnetPrereq.notDetected", {
-            lang: startupLanguage,
-            defaultValue: "Not detected",
-          });
-
-    const result = await dialog.showMessageBox({
-      type: "warning",
-      title: tMain("main.dotnetPrereq.title", {
-        lang: startupLanguage,
-        defaultValue: ".NET Framework 4.7.2+ Required",
-      }),
-      message: tMain("main.dotnetPrereq.message", {
-        lang: startupLanguage,
-        defaultValue:
-          "Terraria Patcher requires .NET Framework 4.7.2 or newer to run the C# bridge.",
-      }),
-      detail: [
-        tMain("main.dotnetPrereq.detectedRelease", {
-          lang: startupLanguage,
-          defaultValue: "Detected Release value: {{value}}",
-          args: { value: detectedReleaseText },
-        }),
-        tMain("main.dotnetPrereq.requiredRelease", {
-          lang: startupLanguage,
-          defaultValue: "Required minimum Release value: {{value}} (.NET Framework 4.7.2)",
-          args: { value: dotnetCheck.requiredRelease },
-        }),
-        "",
-        tMain("main.dotnetPrereq.recommendOfficial", {
-          lang: startupLanguage,
-          defaultValue: "Recommended: download/install from Microsoft first.",
-        }),
-        tMain("main.dotnetPrereq.recommendMirror", {
-          lang: startupLanguage,
-          defaultValue:
-            "If the Microsoft download is unavailable, use the GitHub prerequisites mirror.",
-        }),
-        "",
-        `Microsoft: ${MICROSOFT_DOTNET472_DOWNLOAD_URL}`,
-        `GitHub Runtime (direct): ${GITHUB_DOTNET472_RUNTIME_URL}`,
-        `GitHub Release (all prereqs): ${PREREQS_RELEASE_URL}`,
-      ].join("\n"),
-      buttons: [
-        tMain("main.dotnetPrereq.closeButton", {
-          lang: startupLanguage,
-          defaultValue: "Close",
-        }),
-        tMain("main.dotnetPrereq.microsoftButton", {
-          lang: startupLanguage,
-          defaultValue: "Open Microsoft",
-        }),
-        tMain("main.dotnetPrereq.githubButton", {
-          lang: startupLanguage,
-          defaultValue: "Open GitHub Runtime Mirror",
-        }),
-      ],
-      defaultId: 1,
-      cancelId: 0,
-      noLink: true,
-    });
-
-    if (result.response === 1) {
-      try {
-        await shell.openExternal(MICROSOFT_DOTNET472_DOWNLOAD_URL);
-      } catch {
-        // ignore
-      }
-    } else if (result.response === 2) {
-      try {
-        await shell.openExternal(GITHUB_DOTNET472_RUNTIME_URL);
-      } catch {
-        // ignore
-      }
-    }
-
     app.quit();
     return;
   }

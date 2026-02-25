@@ -9,6 +9,7 @@
     "dev": "electron-vite dev",
     "start": "electron-vite preview",
     "build:bridge": "dotnet build src/main/bridge/TerrariaPatcherBridge.csproj -c Release",
+    "build:plugin-loader-fna": "dotnet build src/plugin-loader-fna/PluginLoader.FNA.csproj -c Release",
     "build": "pnpm run build:bridge && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "pnpm run build && electron-builder --dir",
@@ -86,7 +87,8 @@
         "from": "src/main/bridge/bin/Release",
         "to": "patcher-bridge",
         "filter": [
-          "*.dll"
+          "*.dll",
+          "*.json"
         ]
       },
       {
