@@ -1314,6 +1314,8 @@ let patcherFunc:
       callback: (error: unknown, result: unknown) => void,
     ) => void)
   | null = null;
+let patcherFuncInitError: Error | null = null;
+let edgeInvokeQueue: Promise<void> = Promise.resolve();
 
 type EdgeModule = {
   func: (options: {
@@ -1334,8 +1336,6 @@ function getEdgeModule(): EdgeModule {
 
   try {
     process.env.EDGE_USE_CORECLR = "1";
-    process.env.EDGE_USE_RUNTIME_CONFIG = "1";
-    process.env.EDGE_APP_ROOT = getBridgeRuntimeDir();
     edgeModule = requireForMain("electron-edge-js") as EdgeModule;
     return edgeModule;
   } catch (err: unknown) {
@@ -1357,25 +1357,50 @@ function getEdgeModule(): EdgeModule {
 function getEdgeFunc(): (
   input: object,
 ) => Promise<{ success: boolean; message: string }> {
+  if (patcherFuncInitError) {
+    throw patcherFuncInitError;
+  }
+
   if (!patcherFunc) {
     const bridgeDllPath = getBridgeDllPath();
     const edge = getEdgeModule();
 
-    patcherFunc = edge.func({
-      assemblyFile: bridgeDllPath,
-      typeName: "TerrariaPatcherBridge.Startup",
-      methodName: "Invoke",
-    });
+    try {
+      patcherFunc = edge.func({
+        assemblyFile: bridgeDllPath,
+        typeName: "TerrariaPatcherBridge.Startup",
+        methodName: "Invoke",
+      });
+    } catch (err: unknown) {
+      const normalized =
+        err instanceof Error ? err : new Error(typeof err === "string" ? err : String(err));
+      patcherFuncInitError = normalized;
+      console.error("[edge] failed to initialize patcher function:", normalized);
+      throw normalized;
+    }
   }
 
   const func = patcherFunc!;
   return (input: object) =>
-    new Promise((resolve, reject) => {
-      func(input, (error, result) => {
-        if (error) reject(error);
-        else resolve(result as { success: boolean; message: string });
-      });
-    });
+    {
+      const task = edgeInvokeQueue.then(
+        () =>
+          new Promise<{ success: boolean; message: string }>((resolve, reject) => {
+            func(input, (error, result) => {
+              if (error) reject(error);
+              else resolve(result as { success: boolean; message: string });
+            });
+          }),
+      );
+
+      // Keep the queue alive even if one invocation fails.
+      edgeInvokeQueue = task.then(
+        () => undefined,
+        () => undefined,
+      );
+
+      return task;
+    };
 }
 
 // ─── IPC Handlers ────────────────────────────────────────────────────────────
