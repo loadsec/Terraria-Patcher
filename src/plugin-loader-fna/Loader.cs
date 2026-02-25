@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 #if !FNA
 using System.CodeDom.Compiler;
 #endif
@@ -27,8 +29,73 @@ namespace PluginLoader
     {
         #region UI / Logging
 
+        private static readonly object logSync = new object();
+        private static int logSequence;
+        private static int errorSequence;
+        private static bool logSessionHeaderWritten;
+
+        private static void AppendLog(string level, string message)
+        {
+            try
+            {
+                lock (logSync)
+                {
+                    var logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory ?? ".", "PluginLoader.log");
+                    Directory.CreateDirectory(Path.GetDirectoryName(logPath) ?? ".");
+
+                    if (!logSessionHeaderWritten)
+                    {
+                        logSessionHeaderWritten = true;
+                        var p = Process.GetCurrentProcess();
+                        var header =
+                            Environment.NewLine +
+                            "==================================================" + Environment.NewLine +
+                            "PluginLoader session start " +
+                            DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss.fff zzz", CultureInfo.InvariantCulture) + Environment.NewLine +
+                            "PID=" + p.Id +
+                            " EXE=" + (p.MainModule != null ? p.MainModule.FileName : "<unknown>") + Environment.NewLine +
+                            "BaseDir=" + (AppDomain.CurrentDomain.BaseDirectory ?? "<null>") + Environment.NewLine +
+                            "CurrentDir=" + Environment.CurrentDirectory + Environment.NewLine +
+                            "MONO_IOMAP=" + (Environment.GetEnvironmentVariable("MONO_IOMAP") ?? "<null>") + Environment.NewLine +
+                            "MONO_OPTIONS=" + (Environment.GetEnvironmentVariable("MONO_OPTIONS") ?? "<null>") + Environment.NewLine +
+                            "==================================================" + Environment.NewLine;
+                        File.AppendAllText(logPath, header, new UTF8Encoding(false));
+                    }
+
+                    var seq = Interlocked.Increment(ref logSequence);
+                    var isError = string.Equals(level, "ERROR", StringComparison.OrdinalIgnoreCase);
+                    var errSeq = isError ? Interlocked.Increment(ref errorSequence) : 0;
+                    var timestamp = DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss.fff zzz", CultureInfo.InvariantCulture);
+                    var prefix = "[" + timestamp + "][" + level + "][L" + seq.ToString("D5", CultureInfo.InvariantCulture) + "]";
+                    if (isError)
+                        prefix += "[E" + errSeq.ToString("D4", CultureInfo.InvariantCulture) + "]";
+                    prefix += "[T" + Thread.CurrentThread.ManagedThreadId.ToString(CultureInfo.InvariantCulture) + "] ";
+
+                    var text = (message ?? string.Empty).Replace("\r\n", "\n");
+                    var lines = text.Split('\n');
+                    var sb = new StringBuilder();
+                    if (lines.Length == 0)
+                    {
+                        sb.Append(prefix).AppendLine();
+                    }
+                    else
+                    {
+                        foreach (var line in lines)
+                            sb.Append(prefix).AppendLine(line);
+                    }
+
+                    File.AppendAllText(logPath, sb.ToString(), new UTF8Encoding(false));
+                }
+            }
+            catch
+            {
+                // Best effort logging only.
+            }
+        }
+
         private static void ShowInfo(string message, string title = "Terraria")
         {
+            AppendLog("INFO", message);
 #if FNA
             Console.WriteLine("[PluginLoader][INFO] " + message);
 #else
@@ -38,6 +105,7 @@ namespace PluginLoader
 
         private static void ShowWarning(string message, string title = "Terraria")
         {
+            AppendLog("WARN", message);
 #if FNA
             Console.WriteLine("[PluginLoader][WARN] " + message);
 #else
@@ -47,6 +115,7 @@ namespace PluginLoader
 
         private static void ShowError(string message, string title = "Terraria")
         {
+            AppendLog("ERROR", message);
 #if FNA
             Console.WriteLine("[PluginLoader][ERROR] " + message);
 #else
@@ -127,7 +196,27 @@ namespace PluginLoader
                     ExtractAndReference(references, "ReLogic.dll", true);
                     references = NormalizeCompilerReferences(references);
 
-                    Load(references.ToArray(), Directory.EnumerateFiles(pluginsFolder, "*.cs", SearchOption.AllDirectories).ToArray());
+                    CleanupOldFnaCompilerArtifacts(pluginsFolder);
+
+                    var compilerCacheFolder = Path.GetFullPath(Path.Combine(pluginsFolder, ".PluginLoaderFNACompiler"));
+                    var pluginSourceFiles = Directory
+                        .EnumerateFiles(pluginsFolder, "*.cs", SearchOption.AllDirectories)
+                        .Where(path =>
+                        {
+                            try
+                            {
+                                var fullPath = Path.GetFullPath(path);
+                                return !fullPath.StartsWith(compilerCacheFolder + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) &&
+                                       !string.Equals(fullPath, compilerCacheFolder, StringComparison.OrdinalIgnoreCase);
+                            }
+                            catch
+                            {
+                                return true;
+                            }
+                        })
+                        .ToArray();
+
+                    Load(references.ToArray(), pluginSourceFiles);
 
                     // Load hotkey binds
                     var result = IniAPI.GetIniKeys("HotkeyBinds").ToList();
@@ -208,10 +297,9 @@ namespace PluginLoader
             string[] compileSources = sources;
 #if FNA
             // Resolve ALL paths to absolute BEFORE anything changes CurrentDirectory.
-            var compilerWorkDir = Path.Combine(Path.GetTempPath(), "TerrariaPluginLoaderFNA", Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(compilerWorkDir);
             compileReferences = references.Where(r => !string.IsNullOrWhiteSpace(r)).Select(r => Path.GetFullPath(r)).ToArray();
             compileSources = sources.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => Path.GetFullPath(s)).ToArray();
+            var compilerWorkDir = CreateFnaCompilerWorkDir(compileSources, preferLocal: false);
             // Do NOT change Environment.CurrentDirectory — it breaks Path.GetFullPath in CompileFnaAssemblyWithMcs.
 #endif
 #if FNA
@@ -219,6 +307,14 @@ namespace PluginLoader
             try
             {
                 compiledAssembly = CompileFnaAssemblyWithMcs(compileReferences, compileSources, compilerWorkDir);
+            }
+            catch (Exception ex) when (
+                ex.Message != null &&
+                ex.Message.IndexOf("error CS2001", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                ex.Message.IndexOf("/tmp/TerrariaPluginLoaderFNA", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                var localCompilerWorkDir = CreateFnaCompilerWorkDir(compileSources, preferLocal: true);
+                compiledAssembly = CompileFnaAssemblyWithMcs(compileReferences, compileSources, localCompilerWorkDir);
             }
             catch (Exception ex) when (
                 ex.Message != null &&
@@ -301,7 +397,11 @@ namespace PluginLoader
             if (sources.Length == 0)
                 throw new Exception("No plugin source files were found to compile.");
 
-            var outputPath = Path.Combine(absWorkDir, "PluginLoader.DynamicPlugins.dll");
+            // Write compiler output to a short path outside the game directory to avoid
+            // issues with spaces in the install path and file locking quirks from older Mono/FNA setups.
+            var outputRoot = Path.Combine(Path.GetTempPath(), "TerrariaPluginLoaderFNA-Out");
+            Directory.CreateDirectory(outputRoot);
+            var outputPath = Path.Combine(outputRoot, Guid.NewGuid().ToString("N") + ".dll");
 
             var missingSources = sources.Where(path => !File.Exists(path)).ToArray();
             if (missingSources.Length > 0)
@@ -350,9 +450,17 @@ namespace PluginLoader
             // Write diagnostics artifacts, but execute through a shell script to avoid
             // Mono's command line / response-file parsing issues on some Linux setups.
             var scriptPath = Path.Combine(absWorkDir, "run-mcs.sh");
+            var scriptHome = string.Empty;
+            try { scriptHome = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) ?? string.Empty; }
+            catch { }
             File.WriteAllText(
                 scriptPath,
-                "#!/usr/bin/env bash\nset -e\n" + ShellQuote(mcsPath) + " " +
+                "#!/usr/bin/env bash\nset -e\n" +
+                "exec /usr/bin/env -i " +
+                "PATH=" + ShellQuote("/usr/bin:/usr/local/bin:/opt/mono/bin") + " " +
+                "HOME=" + ShellQuote(scriptHome) + " " +
+                "TMPDIR=" + ShellQuote(Path.GetTempPath()) + " " +
+                ShellQuote(mcsPath) + " " +
                 string.Join(" ", mcsArgs.Select(ShellQuote)) + "\n",
                 new UTF8Encoding(false));
 
@@ -371,40 +479,91 @@ namespace PluginLoader
             startInfo.RedirectStandardOutput = true;
             startInfo.RedirectStandardError = true;
             startInfo.CreateNoWindow = true;
-            startInfo.Arguments = scriptPath;
-            startInfo.EnvironmentVariables["PATH"] =
-                "/usr/bin:/usr/local/bin:/opt/mono/bin:" +
-                (startInfo.EnvironmentVariables.ContainsKey("PATH") ? startInfo.EnvironmentVariables["PATH"] : "");
-
-            string stdout, stderr;
-            using (var process = Process.Start(startInfo))
+            startInfo.Arguments = "\"" + scriptPath.Replace("\"", "\\\"") + "\"";
+            startInfo.EnvironmentVariables.Clear();
+            startInfo.EnvironmentVariables["PATH"] = "/usr/bin:/usr/local/bin:/opt/mono/bin";
+            try
             {
-                if (process == null)
-                    throw new Exception("Failed to start mcs process.");
+                var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                if (!string.IsNullOrWhiteSpace(home))
+                    startInfo.EnvironmentVariables["HOME"] = home;
+            }
+            catch { }
+            startInfo.EnvironmentVariables["TMPDIR"] = Path.GetTempPath();
+            if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("LANG")))
+                startInfo.EnvironmentVariables["LANG"] = Environment.GetEnvironmentVariable("LANG");
+            if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("LC_ALL")))
+                startInfo.EnvironmentVariables["LC_ALL"] = Environment.GetEnvironmentVariable("LC_ALL");
 
-                stdout = process.StandardOutput.ReadToEnd();
-                stderr = process.StandardError.ReadToEnd();
-                process.WaitForExit();
-
-                if (process.ExitCode != 0)
+            string stdout = string.Empty, stderr = string.Empty;
+            string combinedError = string.Empty;
+            const int maxCompileAttempts = 4;
+            for (var attempt = 1; attempt <= maxCompileAttempts; attempt++)
+            {
+                using (var process = Process.Start(startInfo))
                 {
-                    var combinedError = string.IsNullOrWhiteSpace(stderr) ? stdout : stderr;
+                    if (process == null)
+                        throw new Exception("Failed to start mcs process.");
+
+                    stdout = process.StandardOutput.ReadToEnd();
+                    stderr = process.StandardError.ReadToEnd();
+                    process.WaitForExit();
+
+                    if (process.ExitCode == 0)
+                    {
+                        combinedError = string.Empty;
+                        break;
+                    }
+
+                    combinedError = string.IsNullOrWhiteSpace(stderr) ? stdout : stderr;
                     if (!string.IsNullOrWhiteSpace(stdout))
                         combinedError += Environment.NewLine + stdout;
-
-                    throw new Exception(
-                        combinedError.Trim() + Environment.NewLine +
-                        "Compiler work dir: " + absWorkDir + Environment.NewLine +
-                        "Script: " + scriptPath + Environment.NewLine +
-                        "Rsp: " + rspPath + Environment.NewLine +
-                        "Args: " + string.Join(" ", mcsArgs.Select(ShellQuote)));
                 }
+
+                var looksLikeTransientSourceLookupFailure =
+                    combinedError.IndexOf("error CS2001", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                    combinedError.IndexOf("Source file", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                    stagedSources.All(File.Exists);
+
+                if (!looksLikeTransientSourceLookupFailure || attempt >= maxCompileAttempts)
+                    break;
+
+                try
+                {
+                    var nowUtc = DateTime.UtcNow;
+                    foreach (var stagedSource in stagedSources)
+                        File.SetLastWriteTimeUtc(stagedSource, nowUtc);
+                    Directory.SetLastWriteTimeUtc(stagedSourcesDir, nowUtc);
+                }
+                catch { }
+
+                AppendLog("WARN",
+                    "Transient mcs CS2001 detected during FNA plugin compile. Retrying " + attempt + "/" + maxCompileAttempts +
+                    " in " + (attempt * 100).ToString(CultureInfo.InvariantCulture) + "ms. WorkDir=" + absWorkDir);
+                Thread.Sleep(attempt * 100);
+            }
+
+            if (!string.IsNullOrWhiteSpace(combinedError))
+            {
+                throw new Exception(
+                    combinedError.Trim() + Environment.NewLine +
+                    "Compiler work dir: " + absWorkDir + Environment.NewLine +
+                    "Compiler output: " + outputPath + Environment.NewLine +
+                    "Script: " + scriptPath + Environment.NewLine +
+                    "Rsp: " + rspPath + Environment.NewLine +
+                    "Parent MONO_IOMAP: " + (Environment.GetEnvironmentVariable("MONO_IOMAP") ?? "<null>") + Environment.NewLine +
+                    "Parent MONO_OPTIONS: " + (Environment.GetEnvironmentVariable("MONO_OPTIONS") ?? "<null>") + Environment.NewLine +
+                    "Parent MONO_PATH: " + (Environment.GetEnvironmentVariable("MONO_PATH") ?? "<null>") + Environment.NewLine +
+                    "Args: " + string.Join(" ", mcsArgs.Select(ShellQuote)));
             }
 
             if (!File.Exists(outputPath))
                 throw new Exception("Plugin compilation succeeded but produced no output assembly.");
 
-            return Assembly.Load(File.ReadAllBytes(outputPath));
+            var assemblyBytes = File.ReadAllBytes(outputPath);
+            TryDeleteFile(outputPath);
+            TryDeleteDirectoryRecursive(absWorkDir);
+            return Assembly.Load(assemblyBytes);
         }
 
         private static string FindExecutable(string name, string[] fallbackPaths)
@@ -438,6 +597,152 @@ namespace PluginLoader
             }
 
             return null;
+        }
+
+        private static string CreateFnaCompilerWorkDir(string[] compileSources, bool preferLocal)
+        {
+            string baseDir = null;
+
+            if (preferLocal)
+            {
+                var firstSource = compileSources.FirstOrDefault(s => !string.IsNullOrWhiteSpace(s));
+                if (!string.IsNullOrEmpty(firstSource))
+                {
+                    try
+                    {
+                        var pluginsDir = Path.GetDirectoryName(Path.GetFullPath(firstSource));
+                        while (!string.IsNullOrEmpty(pluginsDir))
+                        {
+                            if (string.Equals(Path.GetFileName(pluginsDir), "Plugins", StringComparison.OrdinalIgnoreCase))
+                                break;
+
+                            var parent = Path.GetDirectoryName(pluginsDir);
+                            if (string.Equals(parent, pluginsDir, StringComparison.Ordinal))
+                                break;
+                            pluginsDir = parent;
+                        }
+
+                        if (!string.IsNullOrEmpty(pluginsDir) &&
+                            string.Equals(Path.GetFileName(pluginsDir), "Plugins", StringComparison.OrdinalIgnoreCase))
+                        {
+                            baseDir = Path.Combine(pluginsDir, ".PluginLoaderFNACompiler");
+                        }
+                    }
+                    catch
+                    {
+                        // Fall back below.
+                    }
+                }
+            }
+
+            if (string.IsNullOrEmpty(baseDir))
+                baseDir = Path.Combine(Path.GetTempPath(), "TerrariaPluginLoaderFNA");
+
+            var compilerWorkDir = Path.Combine(baseDir, Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(compilerWorkDir);
+            return compilerWorkDir;
+        }
+
+        private static void CleanupOldFnaCompilerArtifacts(string pluginsFolder)
+        {
+            try
+            {
+                PruneDirectoryChildren(Path.Combine(Path.GetTempPath(), "TerrariaPluginLoaderFNA"), TimeSpan.FromHours(12), keepNewest: 2);
+                PruneDirectoryChildren(Path.Combine(Path.GetTempPath(), "TerrariaPluginLoaderFNA-Out"), TimeSpan.FromHours(12), keepNewest: 4);
+            }
+            catch { }
+
+            try
+            {
+                var localCompilerCache = Path.Combine(pluginsFolder, ".PluginLoaderFNACompiler");
+                PruneDirectoryChildren(localCompilerCache, TimeSpan.FromHours(12), keepNewest: 2);
+            }
+            catch { }
+        }
+
+        private static void PruneDirectoryChildren(string rootPath, TimeSpan maxAge, int keepNewest)
+        {
+            if (string.IsNullOrWhiteSpace(rootPath) || !Directory.Exists(rootPath))
+                return;
+
+            var now = DateTime.UtcNow;
+            var dirs = new DirectoryInfo(rootPath)
+                .GetDirectories()
+                .OrderByDescending(d =>
+                {
+                    try { return d.LastWriteTimeUtc; }
+                    catch { return DateTime.MinValue; }
+                })
+                .ToArray();
+
+            for (var i = 0; i < dirs.Length; i++)
+            {
+                if (i < Math.Max(keepNewest, 0))
+                    continue;
+
+                bool expired = false;
+                try
+                {
+                    expired = (now - dirs[i].LastWriteTimeUtc) >= maxAge;
+                }
+                catch
+                {
+                    expired = true;
+                }
+
+                if (expired)
+                    TryDeleteDirectoryRecursive(dirs[i].FullName);
+            }
+
+            // Also prune stray DLLs/files in the output cache root.
+            foreach (var file in Directory.EnumerateFiles(rootPath))
+            {
+                try
+                {
+                    var info = new FileInfo(file);
+                    if ((now - info.LastWriteTimeUtc) >= maxAge)
+                        TryDeleteFile(file);
+                }
+                catch { }
+            }
+        }
+
+        private static void TryDeleteFile(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return;
+
+            try
+            {
+                if (File.Exists(path))
+                {
+                    File.SetAttributes(path, FileAttributes.Normal);
+                    File.Delete(path);
+                }
+            }
+            catch { }
+        }
+
+        private static void TryDeleteDirectoryRecursive(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+                return;
+
+            try
+            {
+                foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
+                {
+                    try { File.SetAttributes(file, FileAttributes.Normal); }
+                    catch { }
+                }
+            }
+            catch { }
+
+            try
+            {
+                Directory.Delete(path, recursive: true);
+            }
+            catch { }
         }
 
         private static string ToMcsPath(string fullPath)
