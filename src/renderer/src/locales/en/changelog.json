@@ -17,6 +17,7 @@
       "summary": "Improved updater status visibility, polished the Config updates panel, added profile reset plus Terraria path auto-detection, and officially enabled Linux patching support.",
       "changes": [
         "Officialized Terraria patching support on Linux (FNA builds), including plugin support with automatic FNA/XNA plugin loader selection.",
+        "Migrated the app runtime from .NET Framework 4.7.2 to .NET 10.0.0 for better cross-platform support.",
         "Added updater status severity colors (green/yellow/red) based on how many releases behind the installed version is.",
         "Improved Home and Config updater status consistency using the same update-state color logic.",
         "Refined the App Updates panel layout in Config (better spacing and version cards).",
