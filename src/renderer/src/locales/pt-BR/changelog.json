@@ -10,10 +10,10 @@
     "supportedRangeLabel": "Faixa suportada",
     "noEntriesTitle": "Ainda não há entradas no changelog",
     "noEntriesDesc": "Adicione versões no version.json e traduções no changelog.json."
-  },
-  "releases": {
-    "v1_1_0": {
-      "title": "Melhorias de UX na Home e Configurações",
+    },
+    "releases": {
+      "v1_1_0": {
+      "title": "UX de Atualizações + Suporte ao Linux",
       "summary": "Melhorada a visibilidade do status de updates, refinado o painel de atualizações em Configurações, adicionado reset de perfil com auto-detecção do caminho do Terraria e oficializado o suporte a patching no Linux.",
       "changes": [
         "Oficializado o suporte a patching do Terraria no Linux (builds FNA), incluindo suporte a plugins com seleção automática do plugin loader FNA/XNA.",
