@@ -119,7 +119,19 @@ namespace TildemancerPlugins
             RestoreUiSpoof(GetLocalPlayerSafe());
         }
 
+        // FNA PluginLoader signature
         public void OnPlayerSave(Terraria.IO.PlayerFileData playerFileData, BinaryWriter binaryWriter)
+        {
+            OnPlayerSaveCore();
+        }
+
+        // XNA PluginLoader signature
+        public void OnPlayerSave(Terraria.IO.PlayerFileData playerFileData, Player player, BinaryWriter binaryWriter)
+        {
+            OnPlayerSaveCore();
+        }
+
+        private void OnPlayerSaveCore()
         {
             if (!_enabled || !_fallbackMode)
                 return;
