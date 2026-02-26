@@ -2,19 +2,25 @@ using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.IO;
 using PluginLoader;
 using Terraria;
+using Terraria.IO;
 
 namespace TildemancerPlugins
 {
-    public class JourneyModeUnlocked : MarshalByRefObject, IPluginPlayerUpdateBuffs
+    public class JourneyModeUnlocked : MarshalByRefObject, IPluginPlayerUpdateBuffs, IPluginPlayerSave
     {
         private static readonly byte[] Aob = new byte[] { 0x74, 0x10, 0x8B, 0xCE, 0x33, 0xD2, 0xE8 };
+        private const byte JourneyDifficulty = 3;
 
         private bool _enabled;
         private bool _showChatMessage;
         private bool _attempted;
         private bool _patched;
+        private bool _fallbackMode;
+        private bool _fallbackAnnounced;
+        private byte? _originalDifficulty;
 
         private IntPtr _patchAddress = IntPtr.Zero;
         private byte _originalOpcode;
@@ -45,21 +51,86 @@ namespace TildemancerPlugins
 
             try
             {
-                _patched = TryApplyPatch();
+                if (IsWindows())
+                    _patched = TryApplyPatch();
+
                 if (_patched && _showChatMessage)
                 {
-                    Main.NewText("Journey Mode UI loaded successfully. Have fun!");
+                    TryChat("Journey Mode UI loaded successfully. Have fun!");
                 }
-                else if (!_patched && _showChatMessage)
+                else
                 {
-                    Main.NewText("Journey Mode UI failed to load; Patch not applied (signature not found).");
+                    _fallbackMode = true;
+                    if (_showChatMessage)
+                    {
+                        if (IsWindows())
+                            TryChat("Journey Mode UI signature patch not found; using fallback mode.");
+                        else
+                            TryChat("Journey Mode UI using Linux/mac fallback mode.");
+                    }
                 }
             }
             catch (Exception ex)
             {
+                _fallbackMode = true;
                 if (_showChatMessage)
-                    Main.NewText("Journey Mode UI failed to load; Exception while patching: " + ex.GetType().Name);
+                    TryChat("Journey Mode UI native patch failed; using fallback mode (" + ex.GetType().Name + ").");
             }
+
+            ApplyFallback(player);
+        }
+
+        public void OnPlayerSave(PlayerFileData playerFileData, BinaryWriter binaryWriter)
+        {
+            // Prevent the spoofed difficulty from being serialized to the character file.
+            if (!_enabled || !_fallbackMode || !_originalDifficulty.HasValue || Main.player == null)
+                return;
+
+            int idx = Main.myPlayer;
+            if (idx < 0 || idx >= Main.player.Length)
+                return;
+
+            var player = Main.player[idx];
+            if (player == null)
+                return;
+
+            if (player.difficulty == JourneyDifficulty && _originalDifficulty.Value != JourneyDifficulty)
+                player.difficulty = _originalDifficulty.Value;
+        }
+
+        private void ApplyFallback(Player player)
+        {
+            if (!_fallbackMode || player == null || player.whoAmI != Main.myPlayer)
+                return;
+
+            if (!_fallbackAnnounced && _showChatMessage)
+            {
+                _fallbackAnnounced = true;
+                TryChat("Journey Mode fallback active (compatibility mode).");
+            }
+
+            if (!_originalDifficulty.HasValue)
+                _originalDifficulty = player.difficulty;
+
+            if (player.difficulty != JourneyDifficulty)
+                player.difficulty = JourneyDifficulty;
+        }
+
+        private static void TryChat(string message)
+        {
+            try
+            {
+                Main.NewText(message);
+            }
+            catch
+            {
+            }
+        }
+
+        private static bool IsWindows()
+        {
+            var p = Environment.OSVersion.Platform;
+            return p == PlatformID.Win32NT || p == PlatformID.Win32Windows || p == PlatformID.Win32S || p == PlatformID.WinCE;
         }
 
         private bool TryApplyPatch()
