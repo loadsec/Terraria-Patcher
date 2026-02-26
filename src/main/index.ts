@@ -59,6 +59,7 @@ const TERRARIA_AUTODETECT_TIMEOUT_MS = 8000;
 
 type TerrariaAutoDetectResult = {
   path: string | null;
+  candidates: string[];
   timedOut: boolean;
   durationMs: number;
 };
@@ -279,39 +280,71 @@ async function detectTerrariaPathFromSteam(homeDir: string): Promise<string | nu
   return null;
 }
 
-async function detectTerrariaPath(): Promise<string | null> {
+function pushUniqueTerrariaPath(list: string[], seen: Set<string>, candidate?: string | null): void {
+  const normalized = typeof candidate === "string" ? candidate.trim() : "";
+  if (!normalized) return;
+
+  const lower = normalized.toLowerCase();
+  const isExe = lower.endsWith("terraria.exe");
+  const isMacAppBinary = lower.includes("/terraria.app/contents/macos/terraria");
+  if (process.platform === "darwin") {
+    if (!isExe && !isMacAppBinary) return;
+  } else {
+    if (!isExe) return;
+  }
+
+  const key = process.platform === "win32" ? normalized.toLowerCase() : normalized;
+  if (seen.has(key)) return;
+  seen.add(key);
+  list.push(normalized);
+}
+
+async function detectTerrariaPaths(): Promise<string[]> {
   const homeDir = app.getPath("home");
+  const candidates: string[] = [];
+  const seen = new Set<string>();
 
   if (process.platform === "win32") {
-    const registryPath = await findFirstExistingPath(await getWindowsTerrariaRegistryPaths());
-    if (registryPath) return registryPath;
+    for (const path of await getWindowsTerrariaRegistryPaths()) {
+      if (await fse.pathExists(path).catch(() => false)) {
+        pushUniqueTerrariaPath(candidates, seen, path);
+      }
+    }
 
     const steamPath = await detectTerrariaPathFromSteam(homeDir);
-    if (steamPath) return steamPath;
+    pushUniqueTerrariaPath(candidates, seen, steamPath);
 
     const programFilesX86 = process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)";
     const programFiles = process.env["ProgramFiles"] || "C:\\Program Files";
 
-    return findFirstExistingPath([
+    pushUniqueTerrariaPath(
+      candidates,
+      seen,
+      await findFirstExistingPath([
       join(programFilesX86, "Steam", "steamapps", "common", "Terraria", "Terraria.exe"),
       join(programFiles, "Steam", "steamapps", "common", "Terraria", "Terraria.exe"),
       "C:\\GOG Games\\Terraria\\Terraria.exe",
       join(homeDir, "GOG Games", "Terraria", "Terraria.exe"),
-    ]);
+      ]),
+    );
+    return candidates;
   }
 
   if (process.platform === "darwin") {
     const steamPath = await detectTerrariaPathFromSteam(homeDir);
-    if (steamPath) return steamPath;
+    pushUniqueTerrariaPath(candidates, seen, steamPath);
 
-    const gogCandidates = await findFirstExistingPath([
+    pushUniqueTerrariaPath(
+      candidates,
+      seen,
+      await findFirstExistingPath([
       join("/", "Applications", "Terraria.app", "Contents", "MacOS", "Terraria"),
       join(homeDir, "Applications", "Terraria.app", "Contents", "MacOS", "Terraria"),
       join("/", "Applications", "GOG Games", "Terraria", "Terraria.app", "Contents", "MacOS", "Terraria"),
       join(homeDir, "GOG Games", "Terraria", "Terraria.app", "Contents", "MacOS", "Terraria"),
       join(homeDir, "Applications", "GOG Games", "Terraria", "Terraria.app", "Contents", "MacOS", "Terraria"),
-    ]);
-    if (gogCandidates) return gogCandidates;
+      ]),
+    );
 
     const macRoot = join(
       homeDir,
@@ -323,35 +356,45 @@ async function detectTerrariaPath(): Promise<string | null> {
       "Terraria",
     );
 
-    const exact = await findFirstExistingPath([
+    pushUniqueTerrariaPath(
+      candidates,
+      seen,
+      await findFirstExistingPath([
       join(macRoot, "Terraria.app", "Contents", "MacOS", "Terraria"),
       join(macRoot, "Terraria"),
-    ]);
-    if (exact) return exact;
+      ]),
+    );
 
     try {
       if (await fse.pathExists(macRoot)) {
         const entries = readdirSync(macRoot);
         const candidate = entries.find((entry) => /^Terraria(\.app)?$/i.test(entry));
-        if (!candidate) return null;
+        if (candidate) {
+          const appBundleBinary = join(macRoot, candidate, "Contents", "MacOS", "Terraria");
+          if (await fse.pathExists(appBundleBinary)) {
+            pushUniqueTerrariaPath(candidates, seen, appBundleBinary);
+          }
 
-        const appBundleBinary = join(macRoot, candidate, "Contents", "MacOS", "Terraria");
-        if (await fse.pathExists(appBundleBinary)) return appBundleBinary;
-
-        const plainCandidate = join(macRoot, candidate);
-        if (await fse.pathExists(plainCandidate)) return plainCandidate;
+          const plainCandidate = join(macRoot, candidate);
+          if (await fse.pathExists(plainCandidate)) {
+            pushUniqueTerrariaPath(candidates, seen, plainCandidate);
+          }
+        }
       }
     } catch {
-      // ignore fs errors and fall back to null
+      // ignore fs errors
     }
-    return null;
+    return candidates;
   }
 
   if (process.platform === "linux") {
     const steamPath = await detectTerrariaPathFromSteam(homeDir);
-    if (steamPath) return steamPath;
+    pushUniqueTerrariaPath(candidates, seen, steamPath);
 
-    const gogPath = await findFirstExistingPath([
+    pushUniqueTerrariaPath(
+      candidates,
+      seen,
+      await findFirstExistingPath([
       join(homeDir, "GOG Games", "Terraria", "game", "Terraria.exe"),
       join(homeDir, "GOG Games", "Terraria", "game", "Terraria"),
       join(homeDir, "GOG Games", "Terraria", "start.sh"),
@@ -360,8 +403,8 @@ async function detectTerrariaPath(): Promise<string | null> {
       join(homeDir, "Games", "Terraria", "game", "Terraria"),
       join(homeDir, "Games", "Terraria", "start.sh"),
       join(homeDir, "Games", "Terraria", "Terraria"),
-    ]);
-    if (gogPath) return gogPath;
+      ]),
+    );
 
     const linuxRoots = [
       join(homeDir, ".steam", "steam", "steamapps", "common", "Terraria"),
@@ -369,12 +412,15 @@ async function detectTerrariaPath(): Promise<string | null> {
     ];
 
     for (const root of linuxRoots) {
-      const exact = await findFirstExistingPath([
+      pushUniqueTerrariaPath(
+        candidates,
+        seen,
+        await findFirstExistingPath([
         join(root, "Terraria.bin.x86_64"),
         join(root, "Terraria.bin.x86"),
         join(root, "Terraria"),
-      ]);
-      if (exact) return exact;
+        ]),
+      );
 
       try {
         if (await fse.pathExists(root)) {
@@ -384,16 +430,24 @@ async function detectTerrariaPath(): Promise<string | null> {
           );
           if (candidate) {
             const path = join(root, candidate);
-            if (await fse.pathExists(path)) return path;
+            if (await fse.pathExists(path)) {
+              pushUniqueTerrariaPath(candidates, seen, path);
+            }
           }
         }
       } catch {
         // ignore and continue
       }
     }
+    return candidates;
   }
 
-  return null;
+  return candidates;
+}
+
+async function detectTerrariaPath(): Promise<string | null> {
+  const candidates = await detectTerrariaPaths();
+  return candidates[0] || null;
 }
 
 async function detectTerrariaPathWithTimeout(
@@ -405,9 +459,9 @@ async function detectTerrariaPathWithTimeout(
 
   try {
     const winner = await Promise.race<
-      { path: string | null } | typeof timeoutMarker
+      { candidates: string[] } | typeof timeoutMarker
     >([
-      detectTerrariaPath().then((path) => ({ path })),
+      detectTerrariaPaths().then((candidates) => ({ candidates })),
       new Promise<typeof timeoutMarker>((resolve) => {
         timeoutHandle = setTimeout(() => resolve(timeoutMarker), timeoutMs);
       }),
@@ -416,13 +470,15 @@ async function detectTerrariaPathWithTimeout(
     if ("__timeout" in winner) {
       return {
         path: null,
+        candidates: [],
         timedOut: true,
         durationMs: Date.now() - startedAt,
       };
     }
 
     return {
-      path: winner.path,
+      path: winner.candidates[0] || null,
+      candidates: winner.candidates,
       timedOut: false,
       durationMs: Date.now() - startedAt,
     };
@@ -1817,6 +1873,7 @@ function setupIpcHandlers(): void {
         success: true,
         found: Boolean(result.path),
         path: result.path || "",
+        candidates: result.candidates || [],
         timedOut: result.timedOut,
         durationMs: result.durationMs,
         timeoutMs: TERRARIA_AUTODETECT_TIMEOUT_MS,

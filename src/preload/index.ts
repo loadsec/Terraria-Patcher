@@ -78,6 +78,7 @@ const api = {
       success: boolean;
       found: boolean;
       path?: string;
+      candidates?: string[];
       timedOut?: boolean;
       durationMs?: number;
       timeoutMs?: number;

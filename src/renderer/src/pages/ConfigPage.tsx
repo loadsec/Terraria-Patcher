@@ -198,8 +198,9 @@ export default function ConfigPage() {
   const [isAutoDetectingTerraria, setIsAutoDetectingTerraria] = useState(false);
   const [autoDetectDialogOpen, setAutoDetectDialogOpen] = useState(false);
   const [autoDetectDialogState, setAutoDetectDialogState] = useState<{
-    kind: "success" | "not-found" | "error";
+    kind: "success" | "multiple" | "not-found" | "error";
     path?: string;
+    paths?: string[];
     durationMs?: number;
     timeoutMs?: number;
     error?: string;
@@ -339,11 +340,29 @@ export default function ConfigPage() {
         return;
       }
 
-      if (result.found && result.path) {
-        setTerrariaPath(result.path);
+      const detectedCandidates = Array.isArray(result.candidates)
+        ? result.candidates.filter((p): p is string => typeof p === "string" && p.trim().length > 0)
+        : result.path
+          ? [result.path]
+          : [];
+
+      if (detectedCandidates.length > 1) {
+        setAutoDetectDialogState({
+          kind: "multiple",
+          paths: detectedCandidates,
+          durationMs: result.durationMs,
+          timeoutMs: result.timeoutMs,
+        });
+        setAutoDetectDialogOpen(true);
+        return;
+      }
+
+      if (detectedCandidates.length === 1) {
+        const detectedPath = detectedCandidates[0];
+        setTerrariaPath(detectedPath);
         setAutoDetectDialogState({
           kind: "success",
-          path: result.path,
+          path: detectedPath,
           durationMs: result.durationMs,
           timeoutMs: result.timeoutMs,
         });
@@ -757,6 +776,22 @@ export default function ConfigPage() {
           autoDetectDialogState.durationMs >= 10000 ? 0 : 1,
         )}s`
       : null;
+
+  const handleSelectDetectedTerrariaPath = (path: string) => {
+    setTerrariaPath(path);
+    setAutoDetectDialogState((prev) =>
+      prev
+        ? {
+            ...prev,
+            kind: "success",
+            path,
+          }
+        : {
+            kind: "success",
+            path,
+          },
+    );
+  };
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -1401,6 +1436,11 @@ export default function ConfigPage() {
             <DialogTitle>
               {autoDetectDialogState?.kind === "success"
                 ? t("config.gameDirectory.detectDialog.titleFound", "Terraria found")
+                : autoDetectDialogState?.kind === "multiple"
+                  ? t(
+                      "config.gameDirectory.detectDialog.titleMultiple",
+                      "Multiple Terraria installations found",
+                    )
                 : autoDetectDialogState?.kind === "not-found"
                   ? t("config.gameDirectory.detectDialog.titleNotFound", "Terraria not found")
                   : t("config.gameDirectory.detectDialog.titleError", "Detection failed")}
@@ -1411,6 +1451,11 @@ export default function ConfigPage() {
                     "config.gameDirectory.detectDialog.descFound",
                     "A Terraria installation was detected and the path field has been filled. Review it and save the configuration.",
                   )
+                : autoDetectDialogState?.kind === "multiple"
+                  ? t(
+                      "config.gameDirectory.detectDialog.descMultiple",
+                      "Multiple Terraria installations were found (for example Steam and GOG). Choose which path you want to use.",
+                    )
                 : autoDetectDialogState?.kind === "not-found"
                   ? t("config.gameDirectory.detectDialog.descNotFound", {
                       seconds: autoDetectTimeoutSeconds,
@@ -1441,6 +1486,26 @@ export default function ConfigPage() {
                 </div>
               </div>
             )}
+            {autoDetectDialogState?.kind === "multiple" &&
+              autoDetectDialogState.paths &&
+              autoDetectDialogState.paths.length > 0 && (
+                <div className="space-y-2">
+                  {autoDetectDialogState.paths.map((candidatePath) => (
+                    <div
+                      key={candidatePath}
+                      className="rounded-md border bg-muted/25 p-3 space-y-2">
+                      <div className="break-all text-sm text-foreground">{candidatePath}</div>
+                      <div className="flex justify-end">
+                        <Button
+                          size="sm"
+                          onClick={() => handleSelectDetectedTerrariaPath(candidatePath)}>
+                          {t("config.gameDirectory.detectDialog.useThisPathBtn", "Use this path")}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             {autoDetectDurationText && (
               <div className="text-xs text-muted-foreground">
                 {t("config.gameDirectory.detectDialog.durationLabel", {
