@@ -2,25 +2,19 @@ using System;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.IO;
 using PluginLoader;
 using Terraria;
-using Terraria.IO;
 
 namespace TildemancerPlugins
 {
-    public class JourneyModeUnlocked : MarshalByRefObject, IPluginPlayerUpdateBuffs, IPluginPlayerSave
+    public class JourneyModeUnlocked : MarshalByRefObject, IPluginPlayerUpdateBuffs
     {
         private static readonly byte[] Aob = new byte[] { 0x74, 0x10, 0x8B, 0xCE, 0x33, 0xD2, 0xE8 };
-        private const byte JourneyDifficulty = 3;
 
         private bool _enabled;
         private bool _showChatMessage;
         private bool _attempted;
         private bool _patched;
-        private bool _fallbackMode;
-        private bool _fallbackAnnounced;
-        private bool _fallbackPowersUnlocked;
 
         private IntPtr _patchAddress = IntPtr.Zero;
         private byte _originalOpcode;
@@ -51,123 +45,21 @@ namespace TildemancerPlugins
 
             try
             {
-                if (IsWindows())
-                    _patched = TryApplyPatch();
-
+                _patched = TryApplyPatch();
                 if (_patched && _showChatMessage)
                 {
-                    TryChat("Journey Mode UI loaded successfully. Have fun!");
+                    Main.NewText("Journey Mode UI loaded successfully. Have fun!");
                 }
-                else
+                else if (!_patched && _showChatMessage)
                 {
-                    _fallbackMode = true;
-                    if (_showChatMessage)
-                    {
-                        if (IsWindows())
-                            TryChat("Journey Mode UI signature patch not found; using fallback mode.");
-                        else
-                            TryChat("Journey Mode UI using Linux/mac fallback mode.");
-                    }
+                    Main.NewText("Journey Mode UI failed to load; Patch not applied (signature not found).");
                 }
             }
             catch (Exception ex)
             {
-                _fallbackMode = true;
                 if (_showChatMessage)
-                    TryChat("Journey Mode UI native patch failed; using fallback mode (" + ex.GetType().Name + ").");
+                    Main.NewText("Journey Mode UI failed to load; Exception while patching: " + ex.GetType().Name);
             }
-
-            ApplyFallback(player);
-        }
-
-        // FNA interface: OnPlayerSave(PlayerFileData, BinaryWriter)
-        public void OnPlayerSave(PlayerFileData playerFileData, BinaryWriter binaryWriter)
-        {
-            // No persistence changes; fallback no longer alters difficulty.
-            if (!_enabled)
-                return;
-        }
-
-        // XNA interface: OnPlayerSave(PlayerFileData, Player, BinaryWriter)
-        public void OnPlayerSave(PlayerFileData playerFileData, Player player, BinaryWriter binaryWriter)
-        {
-            OnPlayerSave(playerFileData, binaryWriter);
-        }
-
-        private void ApplyFallback(Player player)
-        {
-            if (!_fallbackMode || player == null || player.whoAmI != Main.myPlayer)
-                return;
-
-            if (!_fallbackAnnounced && _showChatMessage)
-            {
-                _fallbackAnnounced = true;
-                TryChat("Journey Mode fallback active (compatibility mode).");
-            }
-
-            if (!_fallbackPowersUnlocked)
-            {
-                _fallbackPowersUnlocked = TryUnlockCreativePowers(Main.myPlayer);
-            }
-        }
-
-        private bool TryUnlockCreativePowers(int playerIndex)
-        {
-            try
-            {
-                var mgrType = Type.GetType("Terraria.GameContent.Creative.CreativePowerManager, Terraria");
-                if (mgrType == null) return false;
-
-                var instanceProp = mgrType.GetProperty("Instance", BindingFlags.Static | BindingFlags.Public);
-                var instance = instanceProp?.GetValue(null);
-                if (instance == null) return false;
-
-                // Prefer UnlockAllPowersForPlayer(int)
-                var unlockAll = mgrType.GetMethod("UnlockAllPowersForPlayer", BindingFlags.Instance | BindingFlags.Public);
-                if (unlockAll != null)
-                {
-                    unlockAll.Invoke(instance, new object[] { playerIndex });
-                    return true;
-                }
-
-                // Fallback: power collection with UnlockForPlayer
-                var powersField = mgrType.GetField("_powers", BindingFlags.Instance | BindingFlags.NonPublic);
-                var powers = powersField?.GetValue(instance) as System.Collections.IEnumerable;
-                if (powers != null)
-                {
-                    foreach (var power in powers)
-                    {
-                        var unlock = power.GetType().GetMethod("UnlockForPlayer", BindingFlags.Instance | BindingFlags.Public);
-                        if (unlock != null)
-                        {
-                            unlock.Invoke(power, new object[] { playerIndex });
-                        }
-                    }
-                    return true;
-                }
-            }
-            catch
-            {
-                // ignore fallback failure
-            }
-            return false;
-        }
-
-        private static void TryChat(string message)
-        {
-            try
-            {
-                Main.NewText(message);
-            }
-            catch
-            {
-            }
-        }
-
-        private static bool IsWindows()
-        {
-            var p = Environment.OSVersion.Platform;
-            return p == PlatformID.Win32NT || p == PlatformID.Win32Windows || p == PlatformID.Win32S || p == PlatformID.WinCE;
         }
 
         private bool TryApplyPatch()
