@@ -12,7 +12,7 @@
     "noEntriesDesc": "Adicione versões no version.json e traduções no changelog.json."
   },
   "releases": {
-    "v1_0_3": {
+    "v1_1_0": {
       "title": "Melhorias de UX na Home e Configurações",
       "summary": "Melhorada a visibilidade do status de updates, refinado o painel de atualizações em Configurações, adicionado reset de perfil com auto-detecção do caminho do Terraria e oficializado o suporte a patching no Linux.",
       "changes": [

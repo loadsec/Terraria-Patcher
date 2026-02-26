@@ -12,7 +12,7 @@
     "noEntriesDesc": "Add release entries to version.json and translations to changelog.json."
   },
   "releases": {
-    "v1_0_3": {
+    "v1_1_0": {
       "title": "Home & Config Update UX Improvements",
       "summary": "Improved updater status visibility, polished the Config updates panel, added profile reset plus Terraria path auto-detection, and officially enabled Linux patching support.",
       "changes": [

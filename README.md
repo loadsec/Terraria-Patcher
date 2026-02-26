@@ -67,13 +67,21 @@ Apply standalone patches directly to the Terraria executable:
 
 ## 🚀 Getting Started
 
-### Prerequisites
+### Prerequisites (General)
 
 - [Node.js](https://nodejs.org/) `>= 18`
 - [pnpm](https://pnpm.io/) `>= 8`
 - [.NET 10 Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (required for patching features on Windows/Linux/macOS)
 
-### Linux (Ubuntu/Debian) Build Prerequisites
+### Linux (Ubuntu/Debian): End Users vs Contributors
+
+#### End Users (install app and patch only)
+
+- No compiler toolchain is required just to use the app and apply patches.
+- Install the **.NET 10 Runtime** if the app reports that patching features are unavailable.
+- On Linux FNA builds, plugin `.cs` compilation at game runtime requires `mono-devel` (only if you use the plugin system with source plugins).
+
+#### Contributors / Development (running from source)
 
 On Linux, `electron-edge-js` is compiled during install (`node-gyp`), so you need a native build toolchain available.
 
@@ -85,6 +93,18 @@ sudo apt-get install -y build-essential python3 pkg-config
 ```
 
 If you see an error like `Error: not found: make`, it usually means `build-essential` is missing.
+
+Install Mono compiler tools if you want to test FNA plugin `.cs` runtime compilation locally:
+
+```bash
+sudo apt-get install -y mono-devel
+```
+
+If you are running Electron in a VM (or hit Linux sandbox issues during development), use:
+
+```bash
+pnpm dev -- --no-sandbox
+```
 
 ### .NET Runtime / SDK (Cross-Platform)
 
@@ -186,7 +206,7 @@ This project is heavily inspired by the original **[Terraria Patcher](https://gi
 
 Our goal is to build on that foundation with a modern UI and native cross-platform support.
 
-> ⚠️ **Note:** The app itself runs on all platforms, but patching functionality on **Linux and macOS** is still under development and not fully supported yet.
+> ⚠️ **Note:** The app supports patching on Windows and Linux. macOS support remains a cross-platform target, but may still require additional validation depending on the Terraria distribution/runtime setup.
 
 ---
 
