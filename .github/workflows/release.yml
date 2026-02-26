@@ -136,6 +136,16 @@ jobs:
           name: bridge-runtime
           path: src/main/bridge/bin/Release
 
+      - name: Validate plugin runtime resources
+        shell: bash
+        run: |
+          test -f "resources/plugins/PluginLoader.XNA.dll"
+          test -f "resources/plugins/PluginLoader.FNA.dll"
+          test -d "resources/plugins/Shared"
+          echo "Plugin runtime resources found:"
+          ls -lah resources/plugins/PluginLoader*.dll
+          sha256sum resources/plugins/PluginLoader*.dll
+
       - name: Build app bundle (skip bridge rebuild)
         run: pnpm exec electron-vite build
 
