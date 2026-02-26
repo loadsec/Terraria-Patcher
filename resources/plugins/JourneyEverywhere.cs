@@ -20,7 +20,6 @@ namespace TildemancerPlugins
         private bool _patched;
         private bool _fallbackMode;
         private bool _fallbackAnnounced;
-        private byte? _originalDifficulty;
 
         private IntPtr _patchAddress = IntPtr.Zero;
         private byte _originalOpcode;
@@ -83,20 +82,9 @@ namespace TildemancerPlugins
         // FNA interface: OnPlayerSave(PlayerFileData, BinaryWriter)
         public void OnPlayerSave(PlayerFileData playerFileData, BinaryWriter binaryWriter)
         {
-            // Prevent the spoofed difficulty from being serialized to the character file.
-            if (!_enabled || !_fallbackMode || !_originalDifficulty.HasValue || Main.player == null)
+            // No persistence changes; fallback no longer alters difficulty.
+            if (!_enabled)
                 return;
-
-            int idx = Main.myPlayer;
-            if (idx < 0 || idx >= Main.player.Length)
-                return;
-
-            var player = Main.player[idx];
-            if (player == null)
-                return;
-
-            if (player.difficulty == JourneyDifficulty && _originalDifficulty.Value != JourneyDifficulty)
-                player.difficulty = _originalDifficulty.Value;
         }
 
         // XNA interface: OnPlayerSave(PlayerFileData, Player, BinaryWriter)
@@ -115,12 +103,6 @@ namespace TildemancerPlugins
                 _fallbackAnnounced = true;
                 TryChat("Journey Mode fallback active (compatibility mode).");
             }
-
-            if (!_originalDifficulty.HasValue)
-                _originalDifficulty = player.difficulty;
-
-            if (player.difficulty != JourneyDifficulty)
-                player.difficulty = JourneyDifficulty;
         }
 
         private static void TryChat(string message)

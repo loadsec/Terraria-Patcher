@@ -82,6 +82,12 @@ type DotnetRuntimeCheck = {
   runtimes?: string[];
 };
 
+type MonoCheck = {
+  ok: boolean;
+  message?: string;
+  hint?: string;
+};
+
 async function findFirstExistingPath(paths: string[]): Promise<string | null> {
   for (const candidate of paths) {
     if (!candidate) continue;
@@ -144,12 +150,29 @@ async function checkMonoCompiler(): Promise<{ ok: boolean; message?: string }> {
     let stderr = "";
     child.stdout.on("data", (c) => (stdout += c.toString()));
     child.stderr.on("data", (c) => (stderr += c.toString()));
-    child.on("error", (err) => resolve({ ok: false, message: err.message }));
+    child.on("error", (err) => resolve({ ok: false, message: err.message, hint: getLinuxMonoHint() }));
     child.on("close", (code) => {
       if (code === 0) resolve({ ok: true });
-      else resolve({ ok: false, message: stderr || stdout || "mcs exited with error." });
+      else resolve({ ok: false, message: stderr || stdout || "mcs exited with error.", hint: getLinuxMonoHint() });
     });
   });
+}
+
+function getLinuxMonoHint(): string | undefined {
+  if (process.platform !== "linux") return undefined;
+  try {
+    const osReleasePath = "/etc/os-release";
+    if (existsSync(osReleasePath)) {
+      const content = fse.readFileSync(osReleasePath, "utf8");
+      if (/ubuntu|debian/i.test(content)) return "Install Mono: sudo apt install mono-complete";
+      if (/arch/i.test(content)) return "Install Mono: sudo pacman -S mono";
+      if (/fedora|rhel|centos/i.test(content)) return "Install Mono: sudo dnf install mono-devel";
+      if (/opensuse/i.test(content)) return "Install Mono: sudo zypper in mono-complete";
+    }
+  } catch {
+    // ignore
+  }
+  return "Install Mono: see https://www.mono-project.com/download/stable/";
 }
 
 function unescapeVdfString(value: string): string {
@@ -2477,7 +2500,9 @@ function setupIpcHandlers(): void {
             return {
               success: false,
               key: "patcher.messages.monoMissing",
-              args: { details: mono.message ?? "mcs compiler not found" },
+              args: {
+                details: [mono.message ?? "mcs compiler not found", mono.hint ?? ""].filter(Boolean).join(" "),
+              },
             };
           }
         }
