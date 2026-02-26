@@ -1160,7 +1160,7 @@ export default function PatcherPage() {
                 <h3 className="text-lg font-semibold">
                   {t("patcher.tabs.qol")}
                 </h3>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap break-all">
                   {t("patcher.tabsDescriptions.qol")}
                 </p>
               </div>
@@ -1178,7 +1178,7 @@ export default function PatcherPage() {
             <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
               <div className="p-6 border-b">
                 <h3 className="text-lg font-semibold">{t("patcher.tabs.combat")}</h3>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap break-all">
                   {t("patcher.tabsDescriptions.combat")}
                 </p>
               </div>
@@ -1196,7 +1196,7 @@ export default function PatcherPage() {
             <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
               <div className="p-6 border-b">
                 <h3 className="text-lg font-semibold">{t("patcher.tabs.cheats")}</h3>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap break-all">
                   {t("patcher.tabsDescriptions.cheats")}
                 </p>
               </div>
