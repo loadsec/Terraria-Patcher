@@ -542,13 +542,16 @@
       "autoDetectHelp": "Common Steam/GOG install paths are auto-detected when possible. If not found, select the path manually.",
       "detectDialog": {
         "titleFound": "Terraria found",
+        "titleMultiple": "Multiple Terraria installations found",
         "titleNotFound": "Terraria not found",
         "titleError": "Detection failed",
         "descFound": "A Terraria installation was detected and the path field has been filled. Review it and save the configuration.",
+        "descMultiple": "Multiple Terraria installations were found (for example Steam and GOG). Choose which path you want to use.",
         "descNotFound": "The automatic search did not find Terraria in known Steam/GOG locations after about {{seconds}} seconds. Select the path manually.",
         "descError": "An error occurred while searching for Terraria: {{error}}",
         "pathLabel": "Detected path",
         "durationLabel": "Search time: {{duration}}",
+        "useThisPathBtn": "Use this path",
         "closeBtn": "Close"
       },
       "messages": {
