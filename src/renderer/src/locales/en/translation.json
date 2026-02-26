@@ -151,7 +151,9 @@
       "restoreSuccess": "Backup restored successfully.",
       "restoreFailed": "Restore failed: {{error}}",
       "pluginsSynced": "Plugins synced successfully!",
-      "syncFailed": "Sync failed: {{error}}"
+      "syncFailed": "Sync failed: {{error}}",
+      "dotnetMissing": "Required .NET 10 runtime not found. Install .NET 10 Desktop Runtime (x64) and try again. {{details}}",
+      "monoMissing": "Mono C# compiler (mcs) not found. Install mono-devel/mono-complete to enable plugin support on Linux/macOS. {{details}}"
     },
     "modal": {
       "title": "Patching Terraria",

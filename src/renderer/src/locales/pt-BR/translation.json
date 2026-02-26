@@ -151,7 +151,9 @@
       "restoreSuccess": "Backup restaurado com sucesso.",
       "restoreFailed": "Falha ao restaurar: {{error}}",
       "pluginsSynced": "Plugins sincronizados com sucesso!",
-      "syncFailed": "Falha na sincronização: {{error}}"
+      "syncFailed": "Falha na sincronização: {{error}}",
+      "dotnetMissing": "Runtime .NET 10 obrigatório não encontrado. Instale o .NET 10 Desktop Runtime (x64) e tente novamente. {{details}}",
+      "monoMissing": "Compilador C# do Mono (mcs) não encontrado. Instale mono-devel/mono-complete para habilitar suporte a plugins no Linux/macOS. {{details}}"
     },
     "modal": {
       "title": "Modificando o Terraria",

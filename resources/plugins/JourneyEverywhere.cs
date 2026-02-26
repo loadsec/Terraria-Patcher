@@ -80,6 +80,7 @@ namespace TildemancerPlugins
             ApplyFallback(player);
         }
 
+        // FNA interface: OnPlayerSave(PlayerFileData, BinaryWriter)
         public void OnPlayerSave(PlayerFileData playerFileData, BinaryWriter binaryWriter)
         {
             // Prevent the spoofed difficulty from being serialized to the character file.
@@ -96,6 +97,12 @@ namespace TildemancerPlugins
 
             if (player.difficulty == JourneyDifficulty && _originalDifficulty.Value != JourneyDifficulty)
                 player.difficulty = _originalDifficulty.Value;
+        }
+
+        // XNA interface: OnPlayerSave(PlayerFileData, Player, BinaryWriter)
+        public void OnPlayerSave(PlayerFileData playerFileData, Player player, BinaryWriter binaryWriter)
+        {
+            OnPlayerSave(playerFileData, binaryWriter);
         }
 
         private void ApplyFallback(Player player)

@@ -7,6 +7,18 @@ import icon from "../../resources/terraria-logo.png?asset";
 import * as fse from "fs-extra";
 import { copySync, emptyDirSync, ensureDirSync } from "fs-extra";
 import { existsSync, copyFileSync, readdirSync } from "fs";
+import os from "os";
+
+// Ensure .NET runtime discovery for edge-js (primarily Windows)
+if (process.platform === "win32") {
+  const dotnetDefault = "C:\\\\Program Files\\\\dotnet";
+  if (!process.env.DOTNET_ROOT || process.env.DOTNET_ROOT.trim() === "") {
+    process.env.DOTNET_ROOT = dotnetDefault;
+  }
+  if (!process.env.PATH?.toLowerCase().includes("\\\\dotnet")) {
+    process.env.PATH = `${dotnetDefault};${process.env.PATH ?? ""}`;
+  }
+}
 
 // ─── Electron Store ──────────────────────────────────────────────────────────
 
@@ -64,6 +76,12 @@ type TerrariaAutoDetectResult = {
   durationMs: number;
 };
 
+type DotnetRuntimeCheck = {
+  ok: boolean;
+  message?: string;
+  runtimes?: string[];
+};
+
 async function findFirstExistingPath(paths: string[]): Promise<string | null> {
   for (const candidate of paths) {
     if (!candidate) continue;
@@ -74,6 +92,64 @@ async function findFirstExistingPath(paths: string[]): Promise<string | null> {
     }
   }
   return null;
+}
+
+async function checkDotnetRuntime(): Promise<DotnetRuntimeCheck> {
+  return new Promise((resolve) => {
+    const child = spawn("dotnet", ["--list-runtimes"], {
+      windowsHide: true,
+      env: {
+        ...process.env,
+        DOTNET_ROOT: process.env.DOTNET_ROOT,
+        PATH: process.env.PATH,
+      },
+    });
+
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (c) => (stdout += c.toString()));
+    child.stderr.on("data", (c) => (stderr += c.toString()));
+
+    child.on("error", (err) => {
+      resolve({
+        ok: false,
+        message: `Failed to run dotnet: ${err.message}`,
+      });
+    });
+
+    child.on("close", () => {
+      const runtimes = stdout
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean);
+      const hasNet10 = runtimes.some((l) => /Microsoft\.NETCore\.App\s+10\./i.test(l));
+      if (hasNet10) {
+        resolve({ ok: true, runtimes });
+      } else {
+        resolve({
+          ok: false,
+          runtimes,
+          message:
+            "Required .NET runtime 10.x not found. Install .NET 10 Desktop Runtime (x64) from https://dotnet.microsoft.com/download/dotnet/10.0",
+        });
+      }
+    });
+  });
+}
+
+async function checkMonoCompiler(): Promise<{ ok: boolean; message?: string }> {
+  return new Promise((resolve) => {
+    const child = spawn("mcs", ["--version"]);
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (c) => (stdout += c.toString()));
+    child.stderr.on("data", (c) => (stderr += c.toString()));
+    child.on("error", (err) => resolve({ ok: false, message: err.message }));
+    child.on("close", (code) => {
+      if (code === 0) resolve({ ok: true });
+      else resolve({ ok: false, message: stderr || stdout || "mcs exited with error." });
+    });
+  });
 }
 
 function unescapeVdfString(value: string): string {
@@ -2385,6 +2461,26 @@ function setupIpcHandlers(): void {
       try {
         const { terrariaPath, options } = payload;
         const edgeFunc = getEdgeFunc();
+
+        const dotnet = await checkDotnetRuntime();
+        if (!dotnet.ok) {
+          return {
+            success: false,
+            key: "patcher.messages.dotnetMissing",
+            args: { details: dotnet.message ?? "Missing .NET 10 runtime" },
+          };
+        }
+
+        if (options.Plugins && process.platform !== "win32") {
+          const mono = await checkMonoCompiler();
+          if (!mono.ok) {
+            return {
+              success: false,
+              key: "patcher.messages.monoMissing",
+              args: { details: mono.message ?? "mcs compiler not found" },
+            };
+          }
+        }
 
         if (options.Plugins) {
           const terrariaDir = dirname(terrariaPath);
