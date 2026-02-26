@@ -467,10 +467,31 @@ namespace PluginLoader
                 mcsArgs.Add("-r:" + Path.GetFullPath(reference));
             mcsArgs.AddRange(stagedSources);
 
-            // Locate mcs.
-            var mcsPath = FindExecutable("mcs", new[] { "/usr/bin/mcs", "/usr/local/bin/mcs", "/opt/mono/bin/mcs" });
+            // Locate mcs. Steam Linux Runtime may hide host /usr/bin tools, so we also support
+            // local bundled compilers and a configurable path via Plugins.ini.
+            string configuredCompilerPathRaw;
+            string configuredCompilerPathResolved;
+            string[] localCompilerCandidates;
+            var mcsPath = ResolveMcsExecutable(out configuredCompilerPathRaw, out configuredCompilerPathResolved, out localCompilerCandidates);
             if (mcsPath == null)
-                throw new Exception("mcs not found. Install Mono development tools (e.g. mono-devel or mono-complete).");
+            {
+                AppendLog("WARN",
+                    "mcs compiler not found during plugin compile." + Environment.NewLine +
+                    "SteamRuntimeDetected=" + (IsSteamRuntimeEnvironment() ? "true" : "false") + Environment.NewLine +
+                    "PATH=" + (Environment.GetEnvironmentVariable("PATH") ?? "<null>") + Environment.NewLine +
+                    "STEAM_RUNTIME=" + (Environment.GetEnvironmentVariable("STEAM_RUNTIME") ?? "<null>") + Environment.NewLine +
+                    "PRESSURE_VESSEL_RUNTIME=" + (Environment.GetEnvironmentVariable("PRESSURE_VESSEL_RUNTIME") ?? "<null>") + Environment.NewLine +
+                    "Configured PluginCompilerPath (raw)=" + (configuredCompilerPathRaw ?? "<null>") + Environment.NewLine +
+                    "Configured PluginCompilerPath (resolved)=" + (configuredCompilerPathResolved ?? "<null>") + Environment.NewLine +
+                    "Local mcs candidates checked:" + Environment.NewLine +
+                    (localCompilerCandidates == null || localCompilerCandidates.Length == 0
+                        ? "  <none>"
+                        : string.Join(Environment.NewLine, localCompilerCandidates.Select(p => "  " + p + " (exists=" + (File.Exists(p) ? "yes" : "no") + ")"))));
+                throw new Exception(
+                    "mcs not found. Install Mono development tools (e.g. mono-devel or mono-complete), " +
+                    "or set [PluginLoader] PluginCompilerPath in Plugins.ini to a local/bundled mcs path " +
+                    "(useful on Steam Linux Runtime where /usr/bin/mcs may be hidden).");
+            }
 
             Func<string, string> shellQuote = p => "'" + (p ?? string.Empty).Replace("'", "'\"'\"'") + "'";
 
@@ -624,6 +645,151 @@ namespace PluginLoader
             }
 
             return null;
+        }
+
+        private static string ResolveMcsExecutable(out string configuredPathRaw, out string configuredPathResolved, out string[] localCandidates)
+        {
+            configuredPathRaw = null;
+            configuredPathResolved = null;
+            var candidates = new List<string>();
+
+            try
+            {
+                configuredPathRaw = IniAPI.ReadIni("PluginLoader", "PluginCompilerPath", "", writeIt: false);
+            }
+            catch { }
+
+            configuredPathResolved = ExpandConfiguredCompilerPath(configuredPathRaw);
+            if (!string.IsNullOrWhiteSpace(configuredPathResolved))
+                candidates.Add(configuredPathResolved);
+
+            foreach (var candidate in GetLocalMcsCandidates())
+            {
+                if (!string.IsNullOrWhiteSpace(candidate) &&
+                    !candidates.Contains(candidate, StringComparer.OrdinalIgnoreCase))
+                {
+                    candidates.Add(candidate);
+                }
+            }
+
+            localCandidates = candidates.ToArray();
+
+            foreach (var candidate in localCandidates)
+            {
+                try
+                {
+                    if (File.Exists(candidate))
+                        return candidate;
+                }
+                catch { }
+            }
+
+            return FindExecutable("mcs", new[] { "/usr/bin/mcs", "/usr/local/bin/mcs", "/opt/mono/bin/mcs" });
+        }
+
+        private static string ExpandConfiguredCompilerPath(string rawPath)
+        {
+            if (string.IsNullOrWhiteSpace(rawPath))
+                return null;
+
+            try
+            {
+                var value = rawPath.Trim().Trim('"');
+                value = Environment.ExpandEnvironmentVariables(value);
+
+                if (!Path.IsPathRooted(value))
+                    value = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory ?? ".", value));
+
+                if (File.Exists(value))
+                    return value;
+
+                if (Directory.Exists(value))
+                {
+                    foreach (var candidate in GetMcsCandidatesInsideDirectory(value))
+                    {
+                        if (File.Exists(candidate))
+                            return candidate;
+                    }
+
+                    return Path.Combine(value, "mcs");
+                }
+
+                return value;
+            }
+            catch
+            {
+                return rawPath;
+            }
+        }
+
+        private static IEnumerable<string> GetLocalMcsCandidates()
+        {
+            var baseDirs = new List<string>();
+
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(AppDomain.CurrentDomain.BaseDirectory))
+                    baseDirs.Add(Path.GetFullPath(AppDomain.CurrentDomain.BaseDirectory));
+            }
+            catch { }
+
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(Environment.CurrentDirectory))
+                {
+                    var cwd = Path.GetFullPath(Environment.CurrentDirectory);
+                    if (!baseDirs.Contains(cwd, StringComparer.OrdinalIgnoreCase))
+                        baseDirs.Add(cwd);
+                }
+            }
+            catch { }
+
+            var relativeDirs = new[]
+            {
+                ".",
+                "Plugins",
+                Path.Combine("Plugins", "Tools"),
+                Path.Combine("Plugins", "Compiler"),
+                Path.Combine("Plugins", ".PluginLoaderTools"),
+                Path.Combine("Plugins", ".PluginLoaderTools", "mono"),
+                Path.Combine("Plugins", ".PluginLoaderTools", "mono", "bin"),
+                Path.Combine("mono"),
+                Path.Combine("mono", "bin")
+            };
+
+            foreach (var baseDir in baseDirs)
+            {
+                foreach (var rel in relativeDirs)
+                {
+                    string dir;
+                    try { dir = Path.GetFullPath(Path.Combine(baseDir, rel)); }
+                    catch { continue; }
+
+                    foreach (var candidate in GetMcsCandidatesInsideDirectory(dir))
+                        yield return candidate;
+                }
+            }
+        }
+
+        private static IEnumerable<string> GetMcsCandidatesInsideDirectory(string dir)
+        {
+            if (string.IsNullOrWhiteSpace(dir))
+                yield break;
+
+            yield return Path.Combine(dir, "mcs");
+            yield return Path.Combine(dir, "mcs.sh");
+            yield return Path.Combine(dir, "bin", "mcs");
+            yield return Path.Combine(dir, "bin", "mcs.sh");
+            yield return Path.Combine(dir, "mono", "bin", "mcs");
+            yield return Path.Combine(dir, "mono", "bin", "mcs.sh");
+        }
+
+        private static bool IsSteamRuntimeEnvironment()
+        {
+            return !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("PRESSURE_VESSEL_RUNTIME")) ||
+                   !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("STEAM_RUNTIME")) ||
+                   !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("STEAM_COMPAT_DATA_PATH")) ||
+                   !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("STEAM_COMPAT_CLIENT_INSTALL_PATH"));
         }
 
         private static string CreateFnaCompilerWorkDir(string[] compileSources, bool preferLocal)
