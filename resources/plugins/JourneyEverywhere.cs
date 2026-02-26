@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -7,14 +8,25 @@ using Terraria;
 
 namespace TildemancerPlugins
 {
-    public class JourneyModeUnlocked : MarshalByRefObject, IPluginPlayerUpdateBuffs
+    public class JourneyModeUnlocked : MarshalByRefObject, IPluginPlayerUpdateBuffs, IPluginUpdate, IPluginDrawInterface, IPluginPlayerSave
     {
         private static readonly byte[] Aob = new byte[] { 0x74, 0x10, 0x8B, 0xCE, 0x33, 0xD2, 0xE8 };
+        private const byte JourneyDifficulty = 3;
 
         private bool _enabled;
         private bool _showChatMessage;
         private bool _attempted;
         private bool _patched;
+        private bool _fallbackMode;
+        private bool _fallbackAnnounced;
+        private bool _fallbackPowersUnlocked;
+
+        private bool _uiDifficultySpoofActive;
+        private bool _uiDifficultySpoofCaptured;
+        private byte _uiDifficultyOriginal;
+
+        private bool _uiGameModeOverrideCaptured;
+        private object _uiGameModeOverrideOriginal;
 
         private IntPtr _patchAddress = IntPtr.Zero;
         private byte _originalOpcode;
@@ -45,21 +57,367 @@ namespace TildemancerPlugins
 
             try
             {
-                _patched = TryApplyPatch();
+                if (IsWindows())
+                    _patched = TryApplyPatch();
+
                 if (_patched && _showChatMessage)
                 {
-                    Main.NewText("Journey Mode UI loaded successfully. Have fun!");
+                    TryChat("Journey Mode UI loaded successfully. Have fun!");
                 }
-                else if (!_patched && _showChatMessage)
+                else
                 {
-                    Main.NewText("Journey Mode UI failed to load; Patch not applied (signature not found).");
+                    _fallbackMode = true;
+                    if (_showChatMessage)
+                    {
+                        if (IsWindows())
+                            TryChat("Journey Mode UI signature patch not found; using fallback mode.");
+                        else
+                            TryChat("Journey Mode UI using Linux/mac fallback mode.");
+                    }
                 }
             }
             catch (Exception ex)
             {
+                _fallbackMode = true;
                 if (_showChatMessage)
-                    Main.NewText("Journey Mode UI failed to load; Exception while patching: " + ex.GetType().Name);
+                    TryChat("Journey Mode UI native patch failed; using fallback mode (" + ex.GetType().Name + ").");
             }
+
+            if (_fallbackMode)
+                ApplyFallbackOneShot();
+        }
+
+        public void OnUpdate()
+        {
+            if (!_enabled || !_fallbackMode)
+                return;
+
+            Player player = GetLocalPlayerSafe();
+            if (player == null)
+                return;
+
+            // Spoof only while inventory UI is visible so the player is not effectively converted.
+            bool shouldSpoofForUi = Main.playerInventory;
+            if (shouldSpoofForUi)
+            {
+                ApplyUiSpoof(player);
+                if (!_fallbackPowersUnlocked)
+                    _fallbackPowersUnlocked = TryUnlockCreativePowers(Main.myPlayer);
+            }
+            else
+            {
+                RestoreUiSpoof(player);
+            }
+        }
+
+        public void OnDrawInterface()
+        {
+            if (!_enabled || !_fallbackMode)
+                return;
+
+            // DrawInterface hook runs after UI drawing. Restore immediately after the frame.
+            RestoreUiSpoof(GetLocalPlayerSafe());
+        }
+
+        public void OnPlayerSave(Terraria.IO.PlayerFileData playerFileData, BinaryWriter binaryWriter)
+        {
+            if (!_enabled || !_fallbackMode)
+                return;
+
+            RestoreUiSpoof(GetLocalPlayerSafe());
+        }
+
+        private void ApplyFallbackOneShot()
+        {
+            if (!_fallbackAnnounced && _showChatMessage)
+            {
+                _fallbackAnnounced = true;
+                TryChat("Journey Mode fallback active (compatibility mode).");
+            }
+
+            // Best-effort helpers. UI spoof (difficulty/override) happens only around inventory draw.
+            TryApplyJourneyGameModeOverride();
+            TryEnsureCreativeMenuEnabled();
+        }
+
+        private void ApplyUiSpoof(Player player)
+        {
+            if (player == null || player.whoAmI != Main.myPlayer)
+                return;
+
+            try
+            {
+                if (!_uiDifficultySpoofCaptured)
+                {
+                    _uiDifficultyOriginal = player.difficulty;
+                    _uiDifficultySpoofCaptured = true;
+                }
+
+                if (player.difficulty != JourneyDifficulty)
+                    player.difficulty = JourneyDifficulty;
+            }
+            catch
+            {
+            }
+
+            TryApplyJourneyGameModeOverride();
+            TryEnsureCreativeMenuEnabled();
+            _uiDifficultySpoofActive = true;
+        }
+
+        private void RestoreUiSpoof(Player player)
+        {
+            if (!_uiDifficultySpoofActive)
+                return;
+
+            try
+            {
+                if (player != null && _uiDifficultySpoofCaptured && player.whoAmI == Main.myPlayer)
+                    player.difficulty = _uiDifficultyOriginal;
+            }
+            catch
+            {
+            }
+
+            TryRestoreJourneyGameModeOverride();
+            _uiDifficultySpoofActive = false;
+        }
+
+        private bool TryApplyJourneyGameModeOverride()
+        {
+            try
+            {
+                Type mainType = typeof(Main);
+                FieldInfo overrideField = mainType.GetField("_gameModeDifficultyOverride",
+                    BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+                if (overrideField == null)
+                    return false;
+
+                if (!_uiGameModeOverrideCaptured)
+                {
+                    _uiGameModeOverrideOriginal = overrideField.GetValue(null);
+                    _uiGameModeOverrideCaptured = true;
+                }
+
+                float journeyLevel;
+                if (!TryGetJourneyGameDifficultyLevel(out journeyLevel))
+                    return false;
+
+                overrideField.SetValue(null, new float?(journeyLevel));
+                InvokeMainUpdateCreativeGameModeOverride();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private void TryRestoreJourneyGameModeOverride()
+        {
+            if (!_uiGameModeOverrideCaptured)
+                return;
+
+            try
+            {
+                Type mainType = typeof(Main);
+                FieldInfo overrideField = mainType.GetField("_gameModeDifficultyOverride",
+                    BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+                if (overrideField == null)
+                    return;
+
+                overrideField.SetValue(null, _uiGameModeOverrideOriginal);
+                InvokeMainUpdateCreativeGameModeOverride();
+            }
+            catch
+            {
+            }
+        }
+
+        private static void InvokeMainUpdateCreativeGameModeOverride()
+        {
+            try
+            {
+                Type mainType = typeof(Main);
+                MethodInfo updateMethod = mainType.GetMethod("UpdateCreativeGameModeOverride",
+                    BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (updateMethod == null || updateMethod.GetParameters().Length != 0)
+                    return;
+
+                object target = null;
+                if (!updateMethod.IsStatic)
+                {
+                    FieldInfo instanceField = mainType.GetField("instance", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+                    target = instanceField != null ? instanceField.GetValue(null) : null;
+                }
+
+                updateMethod.Invoke(target, null);
+            }
+            catch
+            {
+            }
+        }
+
+        private static bool TryGetJourneyGameDifficultyLevel(out float value)
+        {
+            value = 0f;
+            try
+            {
+                Type t = Type.GetType("Terraria.DataStructures.GameDifficultyLevel, Terraria");
+                if (t == null)
+                    return false;
+
+                FieldInfo field = t.GetField("Journey", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+                if (field == null)
+                    return false;
+
+                object raw = field.GetValue(null);
+                if (raw == null)
+                    return false;
+
+                value = Convert.ToSingle(raw);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private void TryEnsureCreativeMenuEnabled()
+        {
+            try
+            {
+                object creativeMenu;
+                Type creativeMenuType;
+                if (!TryGetCreativeMenuObject(out creativeMenu, out creativeMenuType))
+                    return;
+
+                PropertyInfo enabledProp = creativeMenuType.GetProperty("Enabled",
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (enabledProp == null || !enabledProp.CanWrite)
+                    return;
+
+                object current = enabledProp.GetValue(creativeMenu, null);
+                if (!(current is bool) || !(bool)current)
+                    enabledProp.SetValue(creativeMenu, true, null);
+            }
+            catch
+            {
+            }
+        }
+
+        private static bool TryGetCreativeMenuObject(out object creativeMenu, out Type creativeMenuType)
+        {
+            creativeMenu = null;
+            creativeMenuType = null;
+
+            try
+            {
+                Type mainType = typeof(Main);
+                FieldInfo creativeMenuField = mainType.GetField("CreativeMenu",
+                    BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (creativeMenuField == null)
+                    return false;
+
+                object target = null;
+                if (!creativeMenuField.IsStatic)
+                {
+                    FieldInfo instanceField = mainType.GetField("instance",
+                        BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+                    target = instanceField != null ? instanceField.GetValue(null) : null;
+                }
+
+                creativeMenu = creativeMenuField.GetValue(target);
+                if (creativeMenu == null)
+                    return false;
+
+                creativeMenuType = creativeMenu.GetType();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private bool TryUnlockCreativePowers(int playerIndex)
+        {
+            try
+            {
+                Type mgrType = Type.GetType("Terraria.GameContent.Creative.CreativePowerManager, Terraria");
+                if (mgrType == null)
+                    return false;
+
+                FieldInfo instanceField = mgrType.GetField("Instance", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+                PropertyInfo instanceProp = mgrType.GetProperty("Instance", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+                object instance = instanceProp != null ? instanceProp.GetValue(null, null) : (instanceField != null ? instanceField.GetValue(null) : null);
+                if (instance == null)
+                    return false;
+
+                MethodInfo unlockAll = mgrType.GetMethod("UnlockAllPowersForPlayer",
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                if (unlockAll != null)
+                {
+                    unlockAll.Invoke(instance, new object[] { playerIndex });
+                    return true;
+                }
+
+                FieldInfo powersField = mgrType.GetField("_powersById", BindingFlags.Instance | BindingFlags.NonPublic);
+                System.Collections.IEnumerable powers = powersField != null ? powersField.GetValue(instance) as System.Collections.IEnumerable : null;
+                if (powers == null)
+                    return false;
+
+                foreach (object kv in powers)
+                {
+                    PropertyInfo powerProp = kv.GetType().GetProperty("Value");
+                    object power = powerProp != null ? powerProp.GetValue(kv, null) : null;
+                    if (power == null)
+                        continue;
+
+                    MethodInfo unlock = power.GetType().GetMethod("UnlockForPlayer",
+                        BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                    if (unlock != null)
+                        unlock.Invoke(power, new object[] { playerIndex });
+                }
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static Player GetLocalPlayerSafe()
+        {
+            try
+            {
+                if (Main.player == null || Main.myPlayer < 0 || Main.myPlayer >= Main.player.Length)
+                    return null;
+                return Main.player[Main.myPlayer];
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static void TryChat(string message)
+        {
+            try
+            {
+                Main.NewText(message);
+            }
+            catch
+            {
+            }
+        }
+
+        private static bool IsWindows()
+        {
+            PlatformID p = Environment.OSVersion.Platform;
+            return p == PlatformID.Win32NT || p == PlatformID.Win32Windows || p == PlatformID.Win32S || p == PlatformID.WinCE;
         }
 
         private bool TryApplyPatch()
