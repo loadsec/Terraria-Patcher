@@ -20,6 +20,7 @@ namespace TildemancerPlugins
         private bool _patched;
         private bool _fallbackMode;
         private bool _fallbackAnnounced;
+        private bool _fallbackPowersUnlocked;
 
         private IntPtr _patchAddress = IntPtr.Zero;
         private byte _originalOpcode;
@@ -103,6 +104,53 @@ namespace TildemancerPlugins
                 _fallbackAnnounced = true;
                 TryChat("Journey Mode fallback active (compatibility mode).");
             }
+
+            if (!_fallbackPowersUnlocked)
+            {
+                _fallbackPowersUnlocked = TryUnlockCreativePowers(Main.myPlayer);
+            }
+        }
+
+        private bool TryUnlockCreativePowers(int playerIndex)
+        {
+            try
+            {
+                var mgrType = Type.GetType("Terraria.GameContent.Creative.CreativePowerManager, Terraria");
+                if (mgrType == null) return false;
+
+                var instanceProp = mgrType.GetProperty("Instance", BindingFlags.Static | BindingFlags.Public);
+                var instance = instanceProp?.GetValue(null);
+                if (instance == null) return false;
+
+                // Prefer UnlockAllPowersForPlayer(int)
+                var unlockAll = mgrType.GetMethod("UnlockAllPowersForPlayer", BindingFlags.Instance | BindingFlags.Public);
+                if (unlockAll != null)
+                {
+                    unlockAll.Invoke(instance, new object[] { playerIndex });
+                    return true;
+                }
+
+                // Fallback: power collection with UnlockForPlayer
+                var powersField = mgrType.GetField("_powers", BindingFlags.Instance | BindingFlags.NonPublic);
+                var powers = powersField?.GetValue(instance) as System.Collections.IEnumerable;
+                if (powers != null)
+                {
+                    foreach (var power in powers)
+                    {
+                        var unlock = power.GetType().GetMethod("UnlockForPlayer", BindingFlags.Instance | BindingFlags.Public);
+                        if (unlock != null)
+                        {
+                            unlock.Invoke(power, new object[] { playerIndex });
+                        }
+                    }
+                    return true;
+                }
+            }
+            catch
+            {
+                // ignore fallback failure
+            }
+            return false;
         }
 
         private static void TryChat(string message)
