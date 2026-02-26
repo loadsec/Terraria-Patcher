@@ -95,6 +95,24 @@ function extractQuotedValue(content: string, key: string): string | null {
   return match?.[1] ? unescapeVdfString(match[1]) : null;
 }
 
+async function queryRegistryValue(args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
+  return new Promise((resolve) => {
+    const child = spawn("reg", args, { windowsHide: true });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk) => (stdout += chunk.toString()));
+    child.stderr.on("data", (chunk) => (stderr += chunk.toString()));
+    child.on("close", (code) => resolve({ code: code ?? 0, stdout, stderr }));
+    child.on("error", (err) => resolve({ code: 1, stdout, stderr: err.message }));
+  });
+}
+
+function parseRegistryStringValue(output: string, valueName: string): string | null {
+  const regex = new RegExp(`${valueName}\\s+REG_\\w+\\s+(.+)$`, "im");
+  const match = output.match(regex);
+  return match?.[1]?.trim() ?? null;
+}
+
 function parseSteamLibraryRootsFromVdf(content: string): string[] {
   const roots: string[] = [];
   const seen = new Set<string>();
