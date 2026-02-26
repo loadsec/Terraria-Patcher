@@ -153,6 +153,7 @@ namespace PluginLoader
 
         private static List<IPlugin> loadedPlugins = new List<IPlugin>();
         private static bool loaded, ingame, startupMessageShown;
+        private static int startupMessageDeferredWarnCount;
 
         private static void TryShowStartupPluginCountMessage()
         {
@@ -171,7 +172,11 @@ namespace PluginLoader
             catch (NullReferenceException ex)
             {
                 // Chat UI can be uninitialized in early FNA update ticks.
-                AppendLog("WARN", "Deferring plugin count chat message until UI is ready: " + ex.Message);
+                if (startupMessageDeferredWarnCount < 5)
+                {
+                    startupMessageDeferredWarnCount++;
+                    AppendLog("WARN", "Deferring plugin count chat message until UI is ready: " + ex.Message);
+                }
             }
             catch (Exception ex)
             {

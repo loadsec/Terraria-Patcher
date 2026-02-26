@@ -483,6 +483,121 @@ function serializePluginIni(sections: PluginIniSection[]): string {
   return lines.join("\r\n") + (lines.length > 0 ? "\r\n" : "");
 }
 
+const LINUX_PLUGIN_COMPILER_WRAPPER_RELATIVE_PATH = "Plugins/.PluginLoaderTools/mcs-host.sh";
+
+function getLinuxPluginCompilerWrapperScript(): string {
+  return `#!/usr/bin/env bash
+set -e
+
+# Prefer host Mono exposed by Steam Runtime (pressure-vessel) under /run/host.
+if [ -x /run/host/usr/bin/mono ] && [ -f /run/host/usr/lib/mono/4.5/mcs.exe ]; then
+  export MONO_CFG_DIR=/run/host/etc
+  export MONO_GAC_PREFIX=/run/host/usr
+  exec /run/host/usr/bin/mono /run/host/usr/lib/mono/4.5/mcs.exe "$@"
+fi
+
+# Fallbacks for environments where host /usr is directly visible.
+if [ -x /usr/bin/mcs ]; then
+  exec /usr/bin/mcs "$@"
+fi
+if [ -x /usr/bin/mono ] && [ -f /usr/lib/mono/4.5/mcs.exe ]; then
+  exec /usr/bin/mono /usr/lib/mono/4.5/mcs.exe "$@"
+fi
+
+echo "mcs-host.sh: no accessible Mono/mcs compiler found (checked /run/host and /usr)." >&2
+exit 127
+`;
+}
+
+function upsertPluginsIniValuePreserveFormatting(
+  content: string,
+  sectionName: string,
+  keyName: string,
+  value: string,
+): string {
+  const eol = content.includes("\r\n") ? "\r\n" : "\n";
+  const normalizedLines = content.replace(/\r\n/g, "\n").split("\n");
+  const lines = normalizedLines.slice();
+
+  const sectionMatcher = /^\s*\[([^\]]+)\]\s*$/;
+  let targetSectionStart = -1;
+  let targetSectionEnd = lines.length;
+
+  for (let i = 0; i < lines.length; i++) {
+    const match = lines[i]?.match(sectionMatcher);
+    if (!match) continue;
+    const name = match[1]?.trim() || "";
+    if (name.localeCompare(sectionName, undefined, { sensitivity: "accent" }) === 0) {
+      targetSectionStart = i;
+      targetSectionEnd = lines.length;
+      for (let j = i + 1; j < lines.length; j++) {
+        if (sectionMatcher.test(lines[j] || "")) {
+          targetSectionEnd = j;
+          break;
+        }
+      }
+      break;
+    }
+  }
+
+  const newEntryLine = `${keyName}=${value}`;
+  const keyRegex = new RegExp(`^\\s*${keyName.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}\\s*=`, "i");
+
+  if (targetSectionStart >= 0) {
+    for (let i = targetSectionStart + 1; i < targetSectionEnd; i++) {
+      if (keyRegex.test(lines[i] || "")) {
+        lines[i] = newEntryLine;
+        return lines.join(eol).replace(/\n?$/, "") + eol;
+      }
+    }
+
+    lines.splice(targetSectionEnd, 0, newEntryLine);
+    return lines.join(eol).replace(/\n?$/, "") + eol;
+  }
+
+  const compact = lines.join("\n").trim();
+  const prefix = compact.length > 0 ? content.replace(/\s*$/, "") + eol + eol : "";
+  return `${prefix}[${sectionName}]${eol}${newEntryLine}${eol}`;
+}
+
+async function ensureLinuxPluginCompilerWrapperAndIni(
+  terrariaPath: string,
+  pluginsDestDir: string,
+): Promise<void> {
+  if (process.platform !== "linux") return;
+
+  const wrapperAbsPath = join(dirname(terrariaPath), LINUX_PLUGIN_COMPILER_WRAPPER_RELATIVE_PATH);
+  await fse.ensureDir(dirname(wrapperAbsPath));
+  await fse.writeFile(wrapperAbsPath, getLinuxPluginCompilerWrapperScript(), "utf8");
+  try {
+    await fse.chmod(wrapperAbsPath, 0o755);
+  } catch {
+    // Best effort on filesystems that may not support chmod.
+  }
+
+  const iniPath = getPluginsIniPath(terrariaPath);
+  const existingContent = (await readTextIfExists(iniPath)) ?? "";
+  const nextContent = upsertPluginsIniValuePreserveFormatting(
+    existingContent,
+    "PluginLoader",
+    "PluginCompilerPath",
+    LINUX_PLUGIN_COMPILER_WRAPPER_RELATIVE_PATH.replace(/\\/g, "/"),
+  );
+
+  if (nextContent !== existingContent) {
+    await fse.writeFile(iniPath, nextContent, "utf8");
+  }
+
+  // Keep an extra copy inside the freshly-synced Plugins folder path for clarity/portability.
+  const pluginsLocalToolsDir = join(pluginsDestDir, ".PluginLoaderTools");
+  await fse.ensureDir(pluginsLocalToolsDir);
+  const pluginsLocalWrapper = join(pluginsLocalToolsDir, "mcs-host.sh");
+  await fse.writeFile(pluginsLocalWrapper, getLinuxPluginCompilerWrapperScript(), "utf8");
+  try {
+    await fse.chmod(pluginsLocalWrapper, 0o755);
+  } catch {}
+}
+
 type ProfileConfigData = {
   terrariaPath?: string;
   language?: string;
@@ -2171,6 +2286,8 @@ function setupIpcHandlers(): void {
           }
         }
 
+        await ensureLinuxPluginCompilerWrapperAndIni(terrariaPath, pluginsDestDir);
+
         return { success: true, key: "patcher.messages.pluginsSynced" };
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -2227,6 +2344,8 @@ function setupIpcHandlers(): void {
               }
             }
           }
+
+          await ensureLinuxPluginCompilerWrapperAndIni(terrariaPath, pluginsDestDir);
         }
 
         options.PatcherPath = getPluginsResourcesDir();
