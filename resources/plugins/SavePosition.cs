@@ -10,14 +10,42 @@ namespace TranscendPlugins
     {
         private bool justLoadedIn = false;
 
+        // FNA PluginLoader signature
+        public void OnPlayerSave(PlayerFileData playerFileData, BinaryWriter binaryWriter)
+        {
+            OnPlayerSaveCore(GetSavePlayerFallback());
+        }
+
+        // XNA PluginLoader signature
         public void OnPlayerSave(PlayerFileData playerFileData, Player player, BinaryWriter binaryWriter)
         {
+            OnPlayerSaveCore(player);
+        }
+
+        private void OnPlayerSaveCore(Player player)
+        {
             if (justLoadedIn) return;
+            if (player == null) return;
 
             if (Main.worldID == 0) return;
             if (player.position.X == 0f && player.position.Y == 0f) return;
 
             IniAPI.WriteIni("SavePosition", Main.worldID + "," + player.name, player.position.ToString());
+        }
+
+        private static Player GetSavePlayerFallback()
+        {
+            try
+            {
+                if (Main.player == null || Main.myPlayer < 0 || Main.myPlayer >= Main.player.Length)
+                    return null;
+
+                return Main.player[Main.myPlayer];
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         public void OnPlayerLoad(PlayerFileData playerFileData, Player player, BinaryReader binaryReader)

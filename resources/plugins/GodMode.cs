@@ -60,7 +60,19 @@ namespace ZeromaruPlugins
             }
         }
 
+        // FNA PluginLoader signature
+        public bool OnPlayerHurt(Player player, PlayerDeathReason damageSource, int damage, int hitDirection, bool pvp, bool quiet, bool crit, int cooldownCounter, out double result)
+        {
+            return OnPlayerHurtCore(out result);
+        }
+
+        // XNA PluginLoader signature
         public bool OnPlayerHurt(Player player, PlayerDeathReason damageSource, int damage, int hitDirection, bool pvp, bool quiet, bool crit, int cooldownCounter, bool dodgeable, out double result)
+        {
+            return OnPlayerHurtCore(out result);
+        }
+
+        private bool OnPlayerHurtCore(out double result)
         {
             result = 0.0;
             return mode == Mode.God;

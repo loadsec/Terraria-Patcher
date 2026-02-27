@@ -91,7 +91,19 @@ namespace TranscendPlugins
             }
         }
 
+        // FNA PluginLoader signature
+        public void OnPlayerPickAmmo(Player player, Item item, ref int shoot, ref float speed, ref bool canShoot, ref int damage, ref float knockback)
+        {
+            OnPlayerPickAmmoCore(player, item, ref shoot, ref speed, ref canShoot, ref damage, ref knockback);
+        }
+
+        // XNA PluginLoader signature
         public void OnPlayerPickAmmo(Player player, Item item, ref int shoot, ref float speed, ref bool canShoot, ref int damage, ref float knockback, ref int usedAmmoItemId, bool dontConsume)
+        {
+            OnPlayerPickAmmoCore(player, item, ref shoot, ref speed, ref canShoot, ref damage, ref knockback);
+        }
+
+        private void OnPlayerPickAmmoCore(Player player, Item item, ref int shoot, ref float speed, ref bool canShoot, ref int damage, ref float knockback)
         {
             if (item.useAmmo == 1 && player.archery)
             {
