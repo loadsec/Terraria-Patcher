@@ -288,6 +288,14 @@ const api = {
       key?: string;
       args?: Record<string, string>;
     }> => ipcRenderer.invoke("patcher:sync-plugins", payload),
+    repairRuntime: (payload: {
+      terrariaPath: string;
+      activePlugins?: string[];
+    }): Promise<{
+      success: boolean;
+      key?: string;
+      args?: Record<string, string>;
+    }> => ipcRenderer.invoke("patcher:repair-runtime", payload),
   },
 };
 

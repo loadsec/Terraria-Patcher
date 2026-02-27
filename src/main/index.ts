@@ -32,6 +32,8 @@ interface StoreSchema {
   pluginSupport: boolean;
   patchOptions: Record<string, unknown>;
   activePlugins?: string[];
+  runtimeFilesSyncedVersion?: string;
+  runtimeFilesSyncedPath?: string;
 }
 
 async function getStore() {
@@ -1162,6 +1164,29 @@ function tMain(
 }
 
 const PLUGIN_LOADER_DLLS = ["PluginLoader.XNA.dll", "PluginLoader.FNA.dll"] as const;
+const RUNTIME_SYNC_MARKER_FILE = ".TerrariaPatcherRuntimeSync.json";
+const RUNTIME_SYNC_MARKER_SCHEMA = 1;
+const RUNTIME_SYNC_STORE_VERSION_KEY: keyof StoreSchema = "runtimeFilesSyncedVersion";
+const RUNTIME_SYNC_STORE_PATH_KEY: keyof StoreSchema = "runtimeFilesSyncedPath";
+
+type RuntimeSyncMarker = {
+  schema: number;
+  appVersion: string;
+  platform: NodeJS.Platform;
+  syncedAt: string;
+  activePlugins: string[];
+};
+
+let pluginRuntimeSyncQueue: Promise<void> = Promise.resolve();
+
+function enqueuePluginRuntimeSync<T>(task: () => Promise<T>): Promise<T> {
+  const run = pluginRuntimeSyncQueue.then(() => task(), () => task());
+  pluginRuntimeSyncQueue = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
 
 function copyPluginLoaderDlls(resourcesPluginsDir: string, terrariaDir: string): number {
   let copied = 0;
@@ -1172,6 +1197,203 @@ function copyPluginLoaderDlls(resourcesPluginsDir: string, terrariaDir: string):
     copied++;
   }
   return copied;
+}
+
+function getRuntimeSyncMarkerPath(pluginsDestDir: string): string {
+  return join(pluginsDestDir, RUNTIME_SYNC_MARKER_FILE);
+}
+
+function arraysEqualIgnoringOrder(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  const sortedA = [...a].sort((x, y) => x.localeCompare(y));
+  const sortedB = [...b].sort((x, y) => x.localeCompare(y));
+  for (let i = 0; i < sortedA.length; i++) {
+    if (sortedA[i] !== sortedB[i]) return false;
+  }
+  return true;
+}
+
+function getAvailablePluginSourceFiles(resourcesPluginsDir: string): Set<string> {
+  const names = new Set<string>();
+  try {
+    for (const entry of readdirSync(resourcesPluginsDir)) {
+      if (entry.toLowerCase().endsWith(".cs")) names.add(entry);
+    }
+  } catch {
+    // Ignore and let downstream checks fail with a clearer message.
+  }
+  return names;
+}
+
+function normalizeActivePlugins(activePlugins: unknown, resourcesPluginsDir: string): string[] {
+  if (!Array.isArray(activePlugins)) return [];
+  const availablePlugins = getAvailablePluginSourceFiles(resourcesPluginsDir);
+  const unique = new Set<string>();
+  const selected: string[] = [];
+
+  for (const value of activePlugins) {
+    if (typeof value !== "string") continue;
+    const pluginName = value.trim();
+    if (!pluginName || !pluginName.toLowerCase().endsWith(".cs")) continue;
+    if (availablePlugins.size > 0 && !availablePlugins.has(pluginName)) continue;
+    if (unique.has(pluginName)) continue;
+    unique.add(pluginName);
+    selected.push(pluginName);
+  }
+
+  return selected;
+}
+
+async function readRuntimeSyncMarker(pluginsDestDir: string): Promise<RuntimeSyncMarker | null> {
+  try {
+    const markerPath = getRuntimeSyncMarkerPath(pluginsDestDir);
+    if (!(await fse.pathExists(markerPath))) return null;
+    const raw = await fse.readJson(markerPath);
+    if (!raw || typeof raw !== "object") return null;
+    const marker = raw as Partial<RuntimeSyncMarker>;
+    if (marker.schema !== RUNTIME_SYNC_MARKER_SCHEMA) return null;
+    if (typeof marker.appVersion !== "string") return null;
+    if (typeof marker.platform !== "string") return null;
+    if (!Array.isArray(marker.activePlugins)) return null;
+    return {
+      schema: RUNTIME_SYNC_MARKER_SCHEMA,
+      appVersion: marker.appVersion,
+      platform: marker.platform as NodeJS.Platform,
+      syncedAt: typeof marker.syncedAt === "string" ? marker.syncedAt : "",
+      activePlugins: marker.activePlugins.filter((p): p is string => typeof p === "string"),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function writeRuntimeSyncMarker(
+  pluginsDestDir: string,
+  activePlugins: string[],
+): Promise<void> {
+  const marker: RuntimeSyncMarker = {
+    schema: RUNTIME_SYNC_MARKER_SCHEMA,
+    appVersion: app.getVersion(),
+    platform: process.platform,
+    syncedAt: new Date().toISOString(),
+    activePlugins: [...activePlugins],
+  };
+  const markerPath = getRuntimeSyncMarkerPath(pluginsDestDir);
+  await fse.writeJson(markerPath, marker, { spaces: 2 });
+}
+
+async function markRuntimeFilesSynced(terrariaPath: string): Promise<void> {
+  try {
+    const store = await getStore();
+    store.set(RUNTIME_SYNC_STORE_VERSION_KEY, app.getVersion());
+    store.set(RUNTIME_SYNC_STORE_PATH_KEY, terrariaPath);
+  } catch {
+    // Non-fatal cache marker.
+  }
+}
+
+async function syncManagedPluginRuntime(
+  terrariaPath: string,
+  activePluginsInput: unknown,
+): Promise<{
+  copiedLoaders: number;
+  copiedPlugins: number;
+  pluginsDestDir: string;
+}> {
+  if (!terrariaPath || !(await fse.pathExists(terrariaPath))) {
+    throw new Error(`Terraria executable not found: ${terrariaPath}`);
+  }
+
+  const terrariaDir = dirname(terrariaPath);
+  const resourcesPluginsDir = getPluginsResourcesDir();
+  const activePlugins = normalizeActivePlugins(activePluginsInput, resourcesPluginsDir);
+
+  const copiedLoaders = copyPluginLoaderDlls(resourcesPluginsDir, terrariaDir);
+  if (copiedLoaders === 0) {
+    throw new Error("Plugin loader DLLs are missing from resources.");
+  }
+
+  const pluginsDestDir = join(terrariaDir, "Plugins");
+  ensureDirSync(pluginsDestDir);
+  emptyDirSync(pluginsDestDir);
+
+  const sharedSrc = join(resourcesPluginsDir, "Shared");
+  if (existsSync(sharedSrc)) {
+    copySync(sharedSrc, join(pluginsDestDir, "Shared"));
+  }
+
+  let copiedPlugins = 0;
+  for (const pluginName of activePlugins) {
+    const pluginSrc = join(resourcesPluginsDir, pluginName);
+    if (!existsSync(pluginSrc)) continue;
+    copyFileSync(pluginSrc, join(pluginsDestDir, pluginName));
+    copiedPlugins++;
+  }
+
+  await ensureLinuxPluginCompilerWrapperAndIni(terrariaPath, pluginsDestDir);
+  await writeRuntimeSyncMarker(pluginsDestDir, activePlugins);
+  await markRuntimeFilesSynced(terrariaPath);
+
+  return { copiedLoaders, copiedPlugins, pluginsDestDir };
+}
+
+async function shouldRunStartupRuntimeSync(
+  terrariaPath: string,
+  activePluginsInput: unknown,
+): Promise<boolean> {
+  if (!terrariaPath || !(await fse.pathExists(terrariaPath))) return false;
+
+  const terrariaDir = dirname(terrariaPath);
+  const pluginsDestDir = join(terrariaDir, "Plugins");
+  const resourcesPluginsDir = getPluginsResourcesDir();
+  const normalizedActivePlugins = normalizeActivePlugins(activePluginsInput, resourcesPluginsDir);
+
+  const marker = await readRuntimeSyncMarker(pluginsDestDir);
+  if (!marker) return true;
+
+  if (marker.appVersion !== app.getVersion()) return true;
+  if (marker.platform !== process.platform) return true;
+  if (!arraysEqualIgnoringOrder(marker.activePlugins, normalizedActivePlugins)) return true;
+
+  const loaderMissing = PLUGIN_LOADER_DLLS.some(
+    (loaderName) => !existsSync(join(terrariaDir, loaderName)),
+  );
+  if (loaderMissing) return true;
+
+  return false;
+}
+
+async function runStartupRuntimeMaintenance(
+  store: Awaited<ReturnType<typeof getStore>>,
+): Promise<void> {
+  try {
+    const pluginSupport = Boolean(store.get("pluginSupport"));
+    const terrariaPath = String(store.get("terrariaPath") || "").trim();
+    if (!pluginSupport || !terrariaPath) return;
+    if (!(await fse.pathExists(terrariaPath))) return;
+
+    const activePlugins = (store.get("activePlugins") as string[] | undefined) || [];
+    const lastSyncedVersion = String(store.get(RUNTIME_SYNC_STORE_VERSION_KEY) || "");
+    const lastSyncedPath = String(store.get(RUNTIME_SYNC_STORE_PATH_KEY) || "");
+    const versionChanged = lastSyncedVersion !== app.getVersion();
+    const pathChanged =
+      normalizePath(lastSyncedPath || "").toLowerCase() !==
+      normalizePath(terrariaPath).toLowerCase();
+
+    let needsSync = versionChanged || pathChanged;
+    if (!needsSync) {
+      needsSync = await shouldRunStartupRuntimeSync(terrariaPath, activePlugins);
+    }
+
+    if (!needsSync) return;
+
+    await enqueuePluginRuntimeSync(() =>
+      syncManagedPluginRuntime(terrariaPath, activePlugins),
+    );
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn("[runtime-maintenance] startup sync skipped:", msg);
+  }
 }
 
 function validateRuntimeDependencies(language?: string | null): RuntimeDependencyCheck {
@@ -2483,44 +2705,50 @@ function setupIpcHandlers(): void {
     ) => {
       try {
         const { terrariaPath, activePlugins } = payload;
-        const terrariaDir = dirname(terrariaPath);
-        const resourcesPluginsDir = getPluginsResourcesDir();
-
-        // 1. Copy plugin loader DLLs (XNA/FNA)
-        if (copyPluginLoaderDlls(resourcesPluginsDir, terrariaDir) === 0) {
-          return {
-            success: false,
-            key: "plugins.error.missingLoader",
-            message: "Plugin loader DLLs are missing from resources.",
-          };
-        }
-
-        // 2. Setup Plugins directory
-        const pluginsDestDir = join(terrariaDir, "Plugins");
-        ensureDirSync(pluginsDestDir);
-        emptyDirSync(pluginsDestDir); // Wipe previous scripts
-
-        // 3. Copy Shared folder
-        const sharedSrc = join(resourcesPluginsDir, "Shared");
-        if (existsSync(sharedSrc)) {
-          copySync(sharedSrc, join(pluginsDestDir, "Shared"));
-        }
-
-        // 4. Sync active .cs plugins
-        if (activePlugins && Array.isArray(activePlugins)) {
-          for (const pluginName of activePlugins) {
-            const pluginSrc = join(resourcesPluginsDir, pluginName);
-            if (existsSync(pluginSrc)) {
-              copyFileSync(pluginSrc, join(pluginsDestDir, pluginName));
-            }
-          }
-        }
-
-        await ensureLinuxPluginCompilerWrapperAndIni(terrariaPath, pluginsDestDir);
+        await enqueuePluginRuntimeSync(() =>
+          syncManagedPluginRuntime(terrariaPath, activePlugins),
+        );
 
         return { success: true, key: "patcher.messages.pluginsSynced" };
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes("Plugin loader DLLs are missing from resources")) {
+          return {
+            success: false,
+            key: "plugins.error.missingLoader",
+            message: msg,
+          };
+        }
+        return {
+          success: false,
+          key: "patcher.messages.syncFailed",
+          args: { error: msg },
+        };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    "patcher:repair-runtime",
+    async (
+      _event,
+      payload: { terrariaPath: string; activePlugins?: string[] },
+    ) => {
+      try {
+        const { terrariaPath, activePlugins = [] } = payload;
+        await enqueuePluginRuntimeSync(() =>
+          syncManagedPluginRuntime(terrariaPath, activePlugins),
+        );
+        return { success: true, key: "patcher.messages.pluginsSynced" };
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes("Plugin loader DLLs are missing from resources")) {
+          return {
+            success: false,
+            key: "plugins.error.missingLoader",
+            message: msg,
+          };
+        }
         return {
           success: false,
           key: "patcher.messages.syncFailed",
@@ -2564,40 +2792,26 @@ function setupIpcHandlers(): void {
         }
 
         if (options.Plugins) {
-          const terrariaDir = dirname(terrariaPath);
-          const resourcesPluginsDir = getPluginsResourcesDir();
-
-          // 1. Copy plugin loader DLLs (XNA/FNA) next to Terraria.exe
-          if (copyPluginLoaderDlls(resourcesPluginsDir, terrariaDir) === 0) {
+          try {
+            await enqueuePluginRuntimeSync(() =>
+              syncManagedPluginRuntime(terrariaPath, options.activePlugins),
+            );
+          } catch (syncErr: unknown) {
+            const syncMessage =
+              syncErr instanceof Error ? syncErr.message : String(syncErr);
+            if (syncMessage.includes("Plugin loader DLLs are missing from resources")) {
+              return {
+                success: false,
+                key: "plugins.error.missingLoader",
+                message: syncMessage,
+              };
+            }
             return {
               success: false,
-              key: "plugins.error.missingLoader",
-              message: "Plugin loader DLLs are missing from resources.",
+              key: "patcher.messages.syncFailed",
+              args: { error: syncMessage },
             };
           }
-
-          // 2. Setup Plugins directory
-          const pluginsDestDir = join(terrariaDir, "Plugins");
-          ensureDirSync(pluginsDestDir);
-          emptyDirSync(pluginsDestDir); // Wipe previous scripts
-
-          // 3. Copy Shared folder
-          const sharedSrc = join(resourcesPluginsDir, "Shared");
-          if (existsSync(sharedSrc)) {
-            copySync(sharedSrc, join(pluginsDestDir, "Shared"));
-          }
-
-          // 4. Sync active .cs plugins
-          if (options.activePlugins && Array.isArray(options.activePlugins)) {
-            for (const pluginName of options.activePlugins) {
-              const pluginSrc = join(resourcesPluginsDir, pluginName);
-              if (existsSync(pluginSrc)) {
-                copyFileSync(pluginSrc, join(pluginsDestDir, pluginName));
-              }
-            }
-          }
-
-          await ensureLinuxPluginCompilerWrapperAndIni(terrariaPath, pluginsDestDir);
         }
 
         options.PatcherPath = getPluginsResourcesDir();
@@ -2708,8 +2922,10 @@ function createWindow(): void {
 
 app.whenReady().then(async () => {
   let startupLanguage: string | null = null;
+  let startupStore: Awaited<ReturnType<typeof getStore>> | null = null;
   try {
     const store = await getStore();
+    startupStore = store;
     startupLanguage = (store.get("language") as string) || app.getLocale();
   } catch {
     startupLanguage = app.getLocale();
@@ -2757,6 +2973,9 @@ app.whenReady().then(async () => {
   }
 
   setupIpcHandlers();
+  if (startupStore) {
+    void runStartupRuntimeMaintenance(startupStore);
+  }
   initializeAutoUpdater();
   createWindow();
   scheduleSilentStartupUpdateCheck();
