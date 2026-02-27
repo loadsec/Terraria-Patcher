@@ -1651,7 +1651,7 @@ export default function PatcherPage() {
                     {t("patcher.modal.restoreSuccessTitle", "Backup restored")}
                   </p>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap break-all">
                   {patchMessage?.text ||
                     t(
                       "patcher.modal.restoreSuccessDesc",
@@ -1677,7 +1677,7 @@ export default function PatcherPage() {
                     {t("patcher.modal.backupSuccessTitle", "Backup created")}
                   </p>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap break-all">
                   {patchMessage?.text ||
                     t(
                       "patcher.modal.backupSuccessDesc",
@@ -1710,7 +1710,7 @@ export default function PatcherPage() {
                     {t("patcher.modal.successTitle", "Success!")}
                   </p>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap break-all">
                   {patchMessage?.text ||
                     t(
                       "patcher.modal.successDesc",
