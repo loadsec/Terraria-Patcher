@@ -142,11 +142,6 @@ jobs:
       - name: Rebuild native dependencies for Electron
         run: pnpm exec electron-builder install-app-deps
 
-      - name: Remove CI-compiled edge native on Windows (use prebuilt)
-        if: matrix.name == 'windows'
-        shell: bash
-        run: rm -rf node_modules/electron-edge-js/build/Release
-
       - name: Download bridge runtime
         uses: actions/download-artifact@v4
         with:
@@ -163,23 +158,12 @@ jobs:
           ls -lah resources/plugins/PluginLoader*.dll
           sha256sum resources/plugins/PluginLoader*.dll
 
-      - name: Validate edge native runtime (Linux)
-        if: matrix.name == 'linux'
+      - name: Validate edge native runtime
         shell: bash
         run: |
           test -f "node_modules/electron-edge-js/build/Release/edge_coreclr.node"
           echo "edge_coreclr.node found:"
           ls -lah node_modules/electron-edge-js/build/Release/edge_coreclr.node
-
-      - name: Verify build/Release was removed (Windows pre-package)
-        if: matrix.name == 'windows'
-        shell: bash
-        run: |
-          if [ -f "node_modules/electron-edge-js/build/Release/edge_coreclr.node" ]; then
-            echo "::error::build/Release/edge_coreclr.node still exists BEFORE packaging!"
-            exit 1
-          fi
-          echo "Confirmed: build/Release/edge_coreclr.node does NOT exist before packaging."
 
       - name: Build app bundle (skip bridge rebuild)
         run: pnpm exec electron-vite build
@@ -191,18 +175,8 @@ jobs:
         if: matrix.name == 'windows'
         shell: pwsh
         run: |
-          $electronMajor = node -p "require('electron/package.json').version.split('.')[0]"
           $edgeJs = "dist/win-unpacked/resources/app.asar.unpacked/node_modules/electron-edge-js/lib/edge.js"
-          $edgeNode = "dist/win-unpacked/resources/app.asar.unpacked/node_modules/electron-edge-js/lib/native/win32/x64/$electronMajor/edge_coreclr.node"
-          $staleBuild = "dist/win-unpacked/resources/app.asar.unpacked/node_modules/electron-edge-js/build/Release/edge_coreclr.node"
-
-          # FAIL if stale build/Release exists in package
-          if (Test-Path $staleBuild) {
-            Write-Error "FATAL: build/Release/edge_coreclr.node exists in packaged output! This will cause assertion crashes."
-            exit 1
-          }
-          Write-Host "Confirmed: NO stale build/Release/edge_coreclr.node in package."
-
+          $edgeNode = "dist/win-unpacked/resources/app.asar.unpacked/node_modules/electron-edge-js/build/Release/edge_coreclr.node"
           if (!(Test-Path $edgeJs)) { throw "Missing packaged edge entry: $edgeJs" }
           if (!(Test-Path $edgeNode)) { throw "Missing packaged edge native module: $edgeNode" }
           Write-Host "Packaged edge entry found: $edgeJs"

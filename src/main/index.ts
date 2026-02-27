@@ -1283,30 +1283,13 @@ function getPackagedEdgeJsEntryPath(): string {
 }
 
 function getPackagedEdgeNativePath(): string {
-  // Linux has no prebuilt edge binaries — use CI-compiled build/Release
-  if (process.platform === "linux") {
-    return join(
-      process.resourcesPath,
-      "app.asar.unpacked",
-      "node_modules",
-      "electron-edge-js",
-      "build",
-      "Release",
-      "edge_coreclr.node",
-    );
-  }
-  // Windows/macOS: use prebuilt from lib/native/
-  const electronMajor = process.versions.electron.split(".")[0];
   return join(
     process.resourcesPath,
     "app.asar.unpacked",
     "node_modules",
     "electron-edge-js",
-    "lib",
-    "native",
-    process.platform,
-    process.arch,
-    electronMajor,
+    "build",
+    "Release",
     "edge_coreclr.node",
   );
 }
