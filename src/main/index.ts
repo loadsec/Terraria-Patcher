@@ -10,7 +10,7 @@ import {
 import icon from "../../resources/terraria-logo.png?asset";
 import * as fse from "fs-extra";
 import { copySync, emptyDirSync, ensureDirSync } from "fs-extra";
-import { existsSync, copyFileSync, readdirSync } from "fs";
+import { existsSync, copyFileSync, readdirSync, unlinkSync } from "fs";
 import os from "os";
 
 // Ensure .NET runtime discovery for edge-js (primarily Windows)
@@ -2125,6 +2125,29 @@ function getEdgeModule(): EdgeModule {
     // In packaged builds, always load edge from app.asar.unpacked/node_modules
     // to avoid JS/native mismatches after updates.
     if (app.isPackaged) {
+      // NSIS updates overlay new files on old ones without cleaning up.
+      // Previous versions packaged a CI-compiled build/Release/edge_coreclr.node
+      // that is incompatible. edge.js checks build/Release/ FIRST — if this stale
+      // file exists, it loads the wrong binary and crashes with g_coreclr assert.
+      // Delete it so edge.js falls through to the correct prebuilt in lib/native/.
+      if (process.platform !== "linux") {
+        const staleBuildRelease = join(
+          process.resourcesPath,
+          "app.asar.unpacked",
+          "node_modules",
+          "electron-edge-js",
+          "build",
+          "Release",
+          "edge_coreclr.node",
+        );
+        if (existsSync(staleBuildRelease)) {
+          try {
+            unlinkSync(staleBuildRelease);
+          } catch {
+            // Best-effort: if we can't delete, edge.js will try to use it anyway.
+          }
+        }
+      }
       const packagedEdgeEntry = getPackagedEdgeJsEntryPath();
       if (existsSync(packagedEdgeEntry)) {
         // Do NOT set process.env.EDGE_NATIVE before requiring edge.js.

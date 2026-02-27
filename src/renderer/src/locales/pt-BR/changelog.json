@@ -12,13 +12,22 @@
     "noEntriesDesc": "Adicione versões no version.json e traduções no changelog.json."
   },
   "releases": {
-    "v1_1_11": {
-      "title": "Correção de Inicialização Dupla do CoreCLR",
-      "summary": "Corrige o crash de assertion edge_coreclr no Windows evitando inicialização dupla do CoreCLR em builds empacotadas.",
+    "v1_1_12": {
+      "title": "Correção de Arquivos Antigos na Atualização NSIS",
+      "summary": "Corrige o crash de assertion edge_coreclr no Windows após atualizar via instalador NSIS limpando binários nativos antigos deixados por versões anteriores.",
       "changes": [
-        "Removida a pré-definição da variável de ambiente `EDGE_NATIVE` antes de carregar o `edge.js`, que podia fazer o módulo nativo `.node` ser carregado com duas chaves de cache diferentes, causando o crash de assertion dupla do `coreclr::bind()`.",
-        "O edge.js agora faz toda a resolução do módulo nativo sozinho — ele já possui lógica interna que encontra o binário correto para cada plataforma.",
-        "O patching no Linux AppImage continua funcionando normalmente (edge.js encontra `build/Release/` por conta própria)."
+        "Adicionada limpeza na inicialização que remove o `build/Release/edge_coreclr.node` antigo deixado por atualizações NSIS de versões anteriores, impedindo que o `edge.js` carregue um binário incompatível.",
+        "Removida a pré-definição da variável de ambiente `EDGE_NATIVE` antes de carregar o `edge.js` para evitar possível inicialização dupla do CoreCLR.",
+        "O patching no Linux AppImage continua funcionando normalmente."
+      ]
+    },
+    "v1_1_11": {
+      "title": "Correção de Arquivos Antigos na Atualização NSIS",
+      "summary": "Corrige o crash de assertion edge_coreclr no Windows após atualizar via instalador NSIS limpando binários nativos antigos deixados por versões anteriores.",
+      "changes": [
+        "Adicionada limpeza na inicialização que remove o `build/Release/edge_coreclr.node` antigo deixado por atualizações NSIS de versões anteriores, impedindo que o `edge.js` carregue um binário incompatível.",
+        "Removida a pré-definição da variável de ambiente `EDGE_NATIVE` antes de carregar o `edge.js` para evitar possível inicialização dupla do CoreCLR.",
+        "O patching no Linux AppImage continua funcionando normalmente."
       ]
     },
     "v1_1_10": {

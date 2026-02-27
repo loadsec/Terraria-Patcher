@@ -12,13 +12,22 @@
     "noEntriesDesc": "Add release entries to version.json and translations to changelog.json."
   },
   "releases": {
-    "v1_1_11": {
-      "title": "CoreCLR Double Init Fix",
-      "summary": "Fixes the edge_coreclr assertion crash on Windows by preventing double CoreCLR initialization in packaged builds.",
+    "v1_1_12": {
+      "title": "NSIS Update Stale File Fix",
+      "summary": "Fixes the edge_coreclr assertion crash on Windows after updating via NSIS installer by cleaning up stale native binaries left by previous versions.",
       "changes": [
-        "Removed the `EDGE_NATIVE` environment variable pre-setting before loading `edge.js`, which could cause the native `.node` module to be loaded under two different cache keys, triggering a double `coreclr::bind()` assertion crash.",
-        "Edge.js now handles all native module resolution on its own — it already has built-in platform-aware logic that correctly finds the right binary for each platform.",
-        "Linux AppImage patching remains unaffected (edge.js finds `build/Release/` on its own)."
+        "Added startup cleanup that removes stale `build/Release/edge_coreclr.node` left by NSIS updates from previous versions, preventing `edge.js` from loading an incompatible old binary.",
+        "Removed the `EDGE_NATIVE` environment variable pre-setting before loading `edge.js` to avoid potential double CoreCLR initialization.",
+        "Linux AppImage patching remains unaffected."
+      ]
+    },
+    "v1_1_11": {
+      "title": "NSIS Update Stale File Fix",
+      "summary": "Fixes the edge_coreclr assertion crash on Windows after updating via NSIS installer by cleaning up stale native binaries left by previous versions.",
+      "changes": [
+        "Added startup cleanup that removes stale `build/Release/edge_coreclr.node` left by NSIS updates from previous versions, preventing `edge.js` from loading an incompatible old binary.",
+        "Removed the `EDGE_NATIVE` environment variable pre-setting before loading `edge.js` to avoid potential double CoreCLR initialization.",
+        "Linux AppImage patching remains unaffected."
       ]
     },
     "v1_1_10": {
