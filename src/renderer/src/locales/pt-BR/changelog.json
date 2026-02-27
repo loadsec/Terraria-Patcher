@@ -12,6 +12,16 @@
     "noEntriesDesc": "Adicione versões no version.json e traduções no changelog.json."
     },
     "releases": {
+      "v1_1_6": {
+      "title": "Reforço do Runtime Edge no Windows",
+      "summary": "Evita que builds empacotadas no Windows carreguem pares incompatíveis de edge módulo/runtime após updates.",
+      "changes": [
+        "Builds empacotadas agora forçam o carregamento do `electron-edge-js` a partir de `resources/patcher-edge-js`.",
+        "Adicionadas validações defensivas para garantir que o módulo edge carregado exporta `edge.func` antes de iniciar o patch.",
+        "Removido fallback empacotado para o caminho de edge em node_modules, evitando crashes por mismatch JS/nativo.",
+        "Mensagens de erro ficaram mais claras quando os recursos empacotados do edge estiverem ausentes."
+      ]
+    },
       "v1_1_5": {
       "title": "Proteções de Sincronização de Runtime",
       "summary": "Melhora a confiabilidade após updates, evitando reutilizar arquivos antigos de runtime/plugins.",

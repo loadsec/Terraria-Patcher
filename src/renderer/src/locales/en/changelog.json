@@ -12,6 +12,16 @@
     "noEntriesDesc": "Add release entries to version.json and translations to changelog.json."
     },
     "releases": {
+      "v1_1_6": {
+      "title": "Windows Edge Runtime Hardening",
+      "summary": "Prevents packaged Windows builds from loading a mismatched edge module/runtime pair after updates.",
+      "changes": [
+        "Packaged builds now force-load `electron-edge-js` from `resources/patcher-edge-js`.",
+        "Added defensive checks to ensure the loaded edge module exports `edge.func` before patch initialization.",
+        "Removed packaged fallback to bundled node_modules edge path to avoid JS/native mismatch crashes.",
+        "Improved error clarity when packaged edge resources are missing."
+      ]
+    },
       "v1_1_5": {
       "title": "Runtime Sync Guardrails",
       "summary": "Improves update reliability by preventing stale runtime/plugin files from being reused after upgrades.",

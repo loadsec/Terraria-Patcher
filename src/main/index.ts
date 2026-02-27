@@ -1096,6 +1096,10 @@ function getPackagedEdgeJsEntryPath(): string {
   return join(process.resourcesPath, "patcher-edge-js", "lib", "edge.js");
 }
 
+function getPackagedEdgeNativePath(): string {
+  return join(process.resourcesPath, "patcher-edge-js", "build", "Release", "edge_coreclr.node");
+}
+
 function loadMainLocalesSync(): Record<string, MainLocaleDict> {
   if (mainLocalesCache) return mainLocalesCache;
 
@@ -1865,19 +1869,40 @@ function getEdgeModule(): EdgeModule {
   try {
     process.env.EDGE_USE_CORECLR = "1";
 
-    // In packaged Linux/AppImage builds, load edge from external resources
-    // so native edge_coreclr.node is resolved outside app.asar.
-    // Keep Windows/macOS on the standard module path.
-    if (app.isPackaged && process.platform === "linux") {
+    // In packaged builds, always prefer edge from external resources
+    // (patcher-edge-js) to avoid JS/native mismatch after updates.
+    if (app.isPackaged) {
       const packagedEdgeEntry = getPackagedEdgeJsEntryPath();
       if (existsSync(packagedEdgeEntry)) {
+        const packagedNative = getPackagedEdgeNativePath();
+        if (existsSync(packagedNative)) {
+          process.env.EDGE_NATIVE = packagedNative;
+        } else {
+          delete process.env.EDGE_NATIVE;
+        }
         edgeModule = requireForMain(packagedEdgeEntry) as EdgeModule;
+        if (!edgeModule || typeof edgeModule.func !== "function") {
+          throw new Error(
+            `Invalid electron-edge-js module loaded from ${packagedEdgeEntry}. Missing edge.func export.`,
+          );
+        }
         edgeGlobal.__terrariaPatcherEdgeModule = edgeModule;
         return edgeModule;
       }
+
+      throw new Error(
+        `Packaged edge module entry not found: ${packagedEdgeEntry}. Refusing to fall back to bundled node_modules to avoid JS/native mismatch.`,
+      );
     }
 
+    // Dev-only fallback (node_modules).
+    delete process.env.EDGE_NATIVE;
     edgeModule = requireForMain("electron-edge-js") as EdgeModule;
+    if (!edgeModule || typeof edgeModule.func !== "function") {
+      throw new Error(
+        "Invalid electron-edge-js module loaded from node_modules. Missing edge.func export.",
+      );
+    }
     edgeGlobal.__terrariaPatcherEdgeModule = edgeModule;
     return edgeModule;
   } catch (err: unknown) {
