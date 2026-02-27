@@ -6,11 +6,6 @@ node_modules/
 .npm/
 .yarn/
 
-# Package lock files (keep ignored if this repo intentionally does not commit them)
-package-lock.json
-pnpm-lock.yaml
-yarn.lock
-
 # -----------------------------------------------------------------------------
 # Build output (Electron / Vite)
 # -----------------------------------------------------------------------------
