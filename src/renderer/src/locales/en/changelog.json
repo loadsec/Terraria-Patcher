@@ -12,6 +12,15 @@
     "noEntriesDesc": "Add release entries to version.json and translations to changelog.json."
     },
     "releases": {
+      "v1_1_8": {
+      "title": "Windows Patch Assert Fix",
+      "summary": "Fixes the Windows edge_coreclr assertion when patching from release builds and cleans up packaging validation.",
+      "changes": [
+        "Removed the duplicate packaged copy of electron-edge-js that caused edge_coreclr to load from a wrong path in release builds.",
+        "Adjusted release validation to point at the correct unpacked edge path in Windows bundles.",
+        "Ensured Windows patching runs with a single edge runtime copy, preventing the assertion failure."
+      ]
+    },
       "v1_1_7": {
       "title": "UI Overflow + Release Artifact Guardrails",
       "summary": "Fixes long backup path overflow in the patch modal and hardens release artifact validation for Windows builds.",

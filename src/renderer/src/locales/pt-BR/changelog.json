@@ -12,6 +12,15 @@
     "noEntriesDesc": "Adicione versões no version.json e traduções no changelog.json."
     },
     "releases": {
+      "v1_1_8": {
+      "title": "Correção de Assert no Windows",
+      "summary": "Corrige o assert do edge_coreclr ao aplicar patch em builds de release no Windows e limpa a validação de empacotamento.",
+      "changes": [
+        "Removida a cópia duplicada do electron-edge-js empacotada que fazia o edge_coreclr carregar do caminho errado em builds de release.",
+        "Ajustada a validação do workflow para apontar para o caminho correto do edge descompactado nos bundles de Windows.",
+        "Garantido que o patch no Windows use apenas uma cópia do runtime do edge, evitando a falha de assert."
+      ]
+    },
       "v1_1_7": {
       "title": "Correção de Overflow na UI + Proteções no Release",
       "summary": "Corrige o estouro de layout com caminhos longos de backup no modal e reforça validações dos artefatos no Windows.",
