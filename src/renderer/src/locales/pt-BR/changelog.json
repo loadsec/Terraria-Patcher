@@ -12,6 +12,18 @@
     "noEntriesDesc": "Adicione versões no version.json e traduções no changelog.json."
     },
     "releases": {
+      "v1_1_1": {
+      "title": "Checagens de Runtime e Estabilidade de Plugins",
+      "summary": "Adiciona verificação de pré-requisitos .NET 10/Mono, estabiliza o carregamento de plugins em Windows/Linux e corrige a persistência do Save Position.",
+      "changes": [
+        "Adicionada checagem multiplataforma do runtime .NET 10 com aviso claro quando o runtime está ausente ou desatualizado.",
+        "Adicionada detecção do compilador Mono em Linux/macOS quando o suporte a plugins está ativo, com dicas de instalação por distro.",
+        "Melhorada a compatibilidade do loader de plugins entre Windows e Linux, reduzindo erros de inicialização do edge-js/asserts.",
+        "Corrigido o fallback do JourneyEverywhere para não alterar a dificuldade do personagem e manter compatibilidade com builds Linux.",
+        "Corrigido o plugin SavePosition para restaurar a última posição corretamente em vez de nascer nas bordas do mapa.",
+        "Correções gerais de bugs de plugins e ajustes de compatibilidade no Linux."
+      ]
+    },
       "v1_1_0": {
       "title": "UX de Atualizações + Suporte ao Linux",
       "summary": "Melhorada a visibilidade do status de updates, refinado o painel de atualizações em Configurações, adicionado reset de perfil com auto-detecção do caminho do Terraria e oficializado o suporte a patching no Linux.",

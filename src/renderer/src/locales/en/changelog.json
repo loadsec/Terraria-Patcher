@@ -12,6 +12,18 @@
     "noEntriesDesc": "Add release entries to version.json and translations to changelog.json."
     },
     "releases": {
+      "v1_1_1": {
+      "title": "Runtime Checks & Plugin Stability",
+      "summary": "Adds .NET 10/Mono prerequisite checks, stabilizes plugin loading across Windows/Linux, and fixes Save Position persistence.",
+      "changes": [
+        "Added a cross-platform .NET 10 runtime check with a clear prompt when the runtime is missing or outdated.",
+        "Added Mono compiler detection on Linux/macOS when plugin support is enabled, with distro-specific install hints.",
+        "Improved plugin loader compatibility across Windows and Linux, reducing edge-js startup/assert errors.",
+        "Fixed JourneyEverywhere fallback so it no longer alters character difficulty while remaining compatible with Linux builds.",
+        "Fixed SavePosition plugin so last position is restored correctly instead of spawning at world borders.",
+        "General plugin bug fixes and Linux compatibility tweaks."
+      ]
+    },
       "v1_1_0": {
       "title": "Update UX Refresh + Linux Patch Support",
       "summary": "Improved updater status visibility, polished the Config updates panel, added profile reset plus Terraria path auto-detection, and officially enabled Linux patching support.",
