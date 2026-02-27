@@ -1,7 +1,7 @@
 {
   "name": "terraria-patcher",
   "private": true,
-  "version": "1.1.9",
+  "version": "1.1.10",
   "author": "Louan Fontenele",
   "description": "A desktop tool for patching Terraria",
   "main": "./out/main/index.js",
@@ -77,7 +77,8 @@
     "productName": "Terraria Patcher",
     "npmRebuild": false,
     "asarUnpack": [
-      "node_modules/electron-edge-js/build/Release/*.node"
+      "node_modules/electron-edge-js/build/Release/*.node",
+      "node_modules/electron-edge-js/lib/native/**/*.node"
     ],
     "directories": {
       "buildResources": "build"

@@ -2,7 +2,11 @@ import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
 import { join, dirname, normalize as normalizePath } from "path";
 import { spawn } from "child_process";
 import { createRequire } from "module";
-import { autoUpdater, type ProgressInfo, type UpdateInfo } from "electron-updater";
+import {
+  autoUpdater,
+  type ProgressInfo,
+  type UpdateInfo,
+} from "electron-updater";
 import icon from "../../resources/terraria-logo.png?asset";
 import * as fse from "fs-extra";
 import { copySync, emptyDirSync, ensureDirSync } from "fs-extra";
@@ -130,7 +134,9 @@ async function checkDotnetRuntime(): Promise<DotnetRuntimeCheck> {
         .split(/\r?\n/)
         .map((l) => l.trim())
         .filter(Boolean);
-      const hasNet10 = runtimes.some((l) => /Microsoft\.NETCore\.App\s+10\./i.test(l));
+      const hasNet10 = runtimes.some((l) =>
+        /Microsoft\.NETCore\.App\s+10\./i.test(l),
+      );
       if (hasNet10) {
         resolve({ ok: true, runtimes });
       } else {
@@ -152,10 +158,17 @@ async function checkMonoCompiler(): Promise<{ ok: boolean; message?: string }> {
     let stderr = "";
     child.stdout.on("data", (c) => (stdout += c.toString()));
     child.stderr.on("data", (c) => (stderr += c.toString()));
-    child.on("error", (err) => resolve({ ok: false, message: err.message, hint: getLinuxMonoHint() }));
+    child.on("error", (err) =>
+      resolve({ ok: false, message: err.message, hint: getLinuxMonoHint() }),
+    );
     child.on("close", (code) => {
       if (code === 0) resolve({ ok: true });
-      else resolve({ ok: false, message: stderr || stdout || "mcs exited with error.", hint: getLinuxMonoHint() });
+      else
+        resolve({
+          ok: false,
+          message: stderr || stdout || "mcs exited with error.",
+          hint: getLinuxMonoHint(),
+        });
     });
   });
 }
@@ -166,10 +179,13 @@ function getLinuxMonoHint(): string | undefined {
     const osReleasePath = "/etc/os-release";
     if (existsSync(osReleasePath)) {
       const content = fse.readFileSync(osReleasePath, "utf8");
-      if (/ubuntu|debian/i.test(content)) return "Install Mono: sudo apt install mono-complete";
+      if (/ubuntu|debian/i.test(content))
+        return "Install Mono: sudo apt install mono-complete";
       if (/arch/i.test(content)) return "Install Mono: sudo pacman -S mono";
-      if (/fedora|rhel|centos/i.test(content)) return "Install Mono: sudo dnf install mono-devel";
-      if (/opensuse/i.test(content)) return "Install Mono: sudo zypper in mono-complete";
+      if (/fedora|rhel|centos/i.test(content))
+        return "Install Mono: sudo dnf install mono-devel";
+      if (/opensuse/i.test(content))
+        return "Install Mono: sudo zypper in mono-complete";
     }
   } catch {
     // ignore
@@ -196,7 +212,9 @@ function extractQuotedValue(content: string, key: string): string | null {
   return match?.[1] ? unescapeVdfString(match[1]) : null;
 }
 
-async function queryRegistryValue(args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
+async function queryRegistryValue(
+  args: string[],
+): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
     const child = spawn("reg", args, { windowsHide: true });
     let stdout = "";
@@ -204,11 +222,16 @@ async function queryRegistryValue(args: string[]): Promise<{ code: number; stdou
     child.stdout.on("data", (chunk) => (stdout += chunk.toString()));
     child.stderr.on("data", (chunk) => (stderr += chunk.toString()));
     child.on("close", (code) => resolve({ code: code ?? 0, stdout, stderr }));
-    child.on("error", (err) => resolve({ code: 1, stdout, stderr: err.message }));
+    child.on("error", (err) =>
+      resolve({ code: 1, stdout, stderr: err.message }),
+    );
   });
 }
 
-function parseRegistryStringValue(output: string, valueName: string): string | null {
+function parseRegistryStringValue(
+  output: string,
+  valueName: string,
+): string | null {
   const regex = new RegExp(`${valueName}\\s+REG_\\w+\\s+(.+)$`, "im");
   const match = output.match(regex);
   return match?.[1]?.trim() ?? null;
@@ -229,7 +252,9 @@ function parseSteamLibraryRootsFromVdf(content: string): string[] {
   return roots;
 }
 
-async function detectTerrariaExecutableInDirectory(rootDir: string): Promise<string | null> {
+async function detectTerrariaExecutableInDirectory(
+  rootDir: string,
+): Promise<string | null> {
   if (!rootDir) return null;
 
   if (process.platform === "win32") {
@@ -240,7 +265,14 @@ async function detectTerrariaExecutableInDirectory(rootDir: string): Promise<str
     const exact = await findFirstExistingPath([
       join(rootDir, "Terraria.exe"),
       join(rootDir, "Terraria.app", "Contents", "Resources", "Terraria.exe"),
-      join(rootDir, "Terraria.app", "Contents", "Resources", "game", "Terraria.exe"),
+      join(
+        rootDir,
+        "Terraria.app",
+        "Contents",
+        "Resources",
+        "game",
+        "Terraria.exe",
+      ),
       join(rootDir, "Terraria.app", "Contents", "MacOS", "Terraria"),
       join(rootDir, "Terraria"),
     ]);
@@ -249,9 +281,17 @@ async function detectTerrariaExecutableInDirectory(rootDir: string): Promise<str
     try {
       if (await fse.pathExists(rootDir)) {
         const entries = readdirSync(rootDir);
-        const appCandidate = entries.find((entry) => /^Terraria(\.app)?$/i.test(entry));
+        const appCandidate = entries.find((entry) =>
+          /^Terraria(\.app)?$/i.test(entry),
+        );
         if (appCandidate) {
-          const bundleBinary = join(rootDir, appCandidate, "Contents", "MacOS", "Terraria");
+          const bundleBinary = join(
+            rootDir,
+            appCandidate,
+            "Contents",
+            "MacOS",
+            "Terraria",
+          );
           if (await fse.pathExists(bundleBinary)) return bundleBinary;
           const plain = join(rootDir, appCandidate);
           if (await fse.pathExists(plain)) return plain;
@@ -336,9 +376,17 @@ async function getWindowsTerrariaRegistryPaths(): Promise<string[]> {
       if (exePath) candidates.push(normalizePath(exePath));
     }
 
-    const installQuery = await queryRegistryValue(["query", key, "/v", "install_path"]);
+    const installQuery = await queryRegistryValue([
+      "query",
+      key,
+      "/v",
+      "install_path",
+    ]);
     if (installQuery.code === 0) {
-      const installPath = parseRegistryStringValue(installQuery.stdout, "install_path");
+      const installPath = parseRegistryStringValue(
+        installQuery.stdout,
+        "install_path",
+      );
       if (installPath) {
         const normalizedInstall = normalizePath(installPath);
         candidates.push(join(normalizedInstall, "Terraria.exe"));
@@ -349,14 +397,17 @@ async function getWindowsTerrariaRegistryPaths(): Promise<string[]> {
   return candidates;
 }
 
-async function detectTerrariaPathFromSteam(homeDir: string): Promise<string | null> {
+async function detectTerrariaPathFromSteam(
+  homeDir: string,
+): Promise<string | null> {
   const steamRoots = new Set<string>();
 
   if (process.platform === "win32") {
     for (const root of await getWindowsSteamInstallRootsFromRegistry()) {
       steamRoots.add(root);
     }
-    const programFilesX86 = process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)";
+    const programFilesX86 =
+      process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)";
     const programFiles = process.env["ProgramFiles"] || "C:\\Program Files";
     steamRoots.add(join(programFilesX86, "Steam"));
     steamRoots.add(join(programFiles, "Steam"));
@@ -365,24 +416,45 @@ async function detectTerrariaPathFromSteam(homeDir: string): Promise<string | nu
   } else if (process.platform === "linux") {
     steamRoots.add(join(homeDir, ".steam", "steam"));
     steamRoots.add(join(homeDir, ".local", "share", "Steam"));
-    steamRoots.add(join(homeDir, ".var", "app", "com.valvesoftware.Steam", ".steam", "steam"));
+    steamRoots.add(
+      join(
+        homeDir,
+        ".var",
+        "app",
+        "com.valvesoftware.Steam",
+        ".steam",
+        "steam",
+      ),
+    );
   }
 
   for (const steamRoot of steamRoots) {
-    const libraryFoldersPath = join(steamRoot, "steamapps", "libraryfolders.vdf");
+    const libraryFoldersPath = join(
+      steamRoot,
+      "steamapps",
+      "libraryfolders.vdf",
+    );
     const libraryFoldersContent = await readTextIfExists(libraryFoldersPath);
     const libraryRoots = new Set<string>([normalizePath(steamRoot)]);
 
     if (libraryFoldersContent) {
-      for (const libRoot of parseSteamLibraryRootsFromVdf(libraryFoldersContent)) {
+      for (const libRoot of parseSteamLibraryRootsFromVdf(
+        libraryFoldersContent,
+      )) {
         libraryRoots.add(normalizePath(libRoot));
       }
     }
 
     for (const libraryRoot of libraryRoots) {
-      const manifestPath = join(libraryRoot, "steamapps", `appmanifest_${TERRARIA_STEAM_APP_ID}.acf`);
+      const manifestPath = join(
+        libraryRoot,
+        "steamapps",
+        `appmanifest_${TERRARIA_STEAM_APP_ID}.acf`,
+      );
       const manifestContent = await readTextIfExists(manifestPath);
-      const installDir = manifestContent ? extractQuotedValue(manifestContent, "installdir") : null;
+      const installDir = manifestContent
+        ? extractQuotedValue(manifestContent, "installdir")
+        : null;
 
       const candidateDirs = [
         installDir ? join(libraryRoot, "steamapps", "common", installDir) : "",
@@ -390,7 +462,8 @@ async function detectTerrariaPathFromSteam(homeDir: string): Promise<string | nu
       ].filter(Boolean);
 
       for (const candidateDir of candidateDirs) {
-        const detected = await detectTerrariaExecutableInDirectory(candidateDir);
+        const detected =
+          await detectTerrariaExecutableInDirectory(candidateDir);
         if (detected) return detected;
       }
     }
@@ -399,20 +472,27 @@ async function detectTerrariaPathFromSteam(homeDir: string): Promise<string | nu
   return null;
 }
 
-function pushUniqueTerrariaPath(list: string[], seen: Set<string>, candidate?: string | null): void {
+function pushUniqueTerrariaPath(
+  list: string[],
+  seen: Set<string>,
+  candidate?: string | null,
+): void {
   const normalized = typeof candidate === "string" ? candidate.trim() : "";
   if (!normalized) return;
 
   const lower = normalized.toLowerCase();
   const isExe = lower.endsWith("terraria.exe");
-  const isMacAppBinary = lower.includes("/terraria.app/contents/macos/terraria");
+  const isMacAppBinary = lower.includes(
+    "/terraria.app/contents/macos/terraria",
+  );
   if (process.platform === "darwin") {
     if (!isExe && !isMacAppBinary) return;
   } else {
     if (!isExe) return;
   }
 
-  const key = process.platform === "win32" ? normalized.toLowerCase() : normalized;
+  const key =
+    process.platform === "win32" ? normalized.toLowerCase() : normalized;
   if (seen.has(key)) return;
   seen.add(key);
   list.push(normalized);
@@ -433,17 +513,32 @@ async function detectTerrariaPaths(): Promise<string[]> {
     const steamPath = await detectTerrariaPathFromSteam(homeDir);
     pushUniqueTerrariaPath(candidates, seen, steamPath);
 
-    const programFilesX86 = process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)";
+    const programFilesX86 =
+      process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)";
     const programFiles = process.env["ProgramFiles"] || "C:\\Program Files";
 
     pushUniqueTerrariaPath(
       candidates,
       seen,
       await findFirstExistingPath([
-      join(programFilesX86, "Steam", "steamapps", "common", "Terraria", "Terraria.exe"),
-      join(programFiles, "Steam", "steamapps", "common", "Terraria", "Terraria.exe"),
-      "C:\\GOG Games\\Terraria\\Terraria.exe",
-      join(homeDir, "GOG Games", "Terraria", "Terraria.exe"),
+        join(
+          programFilesX86,
+          "Steam",
+          "steamapps",
+          "common",
+          "Terraria",
+          "Terraria.exe",
+        ),
+        join(
+          programFiles,
+          "Steam",
+          "steamapps",
+          "common",
+          "Terraria",
+          "Terraria.exe",
+        ),
+        "C:\\GOG Games\\Terraria\\Terraria.exe",
+        join(homeDir, "GOG Games", "Terraria", "Terraria.exe"),
       ]),
     );
     return candidates;
@@ -457,11 +552,51 @@ async function detectTerrariaPaths(): Promise<string[]> {
       candidates,
       seen,
       await findFirstExistingPath([
-      join("/", "Applications", "Terraria.app", "Contents", "MacOS", "Terraria"),
-      join(homeDir, "Applications", "Terraria.app", "Contents", "MacOS", "Terraria"),
-      join("/", "Applications", "GOG Games", "Terraria", "Terraria.app", "Contents", "MacOS", "Terraria"),
-      join(homeDir, "GOG Games", "Terraria", "Terraria.app", "Contents", "MacOS", "Terraria"),
-      join(homeDir, "Applications", "GOG Games", "Terraria", "Terraria.app", "Contents", "MacOS", "Terraria"),
+        join(
+          "/",
+          "Applications",
+          "Terraria.app",
+          "Contents",
+          "MacOS",
+          "Terraria",
+        ),
+        join(
+          homeDir,
+          "Applications",
+          "Terraria.app",
+          "Contents",
+          "MacOS",
+          "Terraria",
+        ),
+        join(
+          "/",
+          "Applications",
+          "GOG Games",
+          "Terraria",
+          "Terraria.app",
+          "Contents",
+          "MacOS",
+          "Terraria",
+        ),
+        join(
+          homeDir,
+          "GOG Games",
+          "Terraria",
+          "Terraria.app",
+          "Contents",
+          "MacOS",
+          "Terraria",
+        ),
+        join(
+          homeDir,
+          "Applications",
+          "GOG Games",
+          "Terraria",
+          "Terraria.app",
+          "Contents",
+          "MacOS",
+          "Terraria",
+        ),
       ]),
     );
 
@@ -479,17 +614,25 @@ async function detectTerrariaPaths(): Promise<string[]> {
       candidates,
       seen,
       await findFirstExistingPath([
-      join(macRoot, "Terraria.app", "Contents", "MacOS", "Terraria"),
-      join(macRoot, "Terraria"),
+        join(macRoot, "Terraria.app", "Contents", "MacOS", "Terraria"),
+        join(macRoot, "Terraria"),
       ]),
     );
 
     try {
       if (await fse.pathExists(macRoot)) {
         const entries = readdirSync(macRoot);
-        const candidate = entries.find((entry) => /^Terraria(\.app)?$/i.test(entry));
+        const candidate = entries.find((entry) =>
+          /^Terraria(\.app)?$/i.test(entry),
+        );
         if (candidate) {
-          const appBundleBinary = join(macRoot, candidate, "Contents", "MacOS", "Terraria");
+          const appBundleBinary = join(
+            macRoot,
+            candidate,
+            "Contents",
+            "MacOS",
+            "Terraria",
+          );
           if (await fse.pathExists(appBundleBinary)) {
             pushUniqueTerrariaPath(candidates, seen, appBundleBinary);
           }
@@ -514,20 +657,28 @@ async function detectTerrariaPaths(): Promise<string[]> {
       candidates,
       seen,
       await findFirstExistingPath([
-      join(homeDir, "GOG Games", "Terraria", "game", "Terraria.exe"),
-      join(homeDir, "GOG Games", "Terraria", "game", "Terraria"),
-      join(homeDir, "GOG Games", "Terraria", "start.sh"),
-      join(homeDir, "GOG Games", "Terraria", "Terraria"),
-      join(homeDir, "Games", "Terraria", "game", "Terraria.exe"),
-      join(homeDir, "Games", "Terraria", "game", "Terraria"),
-      join(homeDir, "Games", "Terraria", "start.sh"),
-      join(homeDir, "Games", "Terraria", "Terraria"),
+        join(homeDir, "GOG Games", "Terraria", "game", "Terraria.exe"),
+        join(homeDir, "GOG Games", "Terraria", "game", "Terraria"),
+        join(homeDir, "GOG Games", "Terraria", "start.sh"),
+        join(homeDir, "GOG Games", "Terraria", "Terraria"),
+        join(homeDir, "Games", "Terraria", "game", "Terraria.exe"),
+        join(homeDir, "Games", "Terraria", "game", "Terraria"),
+        join(homeDir, "Games", "Terraria", "start.sh"),
+        join(homeDir, "Games", "Terraria", "Terraria"),
       ]),
     );
 
     const linuxRoots = [
       join(homeDir, ".steam", "steam", "steamapps", "common", "Terraria"),
-      join(homeDir, ".local", "share", "Steam", "steamapps", "common", "Terraria"),
+      join(
+        homeDir,
+        ".local",
+        "share",
+        "Steam",
+        "steamapps",
+        "common",
+        "Terraria",
+      ),
     ];
 
     for (const root of linuxRoots) {
@@ -535,9 +686,9 @@ async function detectTerrariaPaths(): Promise<string[]> {
         candidates,
         seen,
         await findFirstExistingPath([
-        join(root, "Terraria.bin.x86_64"),
-        join(root, "Terraria.bin.x86"),
-        join(root, "Terraria"),
+          join(root, "Terraria.bin.x86_64"),
+          join(root, "Terraria.bin.x86"),
+          join(root, "Terraria"),
         ]),
       );
 
@@ -658,7 +809,8 @@ function serializePluginIni(sections: PluginIniSection[]): string {
   return lines.join("\r\n") + (lines.length > 0 ? "\r\n" : "");
 }
 
-const LINUX_PLUGIN_COMPILER_WRAPPER_RELATIVE_PATH = "Plugins/.PluginLoaderTools/mcs-host.sh";
+const LINUX_PLUGIN_COMPILER_WRAPPER_RELATIVE_PATH =
+  "Plugins/.PluginLoaderTools/mcs-host.sh";
 
 function getLinuxPluginCompilerWrapperScript(): string {
   return `#!/usr/bin/env bash
@@ -702,7 +854,10 @@ function upsertPluginsIniValuePreserveFormatting(
     const match = lines[i]?.match(sectionMatcher);
     if (!match) continue;
     const name = match[1]?.trim() || "";
-    if (name.localeCompare(sectionName, undefined, { sensitivity: "accent" }) === 0) {
+    if (
+      name.localeCompare(sectionName, undefined, { sensitivity: "accent" }) ===
+      0
+    ) {
       targetSectionStart = i;
       targetSectionEnd = lines.length;
       for (let j = i + 1; j < lines.length; j++) {
@@ -716,7 +871,10 @@ function upsertPluginsIniValuePreserveFormatting(
   }
 
   const newEntryLine = `${keyName}=${value}`;
-  const keyRegex = new RegExp(`^\\s*${keyName.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}\\s*=`, "i");
+  const keyRegex = new RegExp(
+    `^\\s*${keyName.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}\\s*=`,
+    "i",
+  );
 
   if (targetSectionStart >= 0) {
     for (let i = targetSectionStart + 1; i < targetSectionEnd; i++) {
@@ -731,7 +889,8 @@ function upsertPluginsIniValuePreserveFormatting(
   }
 
   const compact = lines.join("\n").trim();
-  const prefix = compact.length > 0 ? content.replace(/\s*$/, "") + eol + eol : "";
+  const prefix =
+    compact.length > 0 ? content.replace(/\s*$/, "") + eol + eol : "";
   return `${prefix}[${sectionName}]${eol}${newEntryLine}${eol}`;
 }
 
@@ -741,9 +900,16 @@ async function ensureLinuxPluginCompilerWrapperAndIni(
 ): Promise<void> {
   if (process.platform !== "linux") return;
 
-  const wrapperAbsPath = join(dirname(terrariaPath), LINUX_PLUGIN_COMPILER_WRAPPER_RELATIVE_PATH);
+  const wrapperAbsPath = join(
+    dirname(terrariaPath),
+    LINUX_PLUGIN_COMPILER_WRAPPER_RELATIVE_PATH,
+  );
   await fse.ensureDir(dirname(wrapperAbsPath));
-  await fse.writeFile(wrapperAbsPath, getLinuxPluginCompilerWrapperScript(), "utf8");
+  await fse.writeFile(
+    wrapperAbsPath,
+    getLinuxPluginCompilerWrapperScript(),
+    "utf8",
+  );
   try {
     await fse.chmod(wrapperAbsPath, 0o755);
   } catch {
@@ -767,7 +933,11 @@ async function ensureLinuxPluginCompilerWrapperAndIni(
   const pluginsLocalToolsDir = join(pluginsDestDir, ".PluginLoaderTools");
   await fse.ensureDir(pluginsLocalToolsDir);
   const pluginsLocalWrapper = join(pluginsLocalToolsDir, "mcs-host.sh");
-  await fse.writeFile(pluginsLocalWrapper, getLinuxPluginCompilerWrapperScript(), "utf8");
+  await fse.writeFile(
+    pluginsLocalWrapper,
+    getLinuxPluginCompilerWrapperScript(),
+    "utf8",
+  );
   try {
     await fse.chmod(pluginsLocalWrapper, 0o755);
   } catch {}
@@ -851,14 +1021,17 @@ type UpdaterState = {
   lastCheckedAt?: string;
 };
 
-type UpdaterDebugMockMode = "available" | "downloading" | "downloaded" | "reset";
+type UpdaterDebugMockMode =
+  | "available"
+  | "downloading"
+  | "downloaded"
+  | "reset";
 
 type MainLocaleDict = Record<string, unknown>;
 
 let mainLocalesCache: Record<string, MainLocaleDict> | null = null;
 let mainLanguageHint: string | null = null;
-const PREREQS_RELEASE_URL =
-  "https://dotnet.microsoft.com/download/dotnet/10.0";
+const PREREQS_RELEASE_URL = "https://dotnet.microsoft.com/download/dotnet/10.0";
 const MICROSOFT_DOTNET_DOWNLOAD_URL =
   "https://dotnet.microsoft.com/download/dotnet/10.0";
 const GITHUB_DOTNET_DEVPACK_URL =
@@ -879,7 +1052,13 @@ function getProjectRootDir(): string {
 }
 
 function getBridgeProjectPath(): string {
-  return join(getProjectRootDir(), "src", "main", "bridge", "TerrariaPatcherBridge.csproj");
+  return join(
+    getProjectRootDir(),
+    "src",
+    "main",
+    "bridge",
+    "TerrariaPatcherBridge.csproj",
+  );
 }
 
 async function runCommandCapture(
@@ -973,7 +1152,11 @@ async function detectDotNetRuntime10(): Promise<DotNetFrameworkCheck> {
   if (result.code !== 0) {
     return {
       ...base,
-      error: (result.stderr || result.stdout || "Failed to execute 'dotnet --list-runtimes'.").trim(),
+      error: (
+        result.stderr ||
+        result.stdout ||
+        "Failed to execute 'dotnet --list-runtimes'."
+      ).trim(),
     };
   }
 
@@ -982,7 +1165,8 @@ async function detectDotNetRuntime10(): Promise<DotNetFrameworkCheck> {
     return {
       ...base,
       source: "cli",
-      error: "No Microsoft.NETCore.App runtime was found in 'dotnet --list-runtimes'.",
+      error:
+        "No Microsoft.NETCore.App runtime was found in 'dotnet --list-runtimes'.",
     };
   }
 
@@ -1010,7 +1194,11 @@ async function detectDotNetSdk10(): Promise<DotNetDeveloperPackCheck> {
   if (result.code !== 0) {
     return {
       ...base,
-      error: (result.stderr || result.stdout || "Failed to execute 'dotnet --list-sdks'.").trim(),
+      error: (
+        result.stderr ||
+        result.stdout ||
+        "Failed to execute 'dotnet --list-sdks'."
+      ).trim(),
     };
   }
 
@@ -1060,16 +1248,7 @@ function getBridgeRuntimeDir(): string {
     return join(process.resourcesPath, "patcher-bridge");
   }
 
-  return join(
-    __dirname,
-    "..",
-    "..",
-    "src",
-    "main",
-    "bridge",
-    "bin",
-    "Release",
-  );
+  return join(__dirname, "..", "..", "src", "main", "bridge", "bin", "Release");
 }
 
 function getBridgeDllPath(): string {
@@ -1104,13 +1283,30 @@ function getPackagedEdgeJsEntryPath(): string {
 }
 
 function getPackagedEdgeNativePath(): string {
+  // Linux has no prebuilt edge binaries — use CI-compiled build/Release
+  if (process.platform === "linux") {
+    return join(
+      process.resourcesPath,
+      "app.asar.unpacked",
+      "node_modules",
+      "electron-edge-js",
+      "build",
+      "Release",
+      "edge_coreclr.node",
+    );
+  }
+  // Windows/macOS: use prebuilt from lib/native/
+  const electronMajor = process.versions.electron.split(".")[0];
   return join(
     process.resourcesPath,
     "app.asar.unpacked",
     "node_modules",
     "electron-edge-js",
-    "build",
-    "Release",
+    "lib",
+    "native",
+    process.platform,
+    process.arch,
+    electronMajor,
     "edge_coreclr.node",
   );
 }
@@ -1182,10 +1378,14 @@ function tMain(
   return interpolateMainText(resolved, options?.args);
 }
 
-const PLUGIN_LOADER_DLLS = ["PluginLoader.XNA.dll", "PluginLoader.FNA.dll"] as const;
+const PLUGIN_LOADER_DLLS = [
+  "PluginLoader.XNA.dll",
+  "PluginLoader.FNA.dll",
+] as const;
 const RUNTIME_SYNC_MARKER_FILE = ".TerrariaPatcherRuntimeSync.json";
 const RUNTIME_SYNC_MARKER_SCHEMA = 1;
-const RUNTIME_SYNC_STORE_VERSION_KEY: keyof StoreSchema = "runtimeFilesSyncedVersion";
+const RUNTIME_SYNC_STORE_VERSION_KEY: keyof StoreSchema =
+  "runtimeFilesSyncedVersion";
 const RUNTIME_SYNC_STORE_PATH_KEY: keyof StoreSchema = "runtimeFilesSyncedPath";
 
 type RuntimeSyncMarker = {
@@ -1199,7 +1399,10 @@ type RuntimeSyncMarker = {
 let pluginRuntimeSyncQueue: Promise<void> = Promise.resolve();
 
 function enqueuePluginRuntimeSync<T>(task: () => Promise<T>): Promise<T> {
-  const run = pluginRuntimeSyncQueue.then(() => task(), () => task());
+  const run = pluginRuntimeSyncQueue.then(
+    () => task(),
+    () => task(),
+  );
   pluginRuntimeSyncQueue = run.then(
     () => undefined,
     () => undefined,
@@ -1207,7 +1410,10 @@ function enqueuePluginRuntimeSync<T>(task: () => Promise<T>): Promise<T> {
   return run;
 }
 
-function copyPluginLoaderDlls(resourcesPluginsDir: string, terrariaDir: string): number {
+function copyPluginLoaderDlls(
+  resourcesPluginsDir: string,
+  terrariaDir: string,
+): number {
   let copied = 0;
   for (const loaderName of PLUGIN_LOADER_DLLS) {
     const loaderSrc = join(resourcesPluginsDir, loaderName);
@@ -1232,7 +1438,9 @@ function arraysEqualIgnoringOrder(a: string[], b: string[]): boolean {
   return true;
 }
 
-function getAvailablePluginSourceFiles(resourcesPluginsDir: string): Set<string> {
+function getAvailablePluginSourceFiles(
+  resourcesPluginsDir: string,
+): Set<string> {
   const names = new Set<string>();
   try {
     for (const entry of readdirSync(resourcesPluginsDir)) {
@@ -1244,7 +1452,10 @@ function getAvailablePluginSourceFiles(resourcesPluginsDir: string): Set<string>
   return names;
 }
 
-function normalizeActivePlugins(activePlugins: unknown, resourcesPluginsDir: string): string[] {
+function normalizeActivePlugins(
+  activePlugins: unknown,
+  resourcesPluginsDir: string,
+): string[] {
   if (!Array.isArray(activePlugins)) return [];
   const availablePlugins = getAvailablePluginSourceFiles(resourcesPluginsDir);
   const unique = new Set<string>();
@@ -1254,7 +1465,8 @@ function normalizeActivePlugins(activePlugins: unknown, resourcesPluginsDir: str
     if (typeof value !== "string") continue;
     const pluginName = value.trim();
     if (!pluginName || !pluginName.toLowerCase().endsWith(".cs")) continue;
-    if (availablePlugins.size > 0 && !availablePlugins.has(pluginName)) continue;
+    if (availablePlugins.size > 0 && !availablePlugins.has(pluginName))
+      continue;
     if (unique.has(pluginName)) continue;
     unique.add(pluginName);
     selected.push(pluginName);
@@ -1263,7 +1475,9 @@ function normalizeActivePlugins(activePlugins: unknown, resourcesPluginsDir: str
   return selected;
 }
 
-async function readRuntimeSyncMarker(pluginsDestDir: string): Promise<RuntimeSyncMarker | null> {
+async function readRuntimeSyncMarker(
+  pluginsDestDir: string,
+): Promise<RuntimeSyncMarker | null> {
   try {
     const markerPath = getRuntimeSyncMarkerPath(pluginsDestDir);
     if (!(await fse.pathExists(markerPath))) return null;
@@ -1279,7 +1493,9 @@ async function readRuntimeSyncMarker(pluginsDestDir: string): Promise<RuntimeSyn
       appVersion: marker.appVersion,
       platform: marker.platform as NodeJS.Platform,
       syncedAt: typeof marker.syncedAt === "string" ? marker.syncedAt : "",
-      activePlugins: marker.activePlugins.filter((p): p is string => typeof p === "string"),
+      activePlugins: marker.activePlugins.filter(
+        (p): p is string => typeof p === "string",
+      ),
     };
   } catch {
     return null;
@@ -1325,7 +1541,10 @@ async function syncManagedPluginRuntime(
 
   const terrariaDir = dirname(terrariaPath);
   const resourcesPluginsDir = getPluginsResourcesDir();
-  const activePlugins = normalizeActivePlugins(activePluginsInput, resourcesPluginsDir);
+  const activePlugins = normalizeActivePlugins(
+    activePluginsInput,
+    resourcesPluginsDir,
+  );
 
   const copiedLoaders = copyPluginLoaderDlls(resourcesPluginsDir, terrariaDir);
   if (copiedLoaders === 0) {
@@ -1365,14 +1584,18 @@ async function shouldRunStartupRuntimeSync(
   const terrariaDir = dirname(terrariaPath);
   const pluginsDestDir = join(terrariaDir, "Plugins");
   const resourcesPluginsDir = getPluginsResourcesDir();
-  const normalizedActivePlugins = normalizeActivePlugins(activePluginsInput, resourcesPluginsDir);
+  const normalizedActivePlugins = normalizeActivePlugins(
+    activePluginsInput,
+    resourcesPluginsDir,
+  );
 
   const marker = await readRuntimeSyncMarker(pluginsDestDir);
   if (!marker) return true;
 
   if (marker.appVersion !== app.getVersion()) return true;
   if (marker.platform !== process.platform) return true;
-  if (!arraysEqualIgnoringOrder(marker.activePlugins, normalizedActivePlugins)) return true;
+  if (!arraysEqualIgnoringOrder(marker.activePlugins, normalizedActivePlugins))
+    return true;
 
   const loaderMissing = PLUGIN_LOADER_DLLS.some(
     (loaderName) => !existsSync(join(terrariaDir, loaderName)),
@@ -1391,8 +1614,11 @@ async function runStartupRuntimeMaintenance(
     if (!pluginSupport || !terrariaPath) return;
     if (!(await fse.pathExists(terrariaPath))) return;
 
-    const activePlugins = (store.get("activePlugins") as string[] | undefined) || [];
-    const lastSyncedVersion = String(store.get(RUNTIME_SYNC_STORE_VERSION_KEY) || "");
+    const activePlugins =
+      (store.get("activePlugins") as string[] | undefined) || [];
+    const lastSyncedVersion = String(
+      store.get(RUNTIME_SYNC_STORE_VERSION_KEY) || "",
+    );
     const lastSyncedPath = String(store.get(RUNTIME_SYNC_STORE_PATH_KEY) || "");
     const versionChanged = lastSyncedVersion !== app.getVersion();
     const pathChanged =
@@ -1401,7 +1627,10 @@ async function runStartupRuntimeMaintenance(
 
     let needsSync = versionChanged || pathChanged;
     if (!needsSync) {
-      needsSync = await shouldRunStartupRuntimeSync(terrariaPath, activePlugins);
+      needsSync = await shouldRunStartupRuntimeSync(
+        terrariaPath,
+        activePlugins,
+      );
     }
 
     if (!needsSync) return;
@@ -1415,7 +1644,9 @@ async function runStartupRuntimeMaintenance(
   }
 }
 
-function validateRuntimeDependencies(language?: string | null): RuntimeDependencyCheck {
+function validateRuntimeDependencies(
+  language?: string | null,
+): RuntimeDependencyCheck {
   const missing: string[] = [];
   const bridgeDir = getBridgeRuntimeDir();
   const bridgeDll = getBridgeDllPath();
@@ -1537,11 +1768,15 @@ function createInitialUpdaterState(): UpdaterState {
     downloading: false,
     downloaded: false,
     updateAvailable: false,
-    message: supported ? undefined : "Updates are only available in packaged builds.",
+    message: supported
+      ? undefined
+      : "Updates are only available in packaged builds.",
   };
 }
 
-function normalizeReleaseNotes(notes: UpdateInfo["releaseNotes"]): string | undefined {
+function normalizeReleaseNotes(
+  notes: UpdateInfo["releaseNotes"],
+): string | undefined {
   if (!notes) return undefined;
   if (typeof notes === "string") return notes;
   if (Array.isArray(notes)) {
@@ -1572,11 +1807,9 @@ function normalizeUpdaterErrorMessage(rawMessage: string): string {
     (lower.includes("404") || lower.includes("status maybe not reported"));
   const mentionsAuthToken = lower.includes("authentication token");
   const looksLikeReleaseAssetsNotReady =
-    (
-      lower.includes("latest.yml") &&
+    (lower.includes("latest.yml") &&
       (lower.includes("cannot find latest.yml") ||
-        lower.includes("release artifacts"))
-    ) ||
+        lower.includes("release artifacts"))) ||
     (lower.includes("/releases/download/") &&
       lower.includes("404") &&
       (lower.includes("latest.yml") ||
@@ -1602,9 +1835,13 @@ function normalizeUpdaterErrorMessage(rawMessage: string): string {
 
   // Some updater/provider errors include a large serialized HTTP dump (headers, cookies, etc.).
   // Keep the user-facing message short and readable.
-  const headersIndex = message.indexOf(' Headers:');
+  const headersIndex = message.indexOf(" Headers:");
   const truncated = headersIndex > 0 ? message.slice(0, headersIndex) : message;
-  const firstLine = truncated.split(/\r?\n/).find((line) => line.trim())?.trim() ?? "";
+  const firstLine =
+    truncated
+      .split(/\r?\n/)
+      .find((line) => line.trim())
+      ?.trim() ?? "";
   if (firstLine) return firstLine;
 
   return message;
@@ -1677,7 +1914,8 @@ function initializeAutoUpdater(): void {
       downloaded: false,
       updateAvailable: false,
       latestVersion: info.version || updaterState.currentVersion,
-      releaseName: info.releaseName || info.version || updaterState.currentVersion,
+      releaseName:
+        info.releaseName || info.version || updaterState.currentVersion,
       releaseDate: info.releaseDate || undefined,
       releaseNotes: normalizeReleaseNotes(info.releaseNotes),
       percent: undefined,
@@ -1974,10 +2212,15 @@ function getEdgeFunc(): (
           });
         } catch (err: unknown) {
           const normalized =
-            err instanceof Error ? err : new Error(typeof err === "string" ? err : String(err));
+            err instanceof Error
+              ? err
+              : new Error(typeof err === "string" ? err : String(err));
           patcherFuncInitError = normalized;
           edgeGlobal.__terrariaPatcherEdgeInitError = normalized;
-          console.error("[edge] failed to initialize patcher function:", normalized);
+          console.error(
+            "[edge] failed to initialize patcher function:",
+            normalized,
+          );
           throw normalized;
         }
 
@@ -1985,12 +2228,14 @@ function getEdgeFunc(): (
       }
 
       const func = patcherFunc!;
-      return await new Promise<{ success: boolean; message: string }>((resolve, reject) => {
-        func(input, (error, result) => {
-          if (error) reject(error);
-          else resolve(result as { success: boolean; message: string });
-        });
-      });
+      return await new Promise<{ success: boolean; message: string }>(
+        (resolve, reject) => {
+          func(input, (error, result) => {
+            if (error) reject(error);
+            else resolve(result as { success: boolean; message: string });
+          });
+        },
+      );
     });
 
     // Keep the queue alive even if one invocation fails.
@@ -2094,26 +2339,33 @@ function setupIpcHandlers(): void {
     return { success: true };
   });
 
-  ipcMain.handle("updater:debugMock", async (_event, mode: UpdaterDebugMockMode) => {
-    initializeAutoUpdater();
+  ipcMain.handle(
+    "updater:debugMock",
+    async (_event, mode: UpdaterDebugMockMode) => {
+      initializeAutoUpdater();
 
-    if (app.isPackaged) {
-      return { success: false, unsupported: true, state: updaterState };
-    }
+      if (app.isPackaged) {
+        return { success: false, unsupported: true, state: updaterState };
+      }
 
-    const allowed: UpdaterDebugMockMode[] = [
-      "available",
-      "downloading",
-      "downloaded",
-      "reset",
-    ];
-    if (!allowed.includes(mode)) {
-      return { success: false, error: "Invalid debug mock mode.", state: updaterState };
-    }
+      const allowed: UpdaterDebugMockMode[] = [
+        "available",
+        "downloading",
+        "downloaded",
+        "reset",
+      ];
+      if (!allowed.includes(mode)) {
+        return {
+          success: false,
+          error: "Invalid debug mock mode.",
+          state: updaterState,
+        };
+      }
 
-    applyUpdaterDebugMock(mode);
-    return { success: true, state: updaterState };
-  });
+      applyUpdaterDebugMock(mode);
+      return { success: true, state: updaterState };
+    },
+  );
 
   // Dev Tools
   ipcMain.handle("dev:getStatus", async () => {
@@ -2150,11 +2402,19 @@ function setupIpcHandlers(): void {
 
   ipcMain.handle("dev:buildBridge", async () => {
     if (app.isPackaged) {
-      return { success: false, unsupported: true, error: "Dev Tools are unavailable in packaged builds." };
+      return {
+        success: false,
+        unsupported: true,
+        error: "Dev Tools are unavailable in packaged builds.",
+      };
     }
 
     if (devBridgeBuildRunning) {
-      return { success: false, busy: true, error: "Bridge build is already running." };
+      return {
+        success: false,
+        busy: true,
+        error: "Bridge build is already running.",
+      };
     }
 
     devBridgeBuildRunning = true;
@@ -2210,30 +2470,39 @@ function setupIpcHandlers(): void {
     "dev:openPrereqLink",
     async (
       _event,
-      source: "microsoftPage" | "githubRelease" | "githubRuntime" | "githubDeveloperPack",
+      source:
+        | "microsoftPage"
+        | "githubRelease"
+        | "githubRuntime"
+        | "githubDeveloperPack",
     ) => {
-    if (app.isPackaged) {
-      return { success: false, unsupported: true, error: "Dev Tools are unavailable in packaged builds." };
-    }
+      if (app.isPackaged) {
+        return {
+          success: false,
+          unsupported: true,
+          error: "Dev Tools are unavailable in packaged builds.",
+        };
+      }
 
-    const target =
-      source === "microsoftPage"
-        ? MICROSOFT_DOTNET_DOWNLOAD_URL
-        : source === "githubRuntime"
-          ? GITHUB_DOTNET_RUNTIME_URL
-          : source === "githubDeveloperPack"
-            ? GITHUB_DOTNET_DEVPACK_URL
-            : PREREQS_RELEASE_URL;
-    try {
-      await shell.openExternal(target);
-      return { success: true };
-    } catch (err) {
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : String(err),
-      };
-    }
-  });
+      const target =
+        source === "microsoftPage"
+          ? MICROSOFT_DOTNET_DOWNLOAD_URL
+          : source === "githubRuntime"
+            ? GITHUB_DOTNET_RUNTIME_URL
+            : source === "githubDeveloperPack"
+              ? GITHUB_DOTNET_DEVPACK_URL
+              : PREREQS_RELEASE_URL;
+      try {
+        await shell.openExternal(target);
+        return { success: true };
+      } catch (err) {
+        return {
+          success: false,
+          error: err instanceof Error ? err.message : String(err),
+        };
+      }
+    },
+  );
 
   ipcMain.handle("prereqs:getStatus", async () => {
     const dotnetPrereqs = await getDotNetPrereqStatus();
@@ -2247,26 +2516,31 @@ function setupIpcHandlers(): void {
     "prereqs:openLink",
     async (
       _event,
-      source: "microsoftPage" | "githubRelease" | "githubRuntime" | "githubDeveloperPack",
+      source:
+        | "microsoftPage"
+        | "githubRelease"
+        | "githubRuntime"
+        | "githubDeveloperPack",
     ) => {
-    const target =
-      source === "microsoftPage"
-        ? MICROSOFT_DOTNET_DOWNLOAD_URL
-        : source === "githubRuntime"
-          ? GITHUB_DOTNET_RUNTIME_URL
-          : source === "githubDeveloperPack"
-            ? GITHUB_DOTNET_DEVPACK_URL
-            : PREREQS_RELEASE_URL;
-    try {
-      await shell.openExternal(target);
-      return { success: true };
-    } catch (err) {
-      return {
-        success: false,
-        error: err instanceof Error ? err.message : String(err),
-      };
-    }
-  });
+      const target =
+        source === "microsoftPage"
+          ? MICROSOFT_DOTNET_DOWNLOAD_URL
+          : source === "githubRuntime"
+            ? GITHUB_DOTNET_RUNTIME_URL
+            : source === "githubDeveloperPack"
+              ? GITHUB_DOTNET_DEVPACK_URL
+              : PREREQS_RELEASE_URL;
+      try {
+        await shell.openExternal(target);
+        return { success: true };
+      } catch (err) {
+        return {
+          success: false,
+          error: err instanceof Error ? err.message : String(err),
+        };
+      }
+    },
+  );
 
   // Config
   ipcMain.handle("config:get", async (_event, key: string) => {
@@ -2337,7 +2611,10 @@ function setupIpcHandlers(): void {
 
       const result = await dialog.showSaveDialog({
         title: "Export Terraria Patcher Profile",
-        defaultPath: join(app.getPath("documents"), "TerrariaPatcher.profile.json"),
+        defaultPath: join(
+          app.getPath("documents"),
+          "TerrariaPatcher.profile.json",
+        ),
         filters: [{ name: "JSON Files", extensions: ["json"] }],
       });
 
@@ -2375,7 +2652,8 @@ function setupIpcHandlers(): void {
 
       const filePath = result.filePaths[0];
       const parsed = await fse.readJson(filePath);
-      const rawData = parsed?.data && typeof parsed.data === "object" ? parsed.data : parsed;
+      const rawData =
+        parsed?.data && typeof parsed.data === "object" ? parsed.data : parsed;
 
       if (!rawData || typeof rawData !== "object") {
         return {
@@ -2387,11 +2665,16 @@ function setupIpcHandlers(): void {
       const data = rawData as ProfileConfigData;
       const store = await getStore();
 
-      if (typeof data.terrariaPath === "string") store.set("terrariaPath", data.terrariaPath);
-      if (typeof data.language === "string") store.set("language", data.language);
-      if (typeof data.pluginSupport === "boolean") store.set("pluginSupport", data.pluginSupport);
-      if (data.patchOptions && typeof data.patchOptions === "object") store.set("patchOptions", data.patchOptions);
-      if (Array.isArray(data.activePlugins)) store.set("activePlugins", data.activePlugins);
+      if (typeof data.terrariaPath === "string")
+        store.set("terrariaPath", data.terrariaPath);
+      if (typeof data.language === "string")
+        store.set("language", data.language);
+      if (typeof data.pluginSupport === "boolean")
+        store.set("pluginSupport", data.pluginSupport);
+      if (data.patchOptions && typeof data.patchOptions === "object")
+        store.set("patchOptions", data.patchOptions);
+      if (Array.isArray(data.activePlugins))
+        store.set("activePlugins", data.activePlugins);
 
       return {
         success: true,
@@ -2525,7 +2808,9 @@ function setupIpcHandlers(): void {
         }
 
         const iniPath = getPluginsIniPath(payload.terrariaPath);
-        const sections = Array.isArray(payload.sections) ? payload.sections : [];
+        const sections = Array.isArray(payload.sections)
+          ? payload.sections
+          : [];
         const content = serializePluginIni(sections);
         await fse.writeFile(iniPath, content, "utf8");
 
@@ -2545,42 +2830,39 @@ function setupIpcHandlers(): void {
     },
   );
 
-  ipcMain.handle(
-    "plugins:ini-delete",
-    async (_event, terrariaPath: string) => {
-      try {
-        if (!terrariaPath) {
-          return {
-            success: false,
-            key: "plugins.ini.errors.noTerrariaPath",
-          };
-        }
-
-        const iniPath = getPluginsIniPath(terrariaPath);
-        if (!(await fse.pathExists(iniPath))) {
-          return {
-            success: false,
-            key: "plugins.ini.messages.notFound",
-            args: { path: iniPath },
-          };
-        }
-
-        await fse.remove(iniPath);
-        return {
-          success: true,
-          path: iniPath,
-          key: "plugins.ini.messages.deleteSuccess",
-        };
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
+  ipcMain.handle("plugins:ini-delete", async (_event, terrariaPath: string) => {
+    try {
+      if (!terrariaPath) {
         return {
           success: false,
-          key: "plugins.ini.messages.deleteFailed",
-          args: { error: msg },
+          key: "plugins.ini.errors.noTerrariaPath",
         };
       }
-    },
-  );
+
+      const iniPath = getPluginsIniPath(terrariaPath);
+      if (!(await fse.pathExists(iniPath))) {
+        return {
+          success: false,
+          key: "plugins.ini.messages.notFound",
+          args: { path: iniPath },
+        };
+      }
+
+      await fse.remove(iniPath);
+      return {
+        success: true,
+        path: iniPath,
+        key: "plugins.ini.messages.deleteSuccess",
+      };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return {
+        success: false,
+        key: "plugins.ini.messages.deleteFailed",
+        args: { error: msg },
+      };
+    }
+  });
 
   // Dialog
   ipcMain.handle("dialog:openFile", async () => {
@@ -2825,7 +3107,12 @@ function setupIpcHandlers(): void {
               success: false,
               key: "patcher.messages.monoMissing",
               args: {
-                details: [mono.message ?? "mcs compiler not found", mono.hint ?? ""].filter(Boolean).join(" "),
+                details: [
+                  mono.message ?? "mcs compiler not found",
+                  mono.hint ?? "",
+                ]
+                  .filter(Boolean)
+                  .join(" "),
               },
             };
           }
@@ -2839,7 +3126,11 @@ function setupIpcHandlers(): void {
           } catch (syncErr: unknown) {
             const syncMessage =
               syncErr instanceof Error ? syncErr.message : String(syncErr);
-            if (syncMessage.includes("Plugin loader DLLs are missing from resources")) {
+            if (
+              syncMessage.includes(
+                "Plugin loader DLLs are missing from resources",
+              )
+            ) {
               return {
                 success: false,
                 key: "plugins.error.missingLoader",
@@ -2876,8 +3167,9 @@ function setupIpcHandlers(): void {
             };
           }
           const isPluginsFnaUnsupported =
-            backendMessage.includes("PluginLoader.XNA.dll is not compatible with FNA builds") ||
-            backendMessage.includes("not compatible with FNA builds");
+            backendMessage.includes(
+              "PluginLoader.XNA.dll is not compatible with FNA builds",
+            ) || backendMessage.includes("not compatible with FNA builds");
           if (isPluginsFnaUnsupported) {
             return {
               success: false,
@@ -2930,10 +3222,13 @@ function createWindow(): void {
 
   mainWindow.on("ready-to-show", showWindow);
   mainWindow.webContents.on("did-finish-load", showWindow);
-  mainWindow.webContents.on("did-fail-load", (_event, code, description, url) => {
-    console.error("[window] did-fail-load", { code, description, url });
-    showWindow();
-  });
+  mainWindow.webContents.on(
+    "did-fail-load",
+    (_event, code, description, url) => {
+      console.error("[window] did-fail-load", { code, description, url });
+      showWindow();
+    },
+  );
   mainWindow.webContents.on("render-process-gone", (_event, details) => {
     console.error("[window] render-process-gone", details);
   });

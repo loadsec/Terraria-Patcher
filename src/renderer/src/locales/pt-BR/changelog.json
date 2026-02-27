@@ -10,9 +10,19 @@
     "supportedRangeLabel": "Faixa suportada",
     "noEntriesTitle": "Ainda não há entradas no changelog",
     "noEntriesDesc": "Adicione versões no version.json e traduções no changelog.json."
+  },
+  "releases": {
+    "v1_1_10": {
+      "title": "Correção do Nativo Edge Precompilado",
+      "summary": "Corrige o crash de assertion edge_coreclr no Windows em builds de release/update usando o módulo nativo precompilado correto em vez do compilado no CI.",
+      "changes": [
+        "Builds empacotadas no Windows agora usam o `edge_coreclr.node` precompilado de `lib/native/` em vez do binário compilado no CI em `build/Release/`, corrigindo o crash de assertion `g_coreclr == nullptr`.",
+        "O workflow de release no CI agora remove o nativo edge compilado no Windows para evitar que ele seja empacotado sobre o precompilado correto.",
+        "Atualizado o `asarUnpack` para incluir ambos os caminhos `build/Release/` e `lib/native/`, garantindo que Linux (compilado no CI) e Windows (precompilado) funcionem.",
+        "Resolução de caminho do nativo edge agora é por plataforma: Windows/macOS usam precompilado de `lib/native/`, Linux usa compilado do CI em `build/Release/`."
+      ]
     },
-    "releases": {
-      "v1_1_9": {
+    "v1_1_9": {
       "title": "Correção do Caminho do Edge Empacotado",
       "summary": "Corrige o patch no Windows carregando o electron-edge-js do caminho correto em app.asar.unpacked e reforça a checagem do runtime nativo.",
       "changes": [
@@ -20,7 +30,7 @@
         "Mensagens de erro agora apontam exatamente para o caminho nativo esperado nos builds empacotados de Windows."
       ]
     },
-      "v1_1_8": {
+    "v1_1_8": {
       "title": "Correção de Assert no Windows",
       "summary": "Corrige o assert do edge_coreclr ao aplicar patch em builds de release no Windows e limpa a validação de empacotamento.",
       "changes": [
@@ -29,7 +39,7 @@
         "Garantido que o patch no Windows use apenas uma cópia do runtime do edge, evitando a falha de assert."
       ]
     },
-      "v1_1_7": {
+    "v1_1_7": {
       "title": "Correção de Overflow na UI + Proteções no Release",
       "summary": "Corrige o estouro de layout com caminhos longos de backup no modal e reforça validações dos artefatos no Windows.",
       "changes": [
@@ -38,7 +48,7 @@
         "Adicionada validação de artefatos empacotados no Windows para garantir que os arquivos de runtime `patcher-edge-js` existam antes de publicar."
       ]
     },
-      "v1_1_6": {
+    "v1_1_6": {
       "title": "Reforço do Runtime Edge no Windows",
       "summary": "Evita que builds empacotadas no Windows carreguem pares incompatíveis de edge módulo/runtime após updates.",
       "changes": [
@@ -48,7 +58,7 @@
         "Mensagens de erro ficaram mais claras quando os recursos empacotados do edge estiverem ausentes."
       ]
     },
-      "v1_1_5": {
+    "v1_1_5": {
       "title": "Proteções de Sincronização de Runtime",
       "summary": "Melhora a confiabilidade após updates, evitando reutilizar arquivos antigos de runtime/plugins.",
       "changes": [
@@ -58,7 +68,7 @@
         "Adicionado caminho IPC dedicado para reparo de runtime com re-sync forçado e seguro."
       ]
     },
-      "v1_1_4": {
+    "v1_1_4": {
       "title": "Hotfix: Patching no Windows Desbloqueado",
       "summary": "Restaura o fluxo de patch no Windows que havia quebrado após a 1.1.3 e adiciona um pequeno ajuste de estabilidade.",
       "changes": [
@@ -67,7 +77,7 @@
         "Pequenas melhorias de estabilidade e ordem de inicialização."
       ]
     },
-      "v1_1_3": {
+    "v1_1_3": {
       "title": "Atualização de Estabilidade (Windows + Linux)",
       "summary": "Atualização de estabilidade após a 1.1.2, focada em inicialização mais segura e patch mais confiável.",
       "changes": [
@@ -76,7 +86,7 @@
         "Melhorada a ordem de inicialização da bridge para reduzir conflitos na abertura."
       ]
     },
-      "v1_1_2": {
+    "v1_1_2": {
       "title": "Correção no Linux (AppImage)",
       "summary": "Correção focada no Linux para permitir aplicar patch normalmente no AppImage.",
       "changes": [
@@ -84,7 +94,7 @@
         "Ajustado o empacotamento/carregamento do `electron-edge-js` para funcionar corretamente no Linux."
       ]
     },
-      "v1_1_1": {
+    "v1_1_1": {
       "title": "Checagens de Runtime e Estabilidade de Plugins",
       "summary": "Adiciona verificação de pré-requisitos .NET 10/Mono, estabiliza o carregamento de plugins em Windows/Linux e corrige a persistência do Save Position.",
       "changes": [
@@ -96,7 +106,7 @@
         "Correções gerais de bugs de plugins e ajustes de compatibilidade no Linux."
       ]
     },
-      "v1_1_0": {
+    "v1_1_0": {
       "title": "UX de Atualizações + Suporte ao Linux",
       "summary": "Melhorada a visibilidade do status de updates, refinado o painel de atualizações em Configurações, adicionado reset de perfil com auto-detecção do caminho do Terraria e oficializado o suporte a patching no Linux.",
       "changes": [
