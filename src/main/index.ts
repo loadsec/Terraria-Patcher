@@ -1622,8 +1622,22 @@ type EdgeModule = {
 
 let edgeModule: EdgeModule | null = null;
 const requireForMain = createRequire(import.meta.url);
+type EdgeGlobalCache = {
+  __terrariaPatcherEdgeModule?: EdgeModule;
+  __terrariaPatcherEdgeFunc?: (
+    input: object,
+    callback: (error: unknown, result: unknown) => void,
+  ) => void;
+  __terrariaPatcherEdgeInitError?: Error;
+};
+const edgeGlobal = globalThis as typeof globalThis & EdgeGlobalCache;
 
 function getEdgeModule(): EdgeModule {
+  if (edgeGlobal.__terrariaPatcherEdgeModule) {
+    edgeModule = edgeGlobal.__terrariaPatcherEdgeModule;
+    return edgeModule;
+  }
+
   if (edgeModule) return edgeModule;
 
   try {
@@ -1636,11 +1650,13 @@ function getEdgeModule(): EdgeModule {
       const packagedEdgeEntry = getPackagedEdgeJsEntryPath();
       if (existsSync(packagedEdgeEntry)) {
         edgeModule = requireForMain(packagedEdgeEntry) as EdgeModule;
+        edgeGlobal.__terrariaPatcherEdgeModule = edgeModule;
         return edgeModule;
       }
     }
 
     edgeModule = requireForMain("electron-edge-js") as EdgeModule;
+    edgeGlobal.__terrariaPatcherEdgeModule = edgeModule;
     return edgeModule;
   } catch (err: unknown) {
     const rawMessage = err instanceof Error ? err.message : String(err);
@@ -1672,8 +1688,16 @@ function getEdgeFunc(): (
 ) => Promise<{ success: boolean; message: string }> {
   return (input: object) => {
     const task = edgeInvokeQueue.then(async () => {
+      if (edgeGlobal.__terrariaPatcherEdgeInitError) {
+        patcherFuncInitError = edgeGlobal.__terrariaPatcherEdgeInitError;
+      }
+
       if (patcherFuncInitError) {
         throw patcherFuncInitError;
+      }
+
+      if (!patcherFunc && edgeGlobal.__terrariaPatcherEdgeFunc) {
+        patcherFunc = edgeGlobal.__terrariaPatcherEdgeFunc;
       }
 
       if (!patcherFunc) {
@@ -1690,9 +1714,12 @@ function getEdgeFunc(): (
           const normalized =
             err instanceof Error ? err : new Error(typeof err === "string" ? err : String(err));
           patcherFuncInitError = normalized;
+          edgeGlobal.__terrariaPatcherEdgeInitError = normalized;
           console.error("[edge] failed to initialize patcher function:", normalized);
           throw normalized;
         }
+
+        edgeGlobal.__terrariaPatcherEdgeFunc = patcherFunc;
       }
 
       const func = patcherFunc!;
@@ -2397,6 +2424,12 @@ function setupIpcHandlers(): void {
     "patcher:verify-clean",
     async (_event, terrariaPath: string) => {
       try {
+        // Windows: avoid early edge/coreclr initialization during pre-check.
+        // Some environments can hit edge_coreclr bind/assert if initialized too early.
+        if (process.platform === "win32") {
+          return { safe: true };
+        }
+
         const backupPath = terrariaPath + ".bak";
         const hasBackup = await fse.pathExists(backupPath);
 
