@@ -1,7 +1,7 @@
 {
   "name": "terraria-patcher",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.1.1",
   "author": "Louan Fontenele",
   "description": "A desktop tool for patching Terraria",
   "main": "./out/main/index.js",
