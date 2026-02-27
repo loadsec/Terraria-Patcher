@@ -130,6 +130,15 @@ jobs:
       - name: Install dependencies (no postinstall scripts)
         run: pnpm install --ignore-scripts
 
+      - name: Validate tag version matches package version
+        shell: bash
+        run: |
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          TAG_VERSION="${{ needs.prepare.outputs.version }}"
+          echo "Tag version: $TAG_VERSION"
+          echo "package.json version: $PKG_VERSION"
+          test "$PKG_VERSION" = "$TAG_VERSION"
+
       - name: Rebuild native dependencies for Electron
         run: pnpm exec electron-builder install-app-deps
 
@@ -162,6 +171,18 @@ jobs:
 
       - name: Package app
         run: pnpm exec electron-builder ${{ matrix.builderArg }} --publish never
+
+      - name: Validate packaged edge runtime (Windows)
+        if: matrix.name == 'windows'
+        shell: pwsh
+        run: |
+          $edgeJs = "dist/win-unpacked/resources/patcher-edge-js/lib/edge.js"
+          $edgeNode = "dist/win-unpacked/resources/patcher-edge-js/build/Release/edge_coreclr.node"
+          if (!(Test-Path $edgeJs)) { throw "Missing packaged edge entry: $edgeJs" }
+          if (!(Test-Path $edgeNode)) { throw "Missing packaged edge native module: $edgeNode" }
+          Write-Host "Packaged edge entry found: $edgeJs"
+          Write-Host "Packaged edge native found: $edgeNode"
+          Get-FileHash $edgeNode | Format-List
 
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
