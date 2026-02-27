@@ -12,6 +12,15 @@
     "noEntriesDesc": "Add release entries to version.json and translations to changelog.json."
     },
     "releases": {
+      "v1_1_4": {
+      "title": "Hotfix: Windows Patching Unblocked",
+      "summary": "Restores the Windows patch flow that regressed after 1.1.3 and adds a small stability tweak.",
+      "changes": [
+        "Fixed the Windows patch pipeline (edge/bridge load) so patching works again on Windows installs.",
+        "Adjusted runtime detection to avoid false blockers when .NET 10 is already installed.",
+        "Minor stability and startup ordering tweaks."
+      ]
+    },
       "v1_1_3": {
       "title": "Stability Update (Windows + Linux)",
       "summary": "Follow-up stability update after 1.1.2, focused on safer startup and patch initialization.",

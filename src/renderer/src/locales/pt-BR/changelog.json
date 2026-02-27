@@ -12,6 +12,15 @@
     "noEntriesDesc": "Adicione versões no version.json e traduções no changelog.json."
     },
     "releases": {
+      "v1_1_4": {
+      "title": "Hotfix: Patching no Windows Desbloqueado",
+      "summary": "Restaura o fluxo de patch no Windows que havia quebrado após a 1.1.3 e adiciona um pequeno ajuste de estabilidade.",
+      "changes": [
+        "Corrigido o pipeline de patch no Windows (carregamento do edge/bridge), voltando a funcionar normalmente.",
+        "Ajustada a detecção de runtime para evitar bloqueios falsos quando o .NET 10 já está instalado.",
+        "Pequenas melhorias de estabilidade e ordem de inicialização."
+      ]
+    },
       "v1_1_3": {
       "title": "Atualização de Estabilidade (Windows + Linux)",
       "summary": "Atualização de estabilidade após a 1.1.2, focada em inicialização mais segura e patch mais confiável.",
