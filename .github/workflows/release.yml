@@ -171,6 +171,16 @@ jobs:
           echo "edge_coreclr.node found:"
           ls -lah node_modules/electron-edge-js/build/Release/edge_coreclr.node
 
+      - name: Verify build/Release was removed (Windows pre-package)
+        if: matrix.name == 'windows'
+        shell: bash
+        run: |
+          if [ -f "node_modules/electron-edge-js/build/Release/edge_coreclr.node" ]; then
+            echo "::error::build/Release/edge_coreclr.node still exists BEFORE packaging!"
+            exit 1
+          fi
+          echo "Confirmed: build/Release/edge_coreclr.node does NOT exist before packaging."
+
       - name: Build app bundle (skip bridge rebuild)
         run: pnpm exec electron-vite build
 
@@ -184,6 +194,15 @@ jobs:
           $electronMajor = node -p "require('electron/package.json').version.split('.')[0]"
           $edgeJs = "dist/win-unpacked/resources/app.asar.unpacked/node_modules/electron-edge-js/lib/edge.js"
           $edgeNode = "dist/win-unpacked/resources/app.asar.unpacked/node_modules/electron-edge-js/lib/native/win32/x64/$electronMajor/edge_coreclr.node"
+          $staleBuild = "dist/win-unpacked/resources/app.asar.unpacked/node_modules/electron-edge-js/build/Release/edge_coreclr.node"
+
+          # FAIL if stale build/Release exists in package
+          if (Test-Path $staleBuild) {
+            Write-Error "FATAL: build/Release/edge_coreclr.node exists in packaged output! This will cause assertion crashes."
+            exit 1
+          }
+          Write-Host "Confirmed: NO stale build/Release/edge_coreclr.node in package."
+
           if (!(Test-Path $edgeJs)) { throw "Missing packaged edge entry: $edgeJs" }
           if (!(Test-Path $edgeNode)) { throw "Missing packaged edge native module: $edgeNode" }
           Write-Host "Packaged edge entry found: $edgeJs"
