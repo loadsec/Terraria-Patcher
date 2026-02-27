@@ -1090,6 +1090,10 @@ function getMainLocalesDir(): string {
   return join(__dirname, "..", "..", "src", "renderer", "src", "locales");
 }
 
+function getPackagedEdgeJsEntryPath(): string {
+  return join(process.resourcesPath, "patcher-edge-js", "lib", "edge.js");
+}
+
 function loadMainLocalesSync(): Record<string, MainLocaleDict> {
   if (mainLocalesCache) return mainLocalesCache;
 
@@ -1624,6 +1628,17 @@ function getEdgeModule(): EdgeModule {
 
   try {
     process.env.EDGE_USE_CORECLR = "1";
+
+    // In packaged Linux/AppImage builds, load edge from external resources
+    // so native edge_coreclr.node is resolved outside app.asar.
+    if (app.isPackaged) {
+      const packagedEdgeEntry = getPackagedEdgeJsEntryPath();
+      if (existsSync(packagedEdgeEntry)) {
+        edgeModule = requireForMain(packagedEdgeEntry) as EdgeModule;
+        return edgeModule;
+      }
+    }
+
     edgeModule = requireForMain("electron-edge-js") as EdgeModule;
     return edgeModule;
   } catch (err: unknown) {
@@ -1635,6 +1650,15 @@ function getEdgeModule(): EdgeModule {
     ) {
       throw new Error(
         "The .NET runtime for electron-edge-js is not configured on this system. Install .NET 10 Runtime (or SDK) and rebuild the C# bridge so runtimeconfig/deps files are generated.",
+      );
+    }
+
+    if (
+      rawMessage.includes("The edge native module is not available") &&
+      rawMessage.includes("edge_coreclr.node")
+    ) {
+      throw new Error(
+        `electron-edge-js native runtime was not found in this packaged build. Expected packaged path: ${getPackagedEdgeJsEntryPath()}`,
       );
     }
 

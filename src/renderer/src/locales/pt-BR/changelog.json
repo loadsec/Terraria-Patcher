@@ -12,6 +12,17 @@
     "noEntriesDesc": "Adicione versões no version.json e traduções no changelog.json."
     },
     "releases": {
+      "v1_1_2": {
+      "title": "Hotfixes do AppImage Linux + Compatibilidade entre Loaders",
+      "summary": "Corrige o carregamento nativo do edge no AppImage Linux e melhora a compatibilidade de plugins entre PluginLoader.XNA e PluginLoader.FNA.",
+      "changes": [
+        "Corrigida a falha de patch no AppImage Linux quando o `electron-edge-js` não encontrava `edge_coreclr.node` em builds empacotadas.",
+        "Adicionado empacotamento de runtime externo do edge para builds Linux e melhoria no carregamento do módulo em modo empacotado.",
+        "Aplicadas correções de compatibilidade de assinaturas de plugins entre os dois loaders (XNA/FNA), incluindo PlayerSave, PlayerHurt e PlayerPickAmmo.",
+        "Ajustado o comportamento do JourneyEverywhere para continuar compatível em loaders de plugin no Windows e Linux.",
+        "Melhoradas as validações de empacotamento Linux no CI para recursos nativos do edge."
+      ]
+    },
       "v1_1_1": {
       "title": "Checagens de Runtime e Estabilidade de Plugins",
       "summary": "Adiciona verificação de pré-requisitos .NET 10/Mono, estabiliza o carregamento de plugins em Windows/Linux e corrige a persistência do Save Position.",

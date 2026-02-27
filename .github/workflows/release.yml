@@ -130,6 +130,9 @@ jobs:
       - name: Install dependencies (no postinstall scripts)
         run: pnpm install --ignore-scripts
 
+      - name: Rebuild native dependencies for Electron
+        run: pnpm exec electron-builder install-app-deps
+
       - name: Download bridge runtime
         uses: actions/download-artifact@v4
         with:
@@ -145,6 +148,14 @@ jobs:
           echo "Plugin runtime resources found:"
           ls -lah resources/plugins/PluginLoader*.dll
           sha256sum resources/plugins/PluginLoader*.dll
+
+      - name: Validate edge native runtime (Linux)
+        if: matrix.name == 'linux'
+        shell: bash
+        run: |
+          test -f "node_modules/electron-edge-js/build/Release/edge_coreclr.node"
+          echo "edge_coreclr.node found:"
+          ls -lah node_modules/electron-edge-js/build/Release/edge_coreclr.node
 
       - name: Build app bundle (skip bridge rebuild)
         run: pnpm exec electron-vite build
