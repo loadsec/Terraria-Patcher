@@ -12,6 +12,15 @@
     "noEntriesDesc": "Adicione versões no version.json e traduções no changelog.json."
     },
     "releases": {
+      "v1_1_7": {
+      "title": "Correção de Overflow na UI + Proteções no Release",
+      "summary": "Corrige o estouro de layout com caminhos longos de backup no modal e reforça validações dos artefatos no Windows.",
+      "changes": [
+        "Corrigido o overflow no modal de patch quando o caminho do backup é muito longo (agora o texto quebra corretamente e não estoura o diálogo).",
+        "Adicionadas validações no pipeline para garantir consistência entre tag e versão antes de empacotar.",
+        "Adicionada validação de artefatos empacotados no Windows para garantir que os arquivos de runtime `patcher-edge-js` existam antes de publicar."
+      ]
+    },
       "v1_1_6": {
       "title": "Reforço do Runtime Edge no Windows",
       "summary": "Evita que builds empacotadas no Windows carreguem pares incompatíveis de edge módulo/runtime após updates.",

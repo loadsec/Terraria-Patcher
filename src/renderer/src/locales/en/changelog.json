@@ -12,6 +12,15 @@
     "noEntriesDesc": "Add release entries to version.json and translations to changelog.json."
     },
     "releases": {
+      "v1_1_7": {
+      "title": "UI Overflow + Release Artifact Guardrails",
+      "summary": "Fixes long backup path overflow in the patch modal and hardens release artifact validation for Windows builds.",
+      "changes": [
+        "Fixed patch modal layout overflow when backup paths are very long (paths now wrap correctly instead of breaking the dialog).",
+        "Added release pipeline checks to ensure tag/version consistency before packaging.",
+        "Added Windows packaged artifact validation to guarantee `patcher-edge-js` runtime files are present before publishing."
+      ]
+    },
       "v1_1_6": {
       "title": "Windows Edge Runtime Hardening",
       "summary": "Prevents packaged Windows builds from loading a mismatched edge module/runtime pair after updates.",
