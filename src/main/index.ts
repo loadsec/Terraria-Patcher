@@ -1093,11 +1093,26 @@ function getMainLocalesDir(): string {
 }
 
 function getPackagedEdgeJsEntryPath(): string {
-  return join(process.resourcesPath, "patcher-edge-js", "lib", "edge.js");
+  return join(
+    process.resourcesPath,
+    "app.asar.unpacked",
+    "node_modules",
+    "electron-edge-js",
+    "lib",
+    "edge.js",
+  );
 }
 
 function getPackagedEdgeNativePath(): string {
-  return join(process.resourcesPath, "patcher-edge-js", "build", "Release", "edge_coreclr.node");
+  return join(
+    process.resourcesPath,
+    "app.asar.unpacked",
+    "node_modules",
+    "electron-edge-js",
+    "build",
+    "Release",
+    "edge_coreclr.node",
+  );
 }
 
 function loadMainLocalesSync(): Record<string, MainLocaleDict> {
@@ -1869,8 +1884,8 @@ function getEdgeModule(): EdgeModule {
   try {
     process.env.EDGE_USE_CORECLR = "1";
 
-    // In packaged builds, always prefer edge from external resources
-    // (patcher-edge-js) to avoid JS/native mismatch after updates.
+    // In packaged builds, always load edge from app.asar.unpacked/node_modules
+    // to avoid JS/native mismatches after updates.
     if (app.isPackaged) {
       const packagedEdgeEntry = getPackagedEdgeJsEntryPath();
       if (existsSync(packagedEdgeEntry)) {
@@ -1922,7 +1937,7 @@ function getEdgeModule(): EdgeModule {
       rawMessage.includes("edge_coreclr.node")
     ) {
       throw new Error(
-        `electron-edge-js native runtime was not found in this packaged build. Expected packaged path: ${getPackagedEdgeJsEntryPath()}`,
+        `electron-edge-js native runtime was not found in this packaged build. Expected native path: ${getPackagedEdgeNativePath()}`,
       );
     }
 

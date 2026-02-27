@@ -12,6 +12,14 @@
     "noEntriesDesc": "Adicione versões no version.json e traduções no changelog.json."
     },
     "releases": {
+      "v1_1_9": {
+      "title": "Correção do Caminho do Edge Empacotado",
+      "summary": "Corrige o patch no Windows carregando o electron-edge-js do caminho correto em app.asar.unpacked e reforça a checagem do runtime nativo.",
+      "changes": [
+        "Atualizado o caminho do módulo/native do edge para usar app.asar.unpacked/node_modules/electron-edge-js, evitando asserts do edge_coreclr em builds de release.",
+        "Mensagens de erro agora apontam exatamente para o caminho nativo esperado nos builds empacotados de Windows."
+      ]
+    },
       "v1_1_8": {
       "title": "Correção de Assert no Windows",
       "summary": "Corrige o assert do edge_coreclr ao aplicar patch em builds de release no Windows e limpa a validação de empacotamento.",

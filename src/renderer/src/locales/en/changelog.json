@@ -12,6 +12,14 @@
     "noEntriesDesc": "Add release entries to version.json and translations to changelog.json."
     },
     "releases": {
+      "v1_1_9": {
+      "title": "Packaged Edge Path Fix",
+      "summary": "Fixes Windows patching by loading electron-edge-js from the correct app.asar.unpacked path and tightening the native runtime check.",
+      "changes": [
+        "Updated packaged edge entry/native paths to use app.asar.unpacked/node_modules/electron-edge-js, preventing edge_coreclr assertions in release builds.",
+        "Improved error messaging to point to the exact native path expected in packaged Windows builds."
+      ]
+    },
       "v1_1_8": {
       "title": "Windows Patch Assert Fix",
       "summary": "Fixes the Windows edge_coreclr assertion when patching from release builds and cleans up packaging validation.",
