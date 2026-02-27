@@ -13,14 +13,11 @@
     },
     "releases": {
       "v1_1_2": {
-      "title": "Linux AppImage + Cross-Loader Hotfixes",
-      "summary": "Fixes Linux AppImage edge native loading and improves plugin compatibility between PluginLoader.XNA and PluginLoader.FNA.",
+      "title": "Linux AppImage Fix",
+      "summary": "Linux-focused fix to make patching work normally on AppImage builds.",
       "changes": [
-        "Fixed patch failures on Linux AppImage where `electron-edge-js` could not resolve `edge_coreclr.node` in packaged builds.",
-        "Packaged an external edge runtime resource for Linux builds and improved edge module loading in packaged mode.",
-        "Added compatibility updates for plugin signatures across both loaders (XNA/FNA), including PlayerSave, PlayerHurt and PlayerPickAmmo.",
-        "Updated JourneyEverywhere behavior to remain compatible on both Windows and Linux plugin loaders.",
-        "Improved CI Linux packaging checks for edge native runtime resources."
+        "Fixed Linux AppImage patch failures where `electron-edge-js` could not find the native module `edge_coreclr.node`.",
+        "Adjusted packaging/loading of `electron-edge-js` so it works correctly on Linux."
       ]
     },
       "v1_1_1": {
