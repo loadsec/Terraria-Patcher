@@ -12,6 +12,15 @@
     "noEntriesDesc": "Adicione versões no version.json e traduções no changelog.json."
   },
   "releases": {
+    "v1_1_11": {
+      "title": "Correção de Inicialização Dupla do CoreCLR",
+      "summary": "Corrige o crash de assertion edge_coreclr no Windows evitando inicialização dupla do CoreCLR em builds empacotadas.",
+      "changes": [
+        "Removida a pré-definição da variável de ambiente `EDGE_NATIVE` antes de carregar o `edge.js`, que podia fazer o módulo nativo `.node` ser carregado com duas chaves de cache diferentes, causando o crash de assertion dupla do `coreclr::bind()`.",
+        "O edge.js agora faz toda a resolução do módulo nativo sozinho — ele já possui lógica interna que encontra o binário correto para cada plataforma.",
+        "O patching no Linux AppImage continua funcionando normalmente (edge.js encontra `build/Release/` por conta própria)."
+      ]
+    },
     "v1_1_10": {
       "title": "Correção do Nativo Edge Precompilado",
       "summary": "Corrige o crash de assertion edge_coreclr no Windows em builds de release/update usando o módulo nativo precompilado correto em vez do compilado no CI.",

@@ -2127,12 +2127,12 @@ function getEdgeModule(): EdgeModule {
     if (app.isPackaged) {
       const packagedEdgeEntry = getPackagedEdgeJsEntryPath();
       if (existsSync(packagedEdgeEntry)) {
-        const packagedNative = getPackagedEdgeNativePath();
-        if (existsSync(packagedNative)) {
-          process.env.EDGE_NATIVE = packagedNative;
-        } else {
-          delete process.env.EDGE_NATIVE;
-        }
+        // Do NOT set process.env.EDGE_NATIVE before requiring edge.js.
+        // edge.js ignores it (it does its own resolution and overwrites it).
+        // Pre-setting it can cause the .node file to appear under two cache
+        // keys in Node's require cache, triggering a double CoreCLR init
+        // assertion crash (g_coreclr == nullptr).
+        delete process.env.EDGE_NATIVE;
         edgeModule = requireForMain(packagedEdgeEntry) as EdgeModule;
         if (!edgeModule || typeof edgeModule.func !== "function") {
           throw new Error(
