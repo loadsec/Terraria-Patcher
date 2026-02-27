@@ -1631,7 +1631,8 @@ function getEdgeModule(): EdgeModule {
 
     // In packaged Linux/AppImage builds, load edge from external resources
     // so native edge_coreclr.node is resolved outside app.asar.
-    if (app.isPackaged) {
+    // Keep Windows/macOS on the standard module path.
+    if (app.isPackaged && process.platform === "linux") {
       const packagedEdgeEntry = getPackagedEdgeJsEntryPath();
       if (existsSync(packagedEdgeEntry)) {
         edgeModule = requireForMain(packagedEdgeEntry) as EdgeModule;
@@ -1669,50 +1670,48 @@ function getEdgeModule(): EdgeModule {
 function getEdgeFunc(): (
   input: object,
 ) => Promise<{ success: boolean; message: string }> {
-  if (patcherFuncInitError) {
-    throw patcherFuncInitError;
-  }
+  return (input: object) => {
+    const task = edgeInvokeQueue.then(async () => {
+      if (patcherFuncInitError) {
+        throw patcherFuncInitError;
+      }
 
-  if (!patcherFunc) {
-    const bridgeDllPath = getBridgeDllPath();
-    const edge = getEdgeModule();
+      if (!patcherFunc) {
+        const bridgeDllPath = getBridgeDllPath();
+        const edge = getEdgeModule();
 
-    try {
-      patcherFunc = edge.func({
-        assemblyFile: bridgeDllPath,
-        typeName: "TerrariaPatcherBridge.Startup",
-        methodName: "Invoke",
+        try {
+          patcherFunc = edge.func({
+            assemblyFile: bridgeDllPath,
+            typeName: "TerrariaPatcherBridge.Startup",
+            methodName: "Invoke",
+          });
+        } catch (err: unknown) {
+          const normalized =
+            err instanceof Error ? err : new Error(typeof err === "string" ? err : String(err));
+          patcherFuncInitError = normalized;
+          console.error("[edge] failed to initialize patcher function:", normalized);
+          throw normalized;
+        }
+      }
+
+      const func = patcherFunc!;
+      return await new Promise<{ success: boolean; message: string }>((resolve, reject) => {
+        func(input, (error, result) => {
+          if (error) reject(error);
+          else resolve(result as { success: boolean; message: string });
+        });
       });
-    } catch (err: unknown) {
-      const normalized =
-        err instanceof Error ? err : new Error(typeof err === "string" ? err : String(err));
-      patcherFuncInitError = normalized;
-      console.error("[edge] failed to initialize patcher function:", normalized);
-      throw normalized;
-    }
-  }
+    });
 
-  const func = patcherFunc!;
-  return (input: object) =>
-    {
-      const task = edgeInvokeQueue.then(
-        () =>
-          new Promise<{ success: boolean; message: string }>((resolve, reject) => {
-            func(input, (error, result) => {
-              if (error) reject(error);
-              else resolve(result as { success: boolean; message: string });
-            });
-          }),
-      );
+    // Keep the queue alive even if one invocation fails.
+    edgeInvokeQueue = task.then(
+      () => undefined,
+      () => undefined,
+    );
 
-      // Keep the queue alive even if one invocation fails.
-      edgeInvokeQueue = task.then(
-        () => undefined,
-        () => undefined,
-      );
-
-      return task;
-    };
+    return task;
+  };
 }
 
 // ─── IPC Handlers ────────────────────────────────────────────────────────────

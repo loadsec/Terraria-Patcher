@@ -12,6 +12,15 @@
     "noEntriesDesc": "Adicione versões no version.json e traduções no changelog.json."
     },
     "releases": {
+      "v1_1_3": {
+      "title": "Atualização de Estabilidade (Windows + Linux)",
+      "summary": "Atualização de estabilidade após a 1.1.2, focada em inicialização mais segura e patch mais confiável.",
+      "changes": [
+        "Corrigido um problema de inicialização/assert no Windows que podia acontecer ao iniciar os componentes de patch.",
+        "Mantida a estabilidade do fluxo de patch no Linux AppImage após a correção de carregamento do edge.",
+        "Melhorada a ordem de inicialização da bridge para reduzir conflitos na abertura."
+      ]
+    },
       "v1_1_2": {
       "title": "Correção no Linux (AppImage)",
       "summary": "Correção focada no Linux para permitir aplicar patch normalmente no AppImage.",

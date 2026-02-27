@@ -12,6 +12,15 @@
     "noEntriesDesc": "Add release entries to version.json and translations to changelog.json."
     },
     "releases": {
+      "v1_1_3": {
+      "title": "Stability Update (Windows + Linux)",
+      "summary": "Follow-up stability update after 1.1.2, focused on safer startup and patch initialization.",
+      "changes": [
+        "Fixed a Windows startup/assert issue that could happen when initializing patch runtime components.",
+        "Kept Linux AppImage patching flow stable after the previous edge loading fix.",
+        "Improved bridge initialization order to reduce startup conflicts."
+      ]
+    },
       "v1_1_2": {
       "title": "Linux AppImage Fix",
       "summary": "Linux-focused fix to make patching work normally on AppImage builds.",
