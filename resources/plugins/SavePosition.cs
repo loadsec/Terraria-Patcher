@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using Terraria;
 using PluginLoader;
@@ -30,7 +31,10 @@ namespace TranscendPlugins
             if (Main.worldID == 0) return;
             if (player.position.X == 0f && player.position.Y == 0f) return;
 
-            IniAPI.WriteIni("SavePosition", Main.worldID + "," + player.name, player.position.ToString());
+            var key = Main.worldID + "," + player.name;
+            var x = player.position.X.ToString(CultureInfo.InvariantCulture);
+            var y = player.position.Y.ToString(CultureInfo.InvariantCulture);
+            IniAPI.WriteIni("SavePosition", key, string.Concat(x, ",", y));
         }
 
         private static Player GetSavePlayerFallback()
@@ -60,18 +64,22 @@ namespace TranscendPlugins
             var vector = IniAPI.ReadIni("SavePosition", Main.worldID + "," + Main.player[Main.myPlayer].name, null);
             if (!string.IsNullOrEmpty(vector))
             {
-                int startIndX = vector.IndexOf("X:") + 2;
-                int startIndY = vector.IndexOf("Y:") + 2;
-                var x = float.Parse(vector.Substring(startIndX, vector.IndexOf(" Y") - startIndX));
-                var y = float.Parse(vector.Substring(startIndY, vector.IndexOf("}") - startIndY));
-
-                player.position.X = x;
-                player.position.Y = y;
-                player.fallStart = (int)(player.position.Y / 16f);
-                player.fallStart2 = player.fallStart;
-                player.oldPosition = player.position;
-                Main.screenPosition.X = player.position.X + player.width / 2 - Main.screenWidth / 2;
-                Main.screenPosition.Y = player.position.Y + player.height / 2 - Main.screenHeight / 2;
+                var parts = vector.Split(',');
+                if (parts.Length == 2)
+                {
+                    float x, y;
+                    if (float.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out x) &&
+                        float.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out y))
+                    {
+                        player.position.X = x;
+                        player.position.Y = y;
+                        player.fallStart = (int)(player.position.Y / 16f);
+                        player.fallStart2 = player.fallStart;
+                        player.oldPosition = player.position;
+                        Main.screenPosition.X = player.position.X + player.width / 2 - Main.screenWidth / 2;
+                        Main.screenPosition.Y = player.position.Y + player.height / 2 - Main.screenHeight / 2;
+                    }
+                }
             }
 
             justLoadedIn = false;
