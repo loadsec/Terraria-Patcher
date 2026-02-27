@@ -12,6 +12,16 @@
     "noEntriesDesc": "Adicione versões no version.json e traduções no changelog.json."
     },
     "releases": {
+      "v1_1_5": {
+      "title": "Proteções de Sincronização de Runtime",
+      "summary": "Melhora a confiabilidade após updates, evitando reutilizar arquivos antigos de runtime/plugins.",
+      "changes": [
+        "Adicionada sincronização por versão para atualizar os arquivos gerenciados após atualizar o app.",
+        "Adicionada manutenção automática no startup para instalações já configuradas com suporte a plugins ativo.",
+        "Sincronizações agora rodam em fila para evitar conflitos de cópia/limpeza durante patch e sync.",
+        "Adicionado caminho IPC dedicado para reparo de runtime com re-sync forçado e seguro."
+      ]
+    },
       "v1_1_4": {
       "title": "Hotfix: Patching no Windows Desbloqueado",
       "summary": "Restaura o fluxo de patch no Windows que havia quebrado após a 1.1.3 e adiciona um pequeno ajuste de estabilidade.",

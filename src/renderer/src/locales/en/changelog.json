@@ -12,6 +12,16 @@
     "noEntriesDesc": "Add release entries to version.json and translations to changelog.json."
     },
     "releases": {
+      "v1_1_5": {
+      "title": "Runtime Sync Guardrails",
+      "summary": "Improves update reliability by preventing stale runtime/plugin files from being reused after upgrades.",
+      "changes": [
+        "Added version-aware runtime sync so managed patch files are refreshed after app updates.",
+        "Added startup runtime maintenance for configured installs with plugin support enabled.",
+        "Serialized runtime sync operations to prevent concurrent copy/clean races during patch and sync actions.",
+        "Added a dedicated runtime repair IPC path for safe forced re-sync flows."
+      ]
+    },
       "v1_1_4": {
       "title": "Hotfix: Windows Patching Unblocked",
       "summary": "Restores the Windows patch flow that regressed after 1.1.3 and adds a small stability tweak.",
