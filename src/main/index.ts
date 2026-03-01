@@ -2151,53 +2151,72 @@ function getEdgeModule(): EdgeModule {
 
     // In packaged builds, use a platform-specific loading strategy:
     // - Windows: prefer isolated runtime bundle to avoid stale updater files.
-    // - Linux/macOS: load from packaged node_modules (historically stable).
-    if (app.isPackaged && process.platform === "win32") {
-      // NSIS updates overlay new files on old ones without cleaning up.
-      // If we have to fallback to app.asar.unpacked on Windows, delete stale
-      // build/Release edge_coreclr.node so edge.js uses lib/native prebuilt.
-      const staleBuildRelease = join(
-        process.resourcesPath,
-        "app.asar.unpacked",
-        "node_modules",
-        "electron-edge-js",
-        "build",
-        "Release",
-        "edge_coreclr.node",
-      );
-      if (existsSync(staleBuildRelease)) {
-        try {
-          unlinkSync(staleBuildRelease);
-        } catch {
-          // Best-effort: if we can't delete, edge.js will try to use it anyway.
+    // - Linux/macOS: load edge entry explicitly from app.asar.unpacked.
+    if (app.isPackaged) {
+      if (process.platform === "win32") {
+        // NSIS updates overlay new files on old ones without cleaning up.
+        // If we have to fallback to app.asar.unpacked on Windows, delete stale
+        // build/Release edge_coreclr.node so edge.js uses lib/native prebuilt.
+        const staleBuildRelease = join(
+          process.resourcesPath,
+          "app.asar.unpacked",
+          "node_modules",
+          "electron-edge-js",
+          "build",
+          "Release",
+          "edge_coreclr.node",
+        );
+        if (existsSync(staleBuildRelease)) {
+          try {
+            unlinkSync(staleBuildRelease);
+          } catch {
+            // Best-effort: if we can't delete, edge.js will try to use it anyway.
+          }
         }
+
+        for (const packagedEdgeEntry of getPackagedEdgeEntryCandidates()) {
+          if (!existsSync(packagedEdgeEntry)) continue;
+
+          // Do NOT set process.env.EDGE_NATIVE before requiring edge.js.
+          // edge.js ignores it (it does its own resolution and overwrites it).
+          // Pre-setting it can cause the .node file to appear under two cache
+          // keys in Node's require cache, triggering a double CoreCLR init
+          // assertion crash (g_coreclr == nullptr).
+          delete process.env.EDGE_NATIVE;
+          edgeModule = requireForMain(packagedEdgeEntry) as EdgeModule;
+          if (!edgeModule || typeof edgeModule.func !== "function") {
+            throw new Error(
+              `Invalid electron-edge-js module loaded from ${packagedEdgeEntry}. Missing edge.func export.`,
+            );
+          }
+          edgeGlobal.__terrariaPatcherEdgeModule = edgeModule;
+          return edgeModule;
+        }
+
+        throw new Error(
+          `Packaged edge module entry not found. Tried: ${getPackagedEdgeEntryCandidates().join(", ")}.`,
+        );
       }
 
-      for (const packagedEdgeEntry of getPackagedEdgeEntryCandidates()) {
-        if (!existsSync(packagedEdgeEntry)) continue;
-
-        // Do NOT set process.env.EDGE_NATIVE before requiring edge.js.
-        // edge.js ignores it (it does its own resolution and overwrites it).
-        // Pre-setting it can cause the .node file to appear under two cache
-        // keys in Node's require cache, triggering a double CoreCLR init
-        // assertion crash (g_coreclr == nullptr).
-        delete process.env.EDGE_NATIVE;
-        edgeModule = requireForMain(packagedEdgeEntry) as EdgeModule;
-        if (!edgeModule || typeof edgeModule.func !== "function") {
-          throw new Error(
-            `Invalid electron-edge-js module loaded from ${packagedEdgeEntry}. Missing edge.func export.`,
-          );
-        }
-        edgeGlobal.__terrariaPatcherEdgeModule = edgeModule;
-        return edgeModule;
+      const packagedEdgeEntry = getPackagedEdgeAsarEntryPath();
+      if (!existsSync(packagedEdgeEntry)) {
+        throw new Error(
+          `Packaged edge module entry not found: ${packagedEdgeEntry}.`,
+        );
       }
 
-      throw new Error(
-        `Packaged edge module entry not found. Tried: ${getPackagedEdgeEntryCandidates().join(", ")}.`,
-      );
+      delete process.env.EDGE_NATIVE;
+      edgeModule = requireForMain(packagedEdgeEntry) as EdgeModule;
+      if (!edgeModule || typeof edgeModule.func !== "function") {
+        throw new Error(
+          `Invalid electron-edge-js module loaded from ${packagedEdgeEntry}. Missing edge.func export.`,
+        );
+      }
+      edgeGlobal.__terrariaPatcherEdgeModule = edgeModule;
+      return edgeModule;
     }
 
-    // Linux/macOS packaged + dev fallback (node_modules).
+    // Dev-only fallback (node_modules).
     delete process.env.EDGE_NATIVE;
     edgeModule = requireForMain("electron-edge-js") as EdgeModule;
     if (!edgeModule || typeof edgeModule.func !== "function") {
