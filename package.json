@@ -14,14 +14,15 @@
     "build:bridge:linux:gnu": "node scripts/build-bridge-host.mjs --runtime linux-x64 --binary patcher-linux-gnu",
     "build:bridge:linux": "pnpm run build:bridge:linux:musl && pnpm run build:bridge:linux:gnu",
     "build:bridge:mac": "node scripts/build-bridge-host.mjs --runtime osx-x64 --binary patcher-mac",
+    "prepare:mono": "node scripts/prepare-mono-toolchain.mjs",
     "build:plugin-loader-fna": "msbuild src/plugin-loader-fna/PluginLoader.FNA.csproj /p:Configuration=Release",
     "build:renderer": "electron-vite build",
-    "build": "pnpm run build:bridge && pnpm run build:renderer",
+    "build": "pnpm run build:bridge && pnpm run prepare:mono && pnpm run build:renderer",
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "pnpm run build && electron-builder --dir",
-    "build:win": "pnpm run build:bridge:win && pnpm run build:renderer && electron-builder --win",
-    "build:mac": "pnpm run build:bridge:mac && pnpm run build:renderer && electron-builder --mac",
-    "build:linux": "pnpm run build:bridge:linux && pnpm run build:renderer && electron-builder --linux",
+    "build:win": "pnpm run build:bridge:win && pnpm run prepare:mono && pnpm run build:renderer && electron-builder --win",
+    "build:mac": "pnpm run build:bridge:mac && pnpm run prepare:mono && pnpm run build:renderer && electron-builder --mac",
+    "build:linux": "pnpm run build:bridge:linux && pnpm run prepare:mono && pnpm run build:renderer && electron-builder --linux",
     "lint": "eslint ."
   },
   "dependencies": {
@@ -102,7 +103,8 @@
         "from": "resources/plugins",
         "to": "patcher-resources/plugins",
         "filter": [
-          "**/*"
+          "**/*",
+          ".PluginLoaderTools/**/*"
         ]
       },
       {

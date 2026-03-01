@@ -27,6 +27,22 @@ namespace PluginLoader
 {
     public static class Loader
     {
+        static Loader()
+        {
+            AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
+            {
+                try
+                {
+                    var exObj = args != null ? args.ExceptionObject : null;
+                    AppendLog("ERROR", "AppDomain unhandled exception: " + (exObj ?? "<null>"));
+                }
+                catch
+                {
+                    // Best effort logging only.
+                }
+            };
+        }
+
         #region UI / Logging
 
         private static readonly object logSync = new object();
@@ -154,6 +170,7 @@ namespace PluginLoader
         private static List<IPlugin> loadedPlugins = new List<IPlugin>();
         private static bool loaded, ingame, startupMessageShown;
         private static int startupMessageDeferredWarnCount;
+        private static bool keyStateUnavailableWarned;
 
         private static void TryShowStartupPluginCountMessage()
         {
@@ -355,7 +372,8 @@ namespace PluginLoader
             {
                 throw new Exception(
                     "Plugin compilation failed because the Mono C# compiler (mcs) was not found. " +
-                    "Install the Mono development tools in your Linux environment (for example: mono-devel or mono-complete), then try again.",
+                    "Install the Mono development tools (for example: mono-devel or mono-complete), " +
+                    "or provide a bundled compiler toolchain in Plugins/.PluginLoaderTools, then try again.",
                     ex);
             }
             catch (Exception ex) when (
@@ -389,7 +407,8 @@ namespace PluginLoader
             {
                 throw new Exception(
                     "Plugin compilation failed because the Mono C# compiler (mcs) was not found. " +
-                    "Install the Mono development tools in your Linux environment (for example: mono-devel or mono-complete), then try again.",
+                    "Install the Mono development tools (for example: mono-devel or mono-complete), " +
+                    "or provide a bundled compiler toolchain in Plugins/.PluginLoaderTools, then try again.",
                     ex);
             }
             catch (Exception ex) when (
@@ -494,6 +513,7 @@ namespace PluginLoader
                         : string.Join(Environment.NewLine, localCompilerCandidates.Select(p => "  " + p + " (exists=" + (File.Exists(p) ? "yes" : "no") + ")"))));
                 throw new Exception(
                     "mcs not found. Install Mono development tools (e.g. mono-devel or mono-complete), " +
+                    "or place a bundled toolchain under Plugins/.PluginLoaderTools, " +
                     "or set [PluginLoader] PluginCompilerPath in Plugins.ini to a local/bundled mcs path " +
                     "(useful on Steam Linux Runtime where /usr/bin/mcs may be hidden).");
             }
@@ -510,7 +530,7 @@ namespace PluginLoader
                 scriptPath,
                 "#!/usr/bin/env bash\nset -e\n" +
                 "exec /usr/bin/env -i " +
-                "PATH=" + shellQuote("/usr/bin:/usr/local/bin:/opt/mono/bin") + " " +
+                "PATH=" + shellQuote("/usr/bin:/bin:/usr/local/bin:/opt/mono/bin:/opt/homebrew/bin") + " " +
                 "HOME=" + shellQuote(scriptHome) + " " +
                 "TMPDIR=" + shellQuote(Path.GetTempPath()) + " " +
                 shellQuote(mcsPath) + " " +
@@ -534,7 +554,7 @@ namespace PluginLoader
             startInfo.CreateNoWindow = true;
             startInfo.Arguments = "\"" + scriptPath.Replace("\"", "\\\"") + "\"";
             startInfo.EnvironmentVariables.Clear();
-            startInfo.EnvironmentVariables["PATH"] = "/usr/bin:/usr/local/bin:/opt/mono/bin";
+            startInfo.EnvironmentVariables["PATH"] = "/usr/bin:/bin:/usr/local/bin:/opt/mono/bin:/opt/homebrew/bin";
             try
             {
                 var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -1134,33 +1154,53 @@ namespace PluginLoader
 
         public static void OnPreUpdate()
         {
-            if (!ingame)
-                ingame = true;
-
-            TryShowStartupPluginCountMessage();
-
-            if (!Main.blockInput && !Main.drawingPlayerChat && !Main.editSign && !Main.editChest)
+            try
             {
-                keysdown = Main.keyState.GetPressedKeys();
-                control = keysdown.Contains(Keys.LeftControl) || keysdown.Contains(Keys.RightControl);
-                shift = keysdown.Contains(Keys.LeftShift) || keysdown.Contains(Keys.RightShift);
-                alt = keysdown.Contains(Keys.LeftAlt) || keysdown.Contains(Keys.RightAlt);
-                var anyPresses = false;
-                foreach (var hotkey in hotkeys)
+                if (!ingame)
+                    ingame = true;
+
+                TryShowStartupPluginCountMessage();
+
+                if (!Main.blockInput && !Main.drawingPlayerChat && !Main.editSign && !Main.editChest)
                 {
-                    if (keysdown.Contains(hotkey.Key) &&
-                        (hotkey.IgnoreModifierKeys || (control == hotkey.Control && shift == hotkey.Shift && alt == hotkey.Alt)))
+                    if (Main.keyState == null)
                     {
-                        anyPresses = true;
-                        if (fresh) hotkey.Action();
+                        if (!keyStateUnavailableWarned)
+                        {
+                            keyStateUnavailableWarned = true;
+                            AppendLog("WARN", "Main.keyState is null during OnPreUpdate; deferring hotkey processing.");
+                        }
+                    }
+                    else
+                    {
+                        keyStateUnavailableWarned = false;
+                        keysdown = Main.keyState.GetPressedKeys();
+                        control = keysdown.Contains(Keys.LeftControl) || keysdown.Contains(Keys.RightControl);
+                        shift = keysdown.Contains(Keys.LeftShift) || keysdown.Contains(Keys.RightShift);
+                        alt = keysdown.Contains(Keys.LeftAlt) || keysdown.Contains(Keys.RightAlt);
+                        var anyPresses = false;
+                        foreach (var hotkey in hotkeys)
+                        {
+                            if (keysdown.Contains(hotkey.Key) &&
+                                (hotkey.IgnoreModifierKeys || (control == hotkey.Control && shift == hotkey.Shift && alt == hotkey.Alt)))
+                            {
+                                anyPresses = true;
+                                if (fresh) hotkey.Action();
+                            }
+                        }
+
+                        fresh = !anyPresses;
                     }
                 }
 
-                fresh = !anyPresses;
+                foreach (var plugin in loadedPlugins.OfType<IPluginPreUpdate>())
+                    plugin.OnPreUpdate();
             }
-
-            foreach (var plugin in loadedPlugins.OfType<IPluginPreUpdate>())
-                plugin.OnPreUpdate();
+            catch (Exception ex)
+            {
+                AppendLog("ERROR", "Unhandled exception in Loader.OnPreUpdate: " + ex);
+                // Never crash the game because of plugin loader pre-update logic.
+            }
         }
 
         public static void OnUpdate()

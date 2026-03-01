@@ -58,6 +58,8 @@ jobs:
     name: Build Windows release
     runs-on: windows-latest
     needs: prepare
+    env:
+      MONO_REQUIRED_VERSION: "6.12."
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -81,6 +83,14 @@ jobs:
 
       - name: Install dependencies (no postinstall scripts)
         run: pnpm install --ignore-scripts
+
+      - name: Install Mono toolchain (Windows)
+        shell: pwsh
+        run: |
+          choco install mono --version=6.12.0.206 --yes --no-progress
+          $mono = Join-Path $env:ProgramFiles "Mono\bin\mono.exe"
+          if (!(Test-Path $mono)) { throw "Mono binary not found at $mono" }
+          & $mono --version
 
       - name: Validate tag version matches package version
         shell: bash
@@ -109,6 +119,9 @@ jobs:
           Copy-Item resources/patcher-bridge/TerrariaPatcherBridge.exe resources/patcher-bridge/patcher-win.exe -Force
           Get-ChildItem resources/patcher-bridge -Force | Where-Object { $_.Name -ne 'patcher-win.exe' } | Remove-Item -Recurse -Force
 
+      - name: Prepare bundled Mono toolchain (Windows)
+        run: pnpm run prepare:mono
+
       - name: Build app bundle
         run: pnpm exec electron-vite build
 
@@ -122,6 +135,10 @@ jobs:
           if (!(Test-Path $bridge)) { throw "Missing packaged bridge binary: $bridge" }
           Write-Host "Packaged bridge binary found: $bridge"
           Get-FileHash $bridge | Format-List
+
+          $mcs = "dist/win-unpacked/resources/patcher-resources/plugins/.PluginLoaderTools/mono/lib/mono/4.5/mcs.exe"
+          if (!(Test-Path $mcs)) { throw "Missing packaged Mono mcs toolchain: $mcs" }
+          Write-Host "Packaged Mono toolchain found: $mcs"
 
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
@@ -138,6 +155,8 @@ jobs:
     name: Build Linux release
     runs-on: ubuntu-latest
     needs: prepare
+    env:
+      MONO_REQUIRED_VERSION: "6.12."
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -161,6 +180,30 @@ jobs:
 
       - name: Install dependencies (no postinstall scripts)
         run: pnpm install --ignore-scripts
+
+      - name: Install Mono toolchain (Linux)
+        shell: bash
+        run: |
+          source /etc/os-release
+          CODENAME="${UBUNTU_CODENAME:-$VERSION_CODENAME}"
+          if [[ -z "$CODENAME" ]]; then
+            echo "Unable to detect Ubuntu codename for Mono repository setup."
+            exit 1
+          fi
+
+          sudo apt-get update
+          sudo apt-get install -y ca-certificates gnupg dirmngr apt-transport-https
+          sudo mkdir -p /usr/share/keyrings
+          sudo gpg --homedir /tmp --no-default-keyring \
+            --keyring /usr/share/keyrings/mono-official-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 \
+            --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
+          echo "deb [signed-by=/usr/share/keyrings/mono-official-archive-keyring.gpg] https://download.mono-project.com/repo/ubuntu stable-${CODENAME} main" \
+            | sudo tee /etc/apt/sources.list.d/mono-official-stable.list
+
+          sudo apt-get update
+          sudo apt-get install -y mono-devel
+          mono --version
 
       - name: Validate tag version matches package version
         shell: bash
@@ -190,6 +233,9 @@ jobs:
           chmod +x resources/patcher-bridge/patcher-linux
           find resources/patcher-bridge -mindepth 1 -maxdepth 1 ! -name patcher-linux -exec rm -rf {} +
 
+      - name: Prepare bundled Mono toolchain (Linux)
+        run: pnpm run prepare:mono
+
       - name: Build app bundle
         run: pnpm exec electron-vite build
 
@@ -201,6 +247,8 @@ jobs:
         run: |
           test -f "dist/linux-unpacked/resources/patcher-bridge/patcher-linux"
           ls -lah "dist/linux-unpacked/resources/patcher-bridge/patcher-linux"
+          test -f "dist/linux-unpacked/resources/patcher-resources/plugins/.PluginLoaderTools/mono/lib/mono/4.5/mcs.exe"
+          ls -lah "dist/linux-unpacked/resources/patcher-resources/plugins/.PluginLoaderTools/mono/lib/mono/4.5/mcs.exe"
 
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
@@ -217,6 +265,8 @@ jobs:
     name: Build macOS release
     runs-on: macos-latest
     needs: prepare
+    env:
+      MONO_REQUIRED_VERSION: "6.12."
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -240,6 +290,13 @@ jobs:
 
       - name: Install dependencies (no postinstall scripts)
         run: pnpm install --ignore-scripts
+
+      - name: Install Mono toolchain (macOS)
+        shell: bash
+        run: |
+          brew update
+          brew install mono
+          mono --version
 
       - name: Validate tag version matches package version
         shell: bash
@@ -282,6 +339,9 @@ jobs:
           chmod +x resources/patcher-bridge/patcher-mac
           find resources/patcher-bridge -mindepth 1 -maxdepth 1 ! -name patcher-mac -exec rm -rf {} +
 
+      - name: Prepare bundled Mono toolchain (macOS)
+        run: pnpm run prepare:mono
+
       - name: Build app bundle
         run: pnpm exec electron-vite build
 
@@ -297,6 +357,13 @@ jobs:
             exit 1
           fi
           ls -lah "$MATCH"
+
+          MCS_MATCH="$(find dist -type f -path "*/patcher-resources/plugins/.PluginLoaderTools/mono/lib/mono/4.5/mcs.exe" | head -n 1)"
+          if [[ -z "$MCS_MATCH" ]]; then
+            echo "Missing packaged Mono toolchain mcs.exe"
+            exit 1
+          fi
+          ls -lah "$MCS_MATCH"
 
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4

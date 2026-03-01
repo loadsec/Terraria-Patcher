@@ -19,6 +19,7 @@ latest*.yml
 # Generated bridge binaries copied before packaging
 resources/patcher-bridge/*
 !resources/patcher-bridge/.gitkeep
+resources/plugins/.PluginLoaderTools/
 
 # TypeScript incremental build metadata
 *.tsbuildinfo

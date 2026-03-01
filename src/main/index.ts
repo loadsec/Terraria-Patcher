@@ -9,7 +9,7 @@ import {
 import icon from "../../resources/terraria-logo.png?asset";
 import * as fse from "fs-extra";
 import { copySync, emptyDirSync, ensureDirSync } from "fs-extra";
-import { existsSync, copyFileSync, readdirSync } from "fs";
+import { appendFileSync, copyFileSync, existsSync, readdirSync } from "fs";
 import { PatcherBridge, getBridgeBinaryName } from "./bridge/PatcherBridge";
 
 // ─── Electron Store ──────────────────────────────────────────────────────────
@@ -82,50 +82,335 @@ async function findFirstExistingPath(paths: string[]): Promise<string | null> {
   return null;
 }
 
-async function checkMonoCompiler(): Promise<{
+const PATCHER_RUNTIME_LOG_FILE_NAME = "Terraria-Patcher.log";
+const patcherRuntimeLogHeadersWritten = new Set<string>();
+
+type PatcherLogLevel = "INFO" | "WARN" | "ERROR";
+
+function stringifyPatcherLogMeta(meta: unknown): string {
+  if (meta === undefined || meta === null) return "";
+  if (meta instanceof Error) {
+    return meta.stack || meta.message || String(meta);
+  }
+  if (typeof meta === "string") return meta;
+  try {
+    return JSON.stringify(meta);
+  } catch {
+    return String(meta);
+  }
+}
+
+function getPatcherRuntimeLogTargets(terrariaPath?: string): string[] {
+  const targets: string[] = [];
+  const seen = new Set<string>();
+
+  const pushTarget = (value: string | null | undefined) => {
+    if (!value) return;
+    const normalized = normalizePath(value);
+    if (!normalized || seen.has(normalized)) return;
+    seen.add(normalized);
+    targets.push(normalized);
+  };
+
+  if (terrariaPath) {
+    try {
+      pushTarget(join(dirname(terrariaPath), PATCHER_RUNTIME_LOG_FILE_NAME));
+      if (targets.length > 0) {
+        return targets;
+      }
+    } catch {
+      // ignore invalid terraria path
+    }
+  }
+
+  try {
+    pushTarget(join(app.getPath("userData"), PATCHER_RUNTIME_LOG_FILE_NAME));
+  } catch {
+    // userData may be unavailable very early in startup
+  }
+
+  return targets;
+}
+
+function writePatcherRuntimeLog(
+  level: PatcherLogLevel,
+  message: string,
+  meta?: unknown,
+  terrariaPath?: string,
+): void {
+  const targets = getPatcherRuntimeLogTargets(terrariaPath);
+  if (targets.length === 0) return;
+
+  const timestamp = new Date().toISOString();
+  const metaText = stringifyPatcherLogMeta(meta);
+  const line = `[${timestamp}][${level}] ${message}${
+    metaText ? ` | ${metaText}` : ""
+  }\n`;
+
+  for (const logPath of targets) {
+    try {
+      ensureDirSync(dirname(logPath));
+
+      if (!patcherRuntimeLogHeadersWritten.has(logPath)) {
+        patcherRuntimeLogHeadersWritten.add(logPath);
+        const header = [
+          "",
+          "==================================================",
+          `Terraria-Patcher session start ${timestamp}`,
+          `PID=${process.pid}`,
+          `Platform=${process.platform} Arch=${process.arch}`,
+          `Node=${process.version} Electron=${process.versions.electron ?? "<unknown>"}`,
+          "==================================================",
+        ].join("\n");
+        appendFileSync(logPath, `${header}\n`, "utf8");
+      }
+
+      appendFileSync(logPath, line, "utf8");
+    } catch {
+      // best effort logging only
+    }
+  }
+}
+
+function summarizePatchOptions(options: Record<string, unknown>): Record<string, unknown> {
+  const summary: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(options)) {
+    if (Array.isArray(value)) {
+      summary[key] = { type: "array", length: value.length };
+      continue;
+    }
+    if (value && typeof value === "object") {
+      summary[key] = { type: "object" };
+      continue;
+    }
+    summary[key] = value;
+  }
+  return summary;
+}
+
+async function checkMonoCompiler(terrariaPath?: string): Promise<{
   ok: boolean;
   message?: string;
   hint?: string;
 }> {
-  return new Promise((resolve) => {
-    const child = spawn("mcs", ["--version"]);
+  return checkMonoCompilerWithCandidates(terrariaPath);
+}
+
+type MonoCompilerCandidate = {
+  label: string;
+  command: string;
+  args: string[];
+  requiredPath?: string;
+};
+
+async function runMonoCompilerProbe(
+  candidate: MonoCompilerCandidate,
+): Promise<{ ok: boolean; stdout: string; stderr: string; error?: string }> {
+  return await new Promise((resolve) => {
+    const child = spawn(candidate.command, candidate.args, {
+      shell: false,
+      windowsHide: true,
+    });
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (c) => (stdout += c.toString()));
     child.stderr.on("data", (c) => (stderr += c.toString()));
     child.on("error", (err) =>
-      resolve({ ok: false, message: err.message, hint: getLinuxMonoHint() }),
+      resolve({
+        ok: false,
+        stdout,
+        stderr,
+        error: err instanceof Error ? err.message : String(err),
+      }),
     );
-    child.on("close", (code) => {
-      if (code === 0) resolve({ ok: true });
-      else
-        resolve({
-          ok: false,
-          message: stderr || stdout || "mcs exited with error.",
-          hint: getLinuxMonoHint(),
-        });
-    });
+    child.on("close", (code) =>
+      resolve({
+        ok: code === 0,
+        stdout,
+        stderr,
+        error: code === 0 ? undefined : `exit code ${code ?? "unknown"}`,
+      }),
+    );
   });
 }
 
-function getLinuxMonoHint(): string | undefined {
+function getLinuxMonoCompilerProbeCandidates(
+  terrariaPath?: string,
+): MonoCompilerCandidate[] {
+  const candidates: MonoCompilerCandidate[] = [];
+  const seen = new Set<string>();
+
+  const pushCandidate = (
+    label: string,
+    command: string,
+    args: string[],
+    requiredPath?: string,
+  ) => {
+    const key = `${command}\u0000${args.join("\u0000")}\u0000${requiredPath ?? ""}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    candidates.push({ label, command, args, requiredPath });
+  };
+
+  const localToolsDir = terrariaPath
+    ? join(dirname(terrariaPath), "Plugins", ".PluginLoaderTools")
+    : null;
+
+  if (localToolsDir) {
+    pushCandidate(
+      "local wrapper",
+      join(localToolsDir, "mcs-host.sh"),
+      ["--version"],
+      join(localToolsDir, "mcs-host.sh"),
+    );
+    pushCandidate(
+      "local mono mcs",
+      join(localToolsDir, "mono", "bin", "mcs"),
+      ["--version"],
+      join(localToolsDir, "mono", "bin", "mcs"),
+    );
+    pushCandidate(
+      "local mono + mcs.exe",
+      join(localToolsDir, "mono", "bin", "mono"),
+      [join(localToolsDir, "mono", "lib", "mono", "4.5", "mcs.exe"), "--version"],
+      join(localToolsDir, "mono", "bin", "mono"),
+    );
+    pushCandidate(
+      "local mcs",
+      join(localToolsDir, "mcs"),
+      ["--version"],
+      join(localToolsDir, "mcs"),
+    );
+  }
+
+  if (process.platform === "linux") {
+    pushCandidate(
+      "steam runtime mono + mcs.exe",
+      "/run/host/usr/bin/mono",
+      ["/run/host/usr/lib/mono/4.5/mcs.exe", "--version"],
+      "/run/host/usr/bin/mono",
+    );
+    pushCandidate(
+      "steam runtime mcs",
+      "/run/host/usr/bin/mcs",
+      ["--version"],
+      "/run/host/usr/bin/mcs",
+    );
+    pushCandidate("system mcs", "/usr/bin/mcs", ["--version"], "/usr/bin/mcs");
+    pushCandidate(
+      "system mono + mcs.exe",
+      "/usr/bin/mono",
+      ["/usr/lib/mono/4.5/mcs.exe", "--version"],
+      "/usr/bin/mono",
+    );
+  }
+
+  if (process.platform === "darwin") {
+    pushCandidate(
+      "framework mono + mcs.exe",
+      "/Library/Frameworks/Mono.framework/Versions/Current/bin/mono",
+      [
+        "/Library/Frameworks/Mono.framework/Versions/Current/lib/mono/4.5/mcs.exe",
+        "--version",
+      ],
+      "/Library/Frameworks/Mono.framework/Versions/Current/bin/mono",
+    );
+    pushCandidate(
+      "homebrew mono + mcs.exe (arm64)",
+      "/opt/homebrew/opt/mono/bin/mono",
+      ["/opt/homebrew/opt/mono/lib/mono/4.5/mcs.exe", "--version"],
+      "/opt/homebrew/opt/mono/bin/mono",
+    );
+    pushCandidate(
+      "homebrew mono + mcs.exe (x64)",
+      "/usr/local/opt/mono/bin/mono",
+      ["/usr/local/opt/mono/lib/mono/4.5/mcs.exe", "--version"],
+      "/usr/local/opt/mono/bin/mono",
+    );
+    pushCandidate(
+      "framework mcs",
+      "/Library/Frameworks/Mono.framework/Versions/Current/bin/mcs",
+      ["--version"],
+      "/Library/Frameworks/Mono.framework/Versions/Current/bin/mcs",
+    );
+    pushCandidate(
+      "homebrew mcs (arm64)",
+      "/opt/homebrew/bin/mcs",
+      ["--version"],
+      "/opt/homebrew/bin/mcs",
+    );
+    pushCandidate(
+      "homebrew mcs (x64)",
+      "/usr/local/bin/mcs",
+      ["--version"],
+      "/usr/local/bin/mcs",
+    );
+  }
+
+  pushCandidate("PATH mcs", "mcs", ["--version"]);
+  return candidates;
+}
+
+async function checkMonoCompilerWithCandidates(terrariaPath?: string): Promise<{
+  ok: boolean;
+  message?: string;
+  hint?: string;
+}> {
+  const candidates = getLinuxMonoCompilerProbeCandidates(terrariaPath);
+  const failures: string[] = [];
+
+  for (const candidate of candidates) {
+    if (candidate.requiredPath && !existsSync(candidate.requiredPath)) {
+      failures.push(`${candidate.label}: missing ${candidate.requiredPath}`);
+      continue;
+    }
+
+    const probe = await runMonoCompilerProbe(candidate);
+    if (probe.ok) return { ok: true };
+
+    const detail =
+      probe.error ||
+      probe.stderr.trim() ||
+      probe.stdout.trim() ||
+      "unknown error";
+    failures.push(`${candidate.label}: ${detail}`);
+  }
+
+  return {
+    ok: false,
+    message: failures.slice(0, 6).join(" | "),
+    hint: getLinuxMonoHint(terrariaPath),
+  };
+}
+
+function getLinuxMonoHint(terrariaPath?: string): string | undefined {
+  const toolsHint = terrariaPath
+    ? ` or bundle Mono tools in ${join(dirname(terrariaPath), "Plugins", ".PluginLoaderTools")}`
+    : "";
+
+  if (process.platform === "darwin") {
+    return `Install Mono: brew install mono${toolsHint}`;
+  }
+
   if (process.platform !== "linux") return undefined;
+
   try {
     const osReleasePath = "/etc/os-release";
     if (existsSync(osReleasePath)) {
       const content = fse.readFileSync(osReleasePath, "utf8");
       if (/ubuntu|debian/i.test(content))
-        return "Install Mono: sudo apt install mono-complete";
-      if (/arch/i.test(content)) return "Install Mono: sudo pacman -S mono";
+        return `Install Mono: sudo apt install mono-complete${toolsHint}`;
+      if (/arch/i.test(content))
+        return `Install Mono: sudo pacman -S mono${toolsHint}`;
       if (/fedora|rhel|centos/i.test(content))
-        return "Install Mono: sudo dnf install mono-devel";
+        return `Install Mono: sudo dnf install mono-devel${toolsHint}`;
       if (/opensuse/i.test(content))
-        return "Install Mono: sudo zypper in mono-complete";
+        return `Install Mono: sudo zypper in mono-complete${toolsHint}`;
     }
   } catch {
     // ignore
   }
-  return "Install Mono: see https://www.mono-project.com/download/stable/";
+  return `Install Mono: see https://www.mono-project.com/download/stable/${toolsHint}`;
 }
 
 function unescapeVdfString(value: string): string {
@@ -739,29 +1024,83 @@ function serializePluginIni(sections: PluginIniSection[]): string {
   return lines.join("\r\n") + (lines.length > 0 ? "\r\n" : "");
 }
 
-const LINUX_PLUGIN_COMPILER_WRAPPER_RELATIVE_PATH =
-  "Plugins/.PluginLoaderTools/mcs-host.sh";
+const UNIX_PLUGIN_COMPILER_TOOLS_RELATIVE_DIR = "Plugins/.PluginLoaderTools";
+const UNIX_PLUGIN_COMPILER_WRAPPER_RELATIVE_PATH = `${UNIX_PLUGIN_COMPILER_TOOLS_RELATIVE_DIR}/mcs-host.sh`;
 
-function getLinuxPluginCompilerWrapperScript(): string {
+function getUnixPluginCompilerWrapperScript(): string {
   return `#!/usr/bin/env bash
 set -e
 
-# Prefer host Mono exposed by Steam Runtime (pressure-vessel) under /run/host.
+# This script lives in Plugins/.PluginLoaderTools and prioritizes local toolchains
+# bundled by Terraria Patcher before falling back to host/system Mono.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+set_mono_cfg_dir() {
+  if [ -f "$1/config" ]; then
+    export MONO_CFG_DIR="$1"
+    return
+  fi
+  if [ -f "$1/mono/config" ]; then
+    export MONO_CFG_DIR="$1/mono"
+  fi
+}
+
+# 1) Local mcs wrappers/binaries copied by Patcher.
+for candidate in \
+  "$SCRIPT_DIR/mcs" \
+  "$SCRIPT_DIR/mcs.sh" \
+  "$SCRIPT_DIR/bin/mcs" \
+  "$SCRIPT_DIR/bin/mcs.sh" \
+  "$SCRIPT_DIR/mono/bin/mcs" \
+  "$SCRIPT_DIR/mono/bin/mcs.sh"
+do
+  if [ -x "$candidate" ]; then
+    exec "$candidate" "$@"
+  fi
+done
+
+# 2) Local portable mono + mcs.exe payload.
+if [ -x "$SCRIPT_DIR/mono/bin/mono" ] && [ -f "$SCRIPT_DIR/mono/lib/mono/4.5/mcs.exe" ]; then
+  if [ -d "$SCRIPT_DIR/mono/etc" ]; then
+    set_mono_cfg_dir "$SCRIPT_DIR/mono/etc"
+  fi
+  export MONO_GAC_PREFIX="$SCRIPT_DIR/mono"
+  exec "$SCRIPT_DIR/mono/bin/mono" "$SCRIPT_DIR/mono/lib/mono/4.5/mcs.exe" "$@"
+fi
+
+# 3) Host Mono exposed by Steam Runtime (pressure-vessel) under /run/host.
 if [ -x /run/host/usr/bin/mono ] && [ -f /run/host/usr/lib/mono/4.5/mcs.exe ]; then
   export MONO_CFG_DIR=/run/host/etc
   export MONO_GAC_PREFIX=/run/host/usr
   exec /run/host/usr/bin/mono /run/host/usr/lib/mono/4.5/mcs.exe "$@"
 fi
+if [ -x /run/host/usr/bin/mcs ]; then
+  exec /run/host/usr/bin/mcs "$@"
+fi
 
-# Fallbacks for environments where host /usr is directly visible.
+# 4) System fallback.
 if [ -x /usr/bin/mcs ]; then
   exec /usr/bin/mcs "$@"
 fi
 if [ -x /usr/bin/mono ] && [ -f /usr/lib/mono/4.5/mcs.exe ]; then
   exec /usr/bin/mono /usr/lib/mono/4.5/mcs.exe "$@"
 fi
+if [ -x /Library/Frameworks/Mono.framework/Versions/Current/bin/mcs ]; then
+  exec /Library/Frameworks/Mono.framework/Versions/Current/bin/mcs "$@"
+fi
+if [ -x /Library/Frameworks/Mono.framework/Versions/Current/bin/mono ] && [ -f /Library/Frameworks/Mono.framework/Versions/Current/lib/mono/4.5/mcs.exe ]; then
+  export MONO_CFG_DIR=/Library/Frameworks/Mono.framework/Versions/Current/etc
+  export MONO_GAC_PREFIX=/Library/Frameworks/Mono.framework/Versions/Current
+  exec /Library/Frameworks/Mono.framework/Versions/Current/bin/mono /Library/Frameworks/Mono.framework/Versions/Current/lib/mono/4.5/mcs.exe "$@"
+fi
+if [ -x /opt/homebrew/bin/mcs ]; then
+  exec /opt/homebrew/bin/mcs "$@"
+fi
+if [ -x /usr/local/bin/mcs ]; then
+  exec /usr/local/bin/mcs "$@"
+fi
 
-echo "mcs-host.sh: no accessible Mono/mcs compiler found (checked /run/host and /usr)." >&2
+echo "mcs-host.sh: no accessible Mono/mcs compiler found (checked local .PluginLoaderTools, /run/host, /usr and macOS Mono paths)." >&2
 exit 127
 `;
 }
@@ -824,20 +1163,20 @@ function upsertPluginsIniValuePreserveFormatting(
   return `${prefix}[${sectionName}]${eol}${newEntryLine}${eol}`;
 }
 
-async function ensureLinuxPluginCompilerWrapperAndIni(
+async function ensureUnixPluginCompilerWrapperAndIni(
   terrariaPath: string,
   pluginsDestDir: string,
 ): Promise<void> {
-  if (process.platform !== "linux") return;
+  if (process.platform === "win32") return;
 
   const wrapperAbsPath = join(
     dirname(terrariaPath),
-    LINUX_PLUGIN_COMPILER_WRAPPER_RELATIVE_PATH,
+    UNIX_PLUGIN_COMPILER_WRAPPER_RELATIVE_PATH,
   );
   await fse.ensureDir(dirname(wrapperAbsPath));
   await fse.writeFile(
     wrapperAbsPath,
-    getLinuxPluginCompilerWrapperScript(),
+    getUnixPluginCompilerWrapperScript(),
     "utf8",
   );
   try {
@@ -852,7 +1191,7 @@ async function ensureLinuxPluginCompilerWrapperAndIni(
     existingContent,
     "PluginLoader",
     "PluginCompilerPath",
-    LINUX_PLUGIN_COMPILER_WRAPPER_RELATIVE_PATH.replace(/\\/g, "/"),
+    UNIX_PLUGIN_COMPILER_WRAPPER_RELATIVE_PATH.replace(/\\/g, "/"),
   );
 
   if (nextContent !== existingContent) {
@@ -865,7 +1204,7 @@ async function ensureLinuxPluginCompilerWrapperAndIni(
   const pluginsLocalWrapper = join(pluginsLocalToolsDir, "mcs-host.sh");
   await fse.writeFile(
     pluginsLocalWrapper,
-    getLinuxPluginCompilerWrapperScript(),
+    getUnixPluginCompilerWrapperScript(),
     "utf8",
   );
   try {
@@ -1478,6 +1817,17 @@ async function syncManagedPluginRuntime(
     activePluginsInput,
     resourcesPluginsDir,
   );
+  writePatcherRuntimeLog(
+    "INFO",
+    "Starting managed plugin runtime sync.",
+    {
+      terrariaPath,
+      terrariaDir,
+      resourcesPluginsDir,
+      activePluginsCount: activePlugins.length,
+    },
+    terrariaPath,
+  );
 
   const copiedLoaders = copyPluginLoaderDlls(resourcesPluginsDir, terrariaDir);
   if (copiedLoaders === 0) {
@@ -1493,6 +1843,22 @@ async function syncManagedPluginRuntime(
     copySync(sharedSrc, join(pluginsDestDir, "Shared"));
   }
 
+  const bundledToolsSrc = join(resourcesPluginsDir, ".PluginLoaderTools");
+  const bundledToolsDest = join(pluginsDestDir, ".PluginLoaderTools");
+  let bundledToolsCopied = false;
+  if (existsSync(bundledToolsSrc)) {
+    copySync(bundledToolsSrc, bundledToolsDest);
+    bundledToolsCopied = true;
+  }
+  if (process.platform !== "win32" && !bundledToolsCopied) {
+    writePatcherRuntimeLog(
+      "WARN",
+      "No bundled .PluginLoaderTools toolchain found in resources; runtime will rely on host/system Mono.",
+      { bundledToolsSrc },
+      terrariaPath,
+    );
+  }
+
   let copiedPlugins = 0;
   for (const pluginName of activePlugins) {
     const pluginSrc = join(resourcesPluginsDir, pluginName);
@@ -1501,9 +1867,20 @@ async function syncManagedPluginRuntime(
     copiedPlugins++;
   }
 
-  await ensureLinuxPluginCompilerWrapperAndIni(terrariaPath, pluginsDestDir);
+  await ensureUnixPluginCompilerWrapperAndIni(terrariaPath, pluginsDestDir);
   await writeRuntimeSyncMarker(pluginsDestDir, activePlugins);
   await markRuntimeFilesSynced(terrariaPath);
+  writePatcherRuntimeLog(
+    "INFO",
+    "Managed plugin runtime sync completed.",
+    {
+      copiedLoaders,
+      copiedPlugins,
+      bundledToolsCopied,
+      pluginsDestDir,
+    },
+    terrariaPath,
+  );
 
   return { copiedLoaders, copiedPlugins, pluginsDestDir };
 }
@@ -1574,6 +1951,11 @@ async function runStartupRuntimeMaintenance(
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.warn("[runtime-maintenance] startup sync skipped:", msg);
+    writePatcherRuntimeLog(
+      "WARN",
+      "Startup runtime maintenance skipped due to error.",
+      msg,
+    );
   }
 }
 
@@ -1596,7 +1978,12 @@ async function cleanupLegacyBridgeArtifacts(): Promise<void> {
       if (await fse.pathExists(target)) {
         await fse.remove(target);
       }
-    } catch {
+    } catch (err: unknown) {
+      writePatcherRuntimeLog(
+        "WARN",
+        "Failed to remove legacy bridge artifact target.",
+        { target, error: err instanceof Error ? err.message : String(err) },
+      );
       // Best effort cleanup; update/install should continue even if locked.
     }
   }
@@ -1610,7 +1997,12 @@ async function cleanupLegacyBridgeArtifacts(): Promise<void> {
         return;
       }
     }
-  } catch {
+  } catch (err: unknown) {
+    writePatcherRuntimeLog(
+      "WARN",
+      "Failed to cleanup legacy bridge path as directory/file.",
+      { bridgePath, error: err instanceof Error ? err.message : String(err) },
+    );
     // Continue with per-file cleanup below.
   }
 
@@ -1633,7 +2025,12 @@ async function cleanupLegacyBridgeArtifacts(): Promise<void> {
       if (await fse.pathExists(target)) {
         await fse.remove(target);
       }
-    } catch {
+    } catch (err: unknown) {
+      writePatcherRuntimeLog(
+        "WARN",
+        "Failed to remove legacy bridge file entry.",
+        { target, error: err instanceof Error ? err.message : String(err) },
+      );
       // Best effort cleanup.
     }
   }
@@ -2070,7 +2467,10 @@ function scheduleSilentStartupUpdateCheck(): void {
 const patcherBridge = new PatcherBridge({
   getRuntimeDir: getBridgeRuntimeDir,
   platform: process.platform,
-  onStderr: (message) => console.warn("[patcher-bridge][stderr]", message),
+  onStderr: (message) => {
+    console.warn("[patcher-bridge][stderr]", message);
+    writePatcherRuntimeLog("WARN", "Bridge stderr output.", message);
+  },
 });
 
 // ─── IPC Handlers ────────────────────────────────────────────────────────────
@@ -2778,6 +3178,7 @@ function setupIpcHandlers(): void {
         };
       } catch (err) {
         console.error("checkBackup error:", err);
+        writePatcherRuntimeLog("ERROR", "patcher:checkBackup failed.", err, terrariaPath);
         return { hasBackup: false, exeVersion: null, bakVersion: null };
       }
     },
@@ -2788,17 +3189,41 @@ function setupIpcHandlers(): void {
     "patcher:restoreBackup",
     async (_event, terrariaPath: string) => {
       try {
+        writePatcherRuntimeLog(
+          "INFO",
+          "patcher:restoreBackup started.",
+          { terrariaPath },
+          terrariaPath,
+        );
         const backupPath = terrariaPath + ".bak";
         if (!(await fse.pathExists(backupPath))) {
+          writePatcherRuntimeLog(
+            "WARN",
+            "patcher:restoreBackup missing backup file.",
+            { backupPath },
+            terrariaPath,
+          );
           return { success: false, key: "patcher.messages.backupNotFound" };
         }
         if (await fse.pathExists(terrariaPath)) {
           await fse.remove(terrariaPath);
         }
         await fse.move(backupPath, terrariaPath);
+        writePatcherRuntimeLog(
+          "INFO",
+          "patcher:restoreBackup completed.",
+          { backupPath, terrariaPath },
+          terrariaPath,
+        );
         return { success: true, key: "patcher.messages.restoreSuccess" };
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
+        writePatcherRuntimeLog(
+          "ERROR",
+          "patcher:restoreBackup failed.",
+          msg,
+          terrariaPath,
+        );
         return {
           success: false,
           key: "patcher.messages.restoreFailed",
@@ -2811,7 +3236,19 @@ function setupIpcHandlers(): void {
   // Patcher: backup
   ipcMain.handle("patcher:backup", async (_event, terrariaPath: string) => {
     try {
+      writePatcherRuntimeLog(
+        "INFO",
+        "patcher:backup started.",
+        { terrariaPath },
+        terrariaPath,
+      );
       if (!terrariaPath || !(await fse.pathExists(terrariaPath))) {
+        writePatcherRuntimeLog(
+          "WARN",
+          "patcher:backup Terraria executable not found.",
+          { terrariaPath },
+          terrariaPath,
+        );
         return {
           success: false,
           key: "patcher.messages.notFound",
@@ -2820,6 +3257,12 @@ function setupIpcHandlers(): void {
       }
       const backupPath = terrariaPath + ".bak";
       await fse.copy(terrariaPath, backupPath, { overwrite: true });
+      writePatcherRuntimeLog(
+        "INFO",
+        "patcher:backup completed.",
+        { backupPath },
+        terrariaPath,
+      );
       return {
         success: true,
         key: "patcher.messages.backupSuccess",
@@ -2827,6 +3270,12 @@ function setupIpcHandlers(): void {
       };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
+      writePatcherRuntimeLog(
+        "ERROR",
+        "patcher:backup failed.",
+        msg,
+        terrariaPath,
+      );
       return {
         success: false,
         key: "patcher.messages.backupFailed",
@@ -2854,13 +3303,31 @@ function setupIpcHandlers(): void {
     ) => {
       try {
         const { terrariaPath, activePlugins } = payload;
+        writePatcherRuntimeLog(
+          "INFO",
+          "patcher:sync-plugins started.",
+          { activePluginsCount: activePlugins?.length ?? 0 },
+          terrariaPath,
+        );
         await enqueuePluginRuntimeSync(() =>
           syncManagedPluginRuntime(terrariaPath, activePlugins),
         );
 
+        writePatcherRuntimeLog(
+          "INFO",
+          "patcher:sync-plugins completed.",
+          { activePluginsCount: activePlugins?.length ?? 0 },
+          terrariaPath,
+        );
         return { success: true, key: "patcher.messages.pluginsSynced" };
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
+        writePatcherRuntimeLog(
+          "ERROR",
+          "patcher:sync-plugins failed.",
+          msg,
+          payload?.terrariaPath,
+        );
         if (msg.includes("Plugin loader DLLs are missing from resources")) {
           return {
             success: false,
@@ -2885,12 +3352,30 @@ function setupIpcHandlers(): void {
     ) => {
       try {
         const { terrariaPath, activePlugins = [] } = payload;
+        writePatcherRuntimeLog(
+          "INFO",
+          "patcher:repair-runtime started.",
+          { activePluginsCount: activePlugins.length },
+          terrariaPath,
+        );
         await enqueuePluginRuntimeSync(() =>
           syncManagedPluginRuntime(terrariaPath, activePlugins),
+        );
+        writePatcherRuntimeLog(
+          "INFO",
+          "patcher:repair-runtime completed.",
+          { activePluginsCount: activePlugins.length },
+          terrariaPath,
         );
         return { success: true, key: "patcher.messages.pluginsSynced" };
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
+        writePatcherRuntimeLog(
+          "ERROR",
+          "patcher:repair-runtime failed.",
+          msg,
+          payload?.terrariaPath,
+        );
         if (msg.includes("Plugin loader DLLs are missing from resources")) {
           return {
             success: false,
@@ -2916,24 +3401,16 @@ function setupIpcHandlers(): void {
     ) => {
       try {
         const { terrariaPath, options } = payload;
-
-        if (options.Plugins && process.platform !== "win32") {
-          const mono = await checkMonoCompiler();
-          if (!mono.ok) {
-            return {
-              success: false,
-              key: "patcher.messages.monoMissing",
-              args: {
-                details: [
-                  mono.message ?? "mcs compiler not found",
-                  mono.hint ?? "",
-                ]
-                  .filter(Boolean)
-                  .join(" "),
-              },
-            };
-          }
-        }
+        writePatcherRuntimeLog(
+          "INFO",
+          "patcher:run started.",
+          {
+            terrariaPath,
+            platform: process.platform,
+            options: summarizePatchOptions(options),
+          },
+          terrariaPath,
+        );
 
         if (options.Plugins) {
           try {
@@ -2943,6 +3420,12 @@ function setupIpcHandlers(): void {
           } catch (syncErr: unknown) {
             const syncMessage =
               syncErr instanceof Error ? syncErr.message : String(syncErr);
+            writePatcherRuntimeLog(
+              "ERROR",
+              "patcher:run plugin runtime sync failed.",
+              syncMessage,
+              terrariaPath,
+            );
             if (
               syncMessage.includes(
                 "Plugin loader DLLs are missing from resources",
@@ -2962,6 +3445,30 @@ function setupIpcHandlers(): void {
           }
         }
 
+        if (options.Plugins && process.platform !== "win32") {
+          const mono = await checkMonoCompiler(terrariaPath);
+          if (!mono.ok) {
+            writePatcherRuntimeLog(
+              "ERROR",
+              "patcher:run Mono compiler check failed.",
+              mono,
+              terrariaPath,
+            );
+            return {
+              success: false,
+              key: "patcher.messages.monoMissing",
+              args: {
+                details: [
+                  mono.message ?? "mcs compiler not found",
+                  mono.hint ?? "",
+                ]
+                  .filter(Boolean)
+                  .join(" "),
+              },
+            };
+          }
+        }
+
         options.PatcherPath = getPluginsResourcesDir();
 
         const result = await patcherBridge.request<{
@@ -2975,10 +3482,22 @@ function setupIpcHandlers(): void {
 
         // Convert to our standard signature mapping
         if (result.success) {
+          writePatcherRuntimeLog(
+            "INFO",
+            "patcher:run completed successfully.",
+            undefined,
+            terrariaPath,
+          );
           return { success: true, key: "patcher.messages.success" };
         } else {
           // If C# returns an error message, extract it
           const backendMessage = result.message || "Unknown error";
+          writePatcherRuntimeLog(
+            "ERROR",
+            "patcher:run backend returned failure.",
+            backendMessage,
+            terrariaPath,
+          );
           const isNotFound = backendMessage.includes("Terraria.exe not found");
           if (isNotFound) {
             return {
@@ -3006,6 +3525,12 @@ function setupIpcHandlers(): void {
         }
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
+        writePatcherRuntimeLog(
+          "ERROR",
+          "patcher:run threw an exception.",
+          msg,
+          payload?.terrariaPath,
+        );
         return {
           success: false,
           key: "patcher.messages.error",
@@ -3087,10 +3612,24 @@ app.whenReady().then(async () => {
     startupLanguage = app.getLocale();
   }
   mainLanguageHint = startupLanguage;
+  writePatcherRuntimeLog("INFO", "App startup sequence initialized.", {
+    appVersion: app.getVersion(),
+    platform: process.platform,
+    arch: process.arch,
+    packaged: app.isPackaged,
+  });
   await cleanupLegacyBridgeArtifacts();
 
   const depsCheck = validateRuntimeDependencies(startupLanguage);
   if (!depsCheck.ok) {
+    writePatcherRuntimeLog(
+      "ERROR",
+      "Runtime dependency validation failed during startup.",
+      {
+        message: depsCheck.message,
+        details: depsCheck.details,
+      },
+    );
     const details = (depsCheck.details || []).join("\n");
     const isWindows = process.platform === "win32";
     const buttons = [
