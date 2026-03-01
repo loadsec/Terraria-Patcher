@@ -12,6 +12,15 @@
     "noEntriesDesc": "Adicione versões no version.json e traduções no changelog.json."
   },
   "releases": {
+    "v1_1_13": {
+      "title": "Correção de Carregamento Edge (Windows + Linux)",
+      "summary": "Corrige a inicialização do patch nas duas plataformas com carregamento de runtime edge específico por sistema.",
+      "changes": [
+        "No Windows, mantivemos a estratégia de runtime edge isolado para evitar crash após atualização do instalador.",
+        "No Linux/macOS, voltamos a carregar o edge pelo node_modules empacotado, restaurando a execução do patch com plugins.",
+        "Mantidas verificações e fallback para reduzir erros de incompatibilidade na inicialização."
+      ]
+    },
     "v1_1_12": {
       "title": "Correção de Arquivos Antigos na Atualização NSIS",
       "summary": "Corrige o crash de assertion edge_coreclr no Windows após atualizar via instalador NSIS limpando binários nativos antigos deixados por versões anteriores.",

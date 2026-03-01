@@ -1323,8 +1323,6 @@ function getPackagedEdgeEntryCandidates(): string[] {
   if (process.platform === "win32") {
     push(getPackagedEdgeRuntimeBundleEntryPath());
     push(getPackagedEdgeAsarEntryPath());
-  } else {
-    push(getPackagedEdgeAsarEntryPath());
   }
 
   return candidates;
@@ -2141,28 +2139,27 @@ function getEdgeModule(): EdgeModule {
   try {
     process.env.EDGE_USE_CORECLR = "1";
 
-    // In packaged builds, prefer loading edge from extraResources on Windows
-    // and fallback to app.asar.unpacked when needed.
-    if (app.isPackaged) {
+    // In packaged builds, use a platform-specific loading strategy:
+    // - Windows: prefer isolated runtime bundle to avoid stale updater files.
+    // - Linux/macOS: load from packaged node_modules (historically stable).
+    if (app.isPackaged && process.platform === "win32") {
       // NSIS updates overlay new files on old ones without cleaning up.
       // If we have to fallback to app.asar.unpacked on Windows, delete stale
       // build/Release edge_coreclr.node so edge.js uses lib/native prebuilt.
-      if (process.platform === "win32") {
-        const staleBuildRelease = join(
-          process.resourcesPath,
-          "app.asar.unpacked",
-          "node_modules",
-          "electron-edge-js",
-          "build",
-          "Release",
-          "edge_coreclr.node",
-        );
-        if (existsSync(staleBuildRelease)) {
-          try {
-            unlinkSync(staleBuildRelease);
-          } catch {
-            // Best-effort: if we can't delete, edge.js will try to use it anyway.
-          }
+      const staleBuildRelease = join(
+        process.resourcesPath,
+        "app.asar.unpacked",
+        "node_modules",
+        "electron-edge-js",
+        "build",
+        "Release",
+        "edge_coreclr.node",
+      );
+      if (existsSync(staleBuildRelease)) {
+        try {
+          unlinkSync(staleBuildRelease);
+        } catch {
+          // Best-effort: if we can't delete, edge.js will try to use it anyway.
         }
       }
 
@@ -2186,11 +2183,11 @@ function getEdgeModule(): EdgeModule {
       }
 
       throw new Error(
-        `Packaged edge module entry not found. Tried: ${getPackagedEdgeEntryCandidates().join(", ")}. Refusing to fall back to bundled node_modules to avoid JS/native mismatch.`,
+        `Packaged edge module entry not found. Tried: ${getPackagedEdgeEntryCandidates().join(", ")}.`,
       );
     }
 
-    // Dev-only fallback (node_modules).
+    // Linux/macOS packaged + dev fallback (node_modules).
     delete process.env.EDGE_NATIVE;
     edgeModule = requireForMain("electron-edge-js") as EdgeModule;
     if (!edgeModule || typeof edgeModule.func !== "function") {

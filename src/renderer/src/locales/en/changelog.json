@@ -12,6 +12,15 @@
     "noEntriesDesc": "Add release entries to version.json and translations to changelog.json."
   },
   "releases": {
+    "v1_1_13": {
+      "title": "Windows + Linux Edge Loading Fix",
+      "summary": "Fixes patch startup on both platforms by using a platform-specific edge runtime loading path.",
+      "changes": [
+        "Windows now keeps the isolated edge runtime strategy that avoids crashes after installer updates.",
+        "Linux/macOS now load edge from packaged node_modules again, restoring plugin patch execution.",
+        "Kept fallback and runtime checks to reduce startup mismatch issues between environments."
+      ]
+    },
     "v1_1_12": {
       "title": "NSIS Update Stale File Fix",
       "summary": "Fixes the edge_coreclr assertion crash on Windows after updating via NSIS installer by cleaning up stale native binaries left by previous versions.",
