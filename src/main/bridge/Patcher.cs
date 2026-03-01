@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
+using System.Text.Json;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Cecil.Rocks;
@@ -35,106 +35,354 @@ namespace TerrariaPatcherBridge
         public List<int> PermanentBuffs = new List<int>();
     }
 
-    /// <summary>
-    /// Edge.js entry point. Called from the Electron main process.
-    /// </summary>
-    public class Startup
+    public sealed class BridgeRequest
     {
-        public async Task<object> Invoke(object input)
+        public string Id { get; set; }
+        public string Command { get; set; }
+        public string TerrariaPath { get; set; }
+        public string ExePath { get; set; }
+        public string BakPath { get; set; }
+        public JsonElement Options { get; set; }
+    }
+
+    public static class Program
+    {
+        private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
         {
+            PropertyNameCaseInsensitive = true
+        };
+
+        public static void Main(string[] args)
+        {
+            while (true)
+            {
+                string line;
+                try
+                {
+                    line = Console.ReadLine();
+                }
+                catch (Exception ex)
+                {
+                    WriteError(null, "stdin_read_failed", ex.Message);
+                    return;
+                }
+
+                if (line == null)
+                    return;
+
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                HandleLine(line);
+            }
+        }
+
+        private static void HandleLine(string line)
+        {
+            string requestId = null;
+
             try
             {
-                var dict = (IDictionary<string, object>)input;
-                
-                if (dict.ContainsKey("command") && dict["command"].ToString() == "getVersions")
+                var request = JsonSerializer.Deserialize<BridgeRequest>(line, JsonOptions);
+                if (request == null)
                 {
-                    var exePath = dict.ContainsKey("exePath") ? dict["exePath"]?.ToString() : null;
-                    var bakPath = dict.ContainsKey("bakPath") ? dict["bakPath"]?.ToString() : null;
-                    string exeV = null;
-                    string bakV = null;
-                    
-                    try { if (!string.IsNullOrEmpty(exePath) && File.Exists(exePath)) exeV = IL.GetAssemblyVersion(exePath)?.ToString(); } catch {}
-                    try { if (!string.IsNullOrEmpty(bakPath) && File.Exists(bakPath)) bakV = IL.GetAssemblyVersion(bakPath)?.ToString(); } catch {}
-                    
-                    return new { success = true, exeVersion = exeV, bakVersion = bakV };
+                    WriteError(null, "invalid_request", "Request payload is empty.");
+                    return;
                 }
 
-                if (dict.ContainsKey("command") && dict["command"].ToString() == "checkClean")
+                requestId = request.Id;
+                var result = ExecuteRequest(request);
+                WriteResult(requestId, result);
+            }
+            catch (JsonException ex)
+            {
+                WriteError(requestId, "invalid_json", ex.Message);
+            }
+            catch (Exception ex)
+            {
+                WriteError(requestId, "request_failed", ex.ToString());
+            }
+        }
+
+        private static object ExecuteRequest(BridgeRequest request)
+        {
+            var command = ResolveCommand(request);
+            switch (command)
+            {
+                case "getVersions":
+                    return ExecuteGetVersions(request);
+                case "checkClean":
+                    return ExecuteCheckClean(request);
+                case "patch":
+                    return ExecutePatch(request);
+                default:
+                    throw new InvalidOperationException("Unsupported command: " + command);
+            }
+        }
+
+        private static string ResolveCommand(BridgeRequest request)
+        {
+            if (!string.IsNullOrWhiteSpace(request.Command))
+                return request.Command.Trim();
+
+            return !string.IsNullOrWhiteSpace(request.TerrariaPath) ? "patch" : string.Empty;
+        }
+
+        private static object ExecuteGetVersions(BridgeRequest request)
+        {
+            string exeV = null;
+            string bakV = null;
+
+            try
+            {
+                if (!string.IsNullOrEmpty(request.ExePath) && File.Exists(request.ExePath))
+                    exeV = IL.GetAssemblyVersion(request.ExePath)?.ToString();
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                if (!string.IsNullOrEmpty(request.BakPath) && File.Exists(request.BakPath))
+                    bakV = IL.GetAssemblyVersion(request.BakPath)?.ToString();
+            }
+            catch
+            {
+            }
+
+            return new { success = true, exeVersion = exeV, bakVersion = bakV };
+        }
+
+        private static object ExecuteCheckClean(BridgeRequest request)
+        {
+            var exePath = request.ExePath;
+            bool isPatched = false;
+
+            try
+            {
+                if (!string.IsNullOrEmpty(exePath) && File.Exists(exePath))
                 {
-                    var exePath = dict.ContainsKey("exePath") ? dict["exePath"]?.ToString() : null;
-                    bool isPatched = false;
-                    try 
+                    using (var asm = AssemblyDefinition.ReadAssembly(exePath))
                     {
-                        if (!string.IsNullOrEmpty(exePath) && File.Exists(exePath))
-                        {
-                            using (var asm = AssemblyDefinition.ReadAssembly(exePath))
-                            {
-                                isPatched = asm.MainModule.AssemblyReferences.Any(r => r.Name.Contains("PluginLoader.XNA") || r.Name.Contains("PluginLoader"));
-                            }
-                        }
-                    } 
-                    catch {}
-                    
-                    return new { patched = isPatched };
-                }
-
-                var terrariaPath = dict["terrariaPath"].ToString();
-                var options = (IDictionary<string, object>)dict["options"];
-
-                if (!File.Exists(terrariaPath))
-                {
-                    return new { success = false, message = "Terraria.exe not found at: " + terrariaPath };
-                }
-
-                var details = new TerrariaDetails();
-
-                // Boolean options
-                if (options.ContainsKey("DisplayTime")) details.DisplayTime = (bool)options["DisplayTime"];
-                if (options.ContainsKey("FunctionalSocialSlots")) details.FunctionalSocialSlots = (bool)options["FunctionalSocialSlots"];
-                if (options.ContainsKey("MaxCraftingRange")) details.MaxCraftingRange = (bool)options["MaxCraftingRange"];
-                if (options.ContainsKey("PylonEverywhere")) details.PylonEverywhere = (bool)options["PylonEverywhere"];
-                if (options.ContainsKey("RemoveAnglerQuestLimit")) details.RemoveAnglerQuestLimit = (bool)options["RemoveAnglerQuestLimit"];
-                if (options.ContainsKey("RemoveDiscordBuff")) details.RemoveDiscordBuff = (bool)options["RemoveDiscordBuff"];
-                if (options.ContainsKey("RemovePotionSickness")) details.RemovePotionSickness = (bool)options["RemovePotionSickness"];
-                if (options.ContainsKey("RemoveManaCost")) details.RemoveManaCost = (bool)options["RemoveManaCost"];
-                if (options.ContainsKey("RemoveDrowning")) details.RemoveDrowning = (bool)options["RemoveDrowning"];
-                if (options.ContainsKey("OneHitKill")) details.OneHitKill = (bool)options["OneHitKill"];
-                if (options.ContainsKey("InfiniteAmmo")) details.InfiniteAmmo = (bool)options["InfiniteAmmo"];
-                if (options.ContainsKey("PermanentWings")) details.PermanentWings = (bool)options["PermanentWings"];
-                if (options.ContainsKey("InfiniteCloudJumps")) details.InfiniteCloudJumps = (bool)options["InfiniteCloudJumps"];
-                if (options.ContainsKey("BossBagsDropAllLoot")) details.BossBagsDropAllLoot = (bool)options["BossBagsDropAllLoot"];
-                if (options.ContainsKey("SteamFix")) details.SteamFix = (bool)options["SteamFix"];
-                if (options.ContainsKey("Plugins")) details.Plugins = (bool)options["Plugins"];
-                if (options.ContainsKey("PatcherPath")) details.PatcherPath = options["PatcherPath"].ToString();
-
-                // Numeric options
-                if (options.ContainsKey("VampiricHealing"))
-                    details.VampiricHealing = Convert.ToSingle(options["VampiricHealing"]);
-                if (options.ContainsKey("SpectreHealing"))
-                    details.SpectreHealing = Convert.ToSingle(options["SpectreHealing"]);
-                if (options.ContainsKey("SpawnRateVoodoo"))
-                    details.SpawnRateVoodoo = Convert.ToInt32(options["SpawnRateVoodoo"]);
-
-                // Buff IDs
-                if (options.ContainsKey("PermanentBuffs"))
-                {
-                    var buffsObj = options["PermanentBuffs"] as object[];
-                    if (buffsObj != null)
-                    {
-                        foreach (var b in buffsObj)
-                            details.PermanentBuffs.Add(Convert.ToInt32(b));
+                        isPatched = asm.MainModule.AssemblyReferences.Any(r =>
+                            r.Name.Contains("PluginLoader.XNA") || r.Name.Contains("PluginLoader"));
                     }
                 }
+            }
+            catch
+            {
+            }
 
-                // Patch!
+            return new { patched = isPatched };
+        }
+
+        private static object ExecutePatch(BridgeRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.TerrariaPath))
+                throw new InvalidOperationException("Missing terrariaPath.");
+
+            var terrariaPath = request.TerrariaPath.Trim();
+            if (!File.Exists(terrariaPath))
+            {
+                return new { success = false, message = "Terraria.exe not found at: " + terrariaPath };
+            }
+
+            try
+            {
+                var details = BuildDetails(request.Options);
                 Terraria.Patch(terrariaPath, terrariaPath, details);
-
                 return new { success = true, message = "Terraria patched successfully!" };
             }
             catch (Exception ex)
             {
                 return new { success = false, message = "Patch failed: " + ex.ToString() };
             }
+        }
+
+        private static TerrariaDetails BuildDetails(JsonElement options)
+        {
+            var details = new TerrariaDetails();
+
+            details.DisplayTime = GetBool(options, "DisplayTime", details.DisplayTime);
+            details.FunctionalSocialSlots = GetBool(options, "FunctionalSocialSlots", details.FunctionalSocialSlots);
+            details.MaxCraftingRange = GetBool(options, "MaxCraftingRange", details.MaxCraftingRange);
+            details.PylonEverywhere = GetBool(options, "PylonEverywhere", details.PylonEverywhere);
+            details.RemoveAnglerQuestLimit = GetBool(options, "RemoveAnglerQuestLimit", details.RemoveAnglerQuestLimit);
+            details.RemoveDiscordBuff = GetBool(options, "RemoveDiscordBuff", details.RemoveDiscordBuff);
+            details.RemovePotionSickness = GetBool(options, "RemovePotionSickness", details.RemovePotionSickness);
+            details.RemoveManaCost = GetBool(options, "RemoveManaCost", details.RemoveManaCost);
+            details.RemoveDrowning = GetBool(options, "RemoveDrowning", details.RemoveDrowning);
+            details.OneHitKill = GetBool(options, "OneHitKill", details.OneHitKill);
+            details.InfiniteAmmo = GetBool(options, "InfiniteAmmo", details.InfiniteAmmo);
+            details.PermanentWings = GetBool(options, "PermanentWings", details.PermanentWings);
+            details.InfiniteCloudJumps = GetBool(options, "InfiniteCloudJumps", details.InfiniteCloudJumps);
+            details.BossBagsDropAllLoot = GetBool(options, "BossBagsDropAllLoot", details.BossBagsDropAllLoot);
+            details.SteamFix = GetBool(options, "SteamFix", details.SteamFix);
+            details.Plugins = GetBool(options, "Plugins", details.Plugins);
+            details.PatcherPath = GetString(options, "PatcherPath", details.PatcherPath);
+
+            details.VampiricHealing = GetFloat(options, "VampiricHealing", details.VampiricHealing);
+            details.SpectreHealing = GetFloat(options, "SpectreHealing", details.SpectreHealing);
+            details.SpawnRateVoodoo = GetInt(options, "SpawnRateVoodoo", details.SpawnRateVoodoo);
+
+            details.PermanentBuffs = GetIntList(options, "PermanentBuffs");
+
+            return details;
+        }
+
+        private static bool TryGetOption(JsonElement options, string key, out JsonElement value)
+        {
+            if (options.ValueKind == JsonValueKind.Object)
+            {
+                if (options.TryGetProperty(key, out value))
+                    return true;
+
+                foreach (var property in options.EnumerateObject())
+                {
+                    if (string.Equals(property.Name, key, StringComparison.OrdinalIgnoreCase))
+                    {
+                        value = property.Value;
+                        return true;
+                    }
+                }
+            }
+
+            value = default(JsonElement);
+            return false;
+        }
+
+        private static bool GetBool(JsonElement options, string key, bool defaultValue)
+        {
+            if (!TryGetOption(options, key, out var value))
+                return defaultValue;
+
+            switch (value.ValueKind)
+            {
+                case JsonValueKind.True:
+                case JsonValueKind.False:
+                    return value.GetBoolean();
+                case JsonValueKind.Number:
+                    if (value.TryGetInt32(out var n))
+                        return n != 0;
+                    break;
+                case JsonValueKind.String:
+                    if (bool.TryParse(value.GetString(), out var parsed))
+                        return parsed;
+                    break;
+            }
+
+            return defaultValue;
+        }
+
+        private static int GetInt(JsonElement options, string key, int defaultValue)
+        {
+            if (!TryGetOption(options, key, out var value))
+                return defaultValue;
+
+            if (value.ValueKind == JsonValueKind.Number)
+            {
+                if (value.TryGetInt32(out var parsedInt))
+                    return parsedInt;
+
+                if (value.TryGetDouble(out var parsedDouble))
+                    return Convert.ToInt32(parsedDouble);
+            }
+
+            if (value.ValueKind == JsonValueKind.String &&
+                int.TryParse(value.GetString(), out var fromString))
+            {
+                return fromString;
+            }
+
+            return defaultValue;
+        }
+
+        private static float GetFloat(JsonElement options, string key, float defaultValue)
+        {
+            if (!TryGetOption(options, key, out var value))
+                return defaultValue;
+
+            if (value.ValueKind == JsonValueKind.Number)
+            {
+                if (value.TryGetSingle(out var parsedFloat))
+                    return parsedFloat;
+
+                if (value.TryGetDouble(out var parsedDouble))
+                    return Convert.ToSingle(parsedDouble);
+            }
+
+            if (value.ValueKind == JsonValueKind.String &&
+                float.TryParse(value.GetString(), out var fromString))
+            {
+                return fromString;
+            }
+
+            return defaultValue;
+        }
+
+        private static string GetString(JsonElement options, string key, string defaultValue)
+        {
+            if (!TryGetOption(options, key, out var value))
+                return defaultValue;
+
+            if (value.ValueKind == JsonValueKind.String)
+                return value.GetString() ?? defaultValue;
+
+            if (value.ValueKind == JsonValueKind.Null || value.ValueKind == JsonValueKind.Undefined)
+                return defaultValue;
+
+            return value.ToString() ?? defaultValue;
+        }
+
+        private static List<int> GetIntList(JsonElement options, string key)
+        {
+            var values = new List<int>();
+            if (!TryGetOption(options, key, out var list) || list.ValueKind != JsonValueKind.Array)
+                return values;
+
+            foreach (var item in list.EnumerateArray())
+            {
+                if (item.ValueKind == JsonValueKind.Number && item.TryGetInt32(out var intValue))
+                {
+                    values.Add(intValue);
+                    continue;
+                }
+
+                if (item.ValueKind == JsonValueKind.String &&
+                    int.TryParse(item.GetString(), out var parsed))
+                {
+                    values.Add(parsed);
+                }
+            }
+
+            return values;
+        }
+
+        private static void WriteResult(string requestId, object result)
+        {
+            WriteJson(new
+            {
+                id = requestId,
+                success = true,
+                result = result
+            });
+        }
+
+        private static void WriteError(string requestId, string code, string message)
+        {
+            WriteJson(new
+            {
+                id = requestId,
+                success = false,
+                code = code,
+                error = message
+            });
+        }
+
+        private static void WriteJson(object payload)
+        {
+            Console.WriteLine(JsonSerializer.Serialize(payload));
         }
     }
 
@@ -152,7 +400,10 @@ namespace TerrariaPatcherBridge
         {
             using (var asm = AssemblyDefinition.ReadAssembly(original, new ReaderParameters()
             {
-                AssemblyResolver = new MyAssemblyResolver(Path.GetDirectoryName(original))
+                AssemblyResolver = new MyAssemblyResolver(
+                    Path.GetDirectoryName(original),
+                    details.PatcherPath,
+                    AppContext.BaseDirectory)
             }))
             {
                 _mainModule = asm.MainModule;
@@ -162,8 +413,8 @@ namespace TerrariaPatcherBridge
                         using (var ms = new MemoryStream()) {
                             asm.Write(ms);
                         }
-                    } catch (Exception) {
-                        throw new Exception("IL broke at: " + name);
+                    } catch (Exception ex) {
+                        throw new Exception("IL broke at: " + name + " :: " + ex.Message, ex);
                     }
                 }
 
@@ -743,14 +994,41 @@ namespace TerrariaPatcherBridge
         private static void EnableAllBannerBuffs()
         {
             var player = IL.GetTypeDefinition(_mainModule, "Player");
-            var hasNpcBannerBuff = IL.GetMethodDefinition(player, "HasNPCBannerBuff");
+            var hasNpcBannerBuff = player.Methods.FirstOrDefault(m =>
+                m.Name == "HasNPCBannerBuff" &&
+                m.HasBody &&
+                m.Parameters.Count == 1 &&
+                m.ReturnType.MetadataType == MetadataType.Boolean);
 
+            if (hasNpcBannerBuff == null)
+            {
+                hasNpcBannerBuff = player.Methods.FirstOrDefault(m =>
+                    m.Name == "HasNPCBannerBuff" &&
+                    m.HasBody &&
+                    m.ReturnType.MetadataType == MetadataType.Boolean);
+            }
+
+            if (hasNpcBannerBuff == null)
+            {
+                throw new Exception("Failed to locate a compatible Player.HasNPCBannerBuff(bool return) method.");
+            }
+
+            // Fully reset the method body to avoid stale debug/scope metadata
+            // referencing old instructions after we replace the implementation.
             hasNpcBannerBuff.Body.ExceptionHandlers.Clear();
             hasNpcBannerBuff.Body.Instructions.Clear();
+            hasNpcBannerBuff.Body.Variables.Clear();
+            hasNpcBannerBuff.Body.InitLocals = false;
+
+            if (hasNpcBannerBuff.DebugInformation != null)
+            {
+                hasNpcBannerBuff.DebugInformation.SequencePoints.Clear();
+                hasNpcBannerBuff.DebugInformation.Scope = null;
+            }
 
             var il = hasNpcBannerBuff.Body.GetILProcessor();
-            il.Emit(OpCodes.Ldc_I4_1);
-            il.Emit(OpCodes.Ret);
+            il.Append(Instruction.Create(OpCodes.Ldc_I4_1));
+            il.Append(Instruction.Create(OpCodes.Ret));
         }
 
         private static void PylonEverywhere()

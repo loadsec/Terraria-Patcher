@@ -183,7 +183,7 @@ const api = {
         projectRoot: string;
         bridgeProject: string;
         bridgeRuntimeDir: string;
-        bridgeDll: string;
+        bridgeBinary: string;
         pluginsResourcesDir: string;
       };
       runtimeDeps: RuntimeDependencyCheck;

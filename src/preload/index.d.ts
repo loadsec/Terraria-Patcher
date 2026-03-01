@@ -141,7 +141,7 @@ export interface DevStatusResult {
     projectRoot: string;
     bridgeProject: string;
     bridgeRuntimeDir: string;
-    bridgeDll: string;
+    bridgeBinary: string;
     pluginsResourcesDir: string;
   };
   runtimeDeps: RuntimeDependencyCheck;

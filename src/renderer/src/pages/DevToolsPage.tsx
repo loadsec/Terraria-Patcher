@@ -563,7 +563,7 @@ export default function DevToolsPage() {
                   ["Project Root", devStatus.paths.projectRoot],
                   ["Bridge Project", devStatus.paths.bridgeProject],
                   ["Bridge Runtime", devStatus.paths.bridgeRuntimeDir],
-                  ["Bridge DLL", devStatus.paths.bridgeDll],
+                  ["Bridge Binary", devStatus.paths.bridgeBinary],
                   ["Plugins Resources", devStatus.paths.pluginsResourcesDir],
                 ].map(([label, value]) => (
                   <div key={String(label)} className="grid gap-1 sm:grid-cols-[140px_1fr]">

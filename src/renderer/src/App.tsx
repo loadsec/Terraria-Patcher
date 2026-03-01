@@ -1,5 +1,5 @@
 import { HashRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
-import { ThemeProvider, useTheme } from "@/components/theme-provider";
+import { ThemeProvider } from "@/components/theme-provider";
 import { useTranslation } from "react-i18next";
 import {
   Moon,
@@ -29,6 +29,7 @@ import AboutPage from "@/pages/AboutPage";
 import ChangelogPage from "@/pages/ChangelogPage";
 import DevToolsPage from "@/pages/DevToolsPage";
 import { useEffect, useState } from "react";
+import { useTheme } from "@/hooks/use-theme";
 
 type HeaderUpdaterState = {
   supported?: boolean;
@@ -131,7 +132,7 @@ function HeaderUpdateNotice() {
     if (!["available", "downloading", "downloaded"].includes(updaterState.phase)) {
       setDismissedVersion(null);
     }
-  }, [updaterState?.phase, updaterState?.supported]);
+  }, [updaterState]);
 
   if (!updaterState) return null;
   if (location.pathname === "/config") return null;

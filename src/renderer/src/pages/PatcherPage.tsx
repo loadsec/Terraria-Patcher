@@ -450,7 +450,6 @@ export default function PatcherPage() {
 
   // Main patch options state
   const [options, setOptions] = useState<PatchOptionsState>(DEFAULT_OPTIONS);
-  const [isPatching, _setIsPatching] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
   // workflow state for patching dialog
@@ -465,6 +464,7 @@ export default function PatcherPage() {
     | "done"
     | "error"
   >("idle");
+  const isPatching = patchStage !== "idle";
   const [patchError, setPatchError] = useState<string | null>(null);
 
   // Warning Modals

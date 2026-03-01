@@ -163,15 +163,15 @@ export default function AboutPage() {
               </span>
             </a>
             <a
-              href="https://www.npmjs.com/package/electron-edge-js"
+              href="https://dotnet.microsoft.com/en-us/download/dotnet/10.0"
               target="_blank"
               rel="noreferrer"
               className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-center">
               <span className="font-medium group-hover:text-primary transition-colors">
-                edge-js
+                .NET 10
               </span>
               <span className="text-xs text-muted-foreground mt-1">
-                {t("about.stack.edgejs")}
+                {t("about.stack.dotnetBridge", "Self-contained patcher bridge")}
               </span>
             </a>
             <a

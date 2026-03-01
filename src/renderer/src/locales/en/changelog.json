@@ -12,6 +12,18 @@
     "noEntriesDesc": "Add release entries to version.json and translations to changelog.json."
   },
   "releases": {
+    "v1_2_0": {
+      "title": "Independent IPC Bridge + Reworked Build Pipeline",
+      "summary": "Removed electron-edge-js and migrated to an independent .NET 10 C# patcher process over stdio JSON, with aggressive legacy runtime cleanup and platform-specific CI.",
+      "changes": [
+        "Replaced the `electron-edge-js` bridge with a standalone C# process (`patcher-win.exe` / `patcher-linux` / `patcher-mac`) using stdin/stdout JSON IPC.",
+        "Converted the C# backend to a console app with a continuous command loop (`getVersions`, `checkClean`, `patch`) and strict JSON-only output.",
+        "Hardened update/runtime maintenance by cleaning legacy edge files and old bridge artifacts before install and at packaged startup.",
+        "Rebuilt release workflow with strict platform separation (Windows, Linux, macOS), publishing the C# backend before Electron packaging.",
+        "Pinned Linux backend publish to `linux-musl-x64` for better Steam Runtime/SteamOS compatibility.",
+        "Cleaned lint and build warnings and aligned the project toolchain to .NET 10."
+      ]
+    },
     "v1_1_13": {
       "title": "Windows + Linux Edge Loading Fix",
       "summary": "Fixes patch startup on both platforms by using a platform-specific edge runtime loading path.",

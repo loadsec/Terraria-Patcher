@@ -248,14 +248,14 @@ export default function HomePage() {
               />
               <MetricTile
                 icon={<Shield className="h-4 w-4" />}
-                label={t("home.hero.metrics.runtimeLabel", ".NET runtime")}
+                label={t("home.hero.metrics.runtimeLabel", "Bridge runtime")}
                 value={
                   runtimeStatus === "ok"
                     ? t("home.status.runtime.ok", "Detected")
                     : t("home.status.runtime.missing", "Missing / incompatible")
                 }
                 subValue={
-                  t("home.hero.metrics.runtimeHint", ".NET 10 Runtime (cross-platform)")
+                  t("home.hero.metrics.runtimeHint", "Bundled native patcher binary")
                 }
                 emphasize={runtimeStatus === "ok"}
               />

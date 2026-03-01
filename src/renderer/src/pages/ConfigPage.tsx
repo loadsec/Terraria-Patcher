@@ -164,9 +164,10 @@ function ReleaseNotesContent({ value }: { value: string }) {
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeRaw, rehypeSanitize]}
           components={{
-            a: ({ node: _node, ...props }) => (
-              <a {...props} target="_blank" rel="noreferrer noopener" />
-            ),
+            a: ({ node, ...props }) => {
+              void node;
+              return <a {...props} target="_blank" rel="noreferrer noopener" />;
+            },
           }}>
           {value}
         </ReactMarkdown>
@@ -235,8 +236,8 @@ export default function ConfigPage() {
         console.error("Failed to load config:", err);
       }
     };
-    loadConfig();
-  }, []);
+    void loadConfig();
+  }, [i18n]);
 
   useEffect(() => {
     let disposed = false;

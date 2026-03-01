@@ -1,14 +1,14 @@
 {
   "name": "terraria-patcher",
   "private": true,
-  "version": "1.1.13",
+  "version": "1.2.0",
   "author": "Louan Fontenele",
   "description": "A desktop tool for patching Terraria",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",
     "start": "electron-vite preview",
-    "build:bridge": "dotnet build src/main/bridge/TerrariaPatcherBridge.csproj -c Release",
+    "build:bridge": "node scripts/build-bridge-host.mjs",
     "build:plugin-loader-fna": "msbuild src/plugin-loader-fna/PluginLoader.FNA.csproj /p:Configuration=Release",
     "build": "pnpm run build:bridge && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
@@ -30,7 +30,6 @@
     "@tailwindcss/vite": "^4.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "electron-edge-js": "^40.0.1",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.8.3",
     "fs-extra": "^11.3.3",
@@ -76,10 +75,6 @@
     "appId": "com.terraria-patcher",
     "productName": "Terraria Patcher",
     "npmRebuild": false,
-    "asarUnpack": [
-      "node_modules/electron-edge-js/build/Release/*.node",
-      "node_modules/electron-edge-js/lib/native/**/*.node"
-    ],
     "directories": {
       "buildResources": "build"
     },
@@ -88,11 +83,12 @@
     ],
     "extraResources": [
       {
-        "from": "src/main/bridge/bin/Release",
+        "from": "resources/patcher-bridge",
         "to": "patcher-bridge",
         "filter": [
-          "*.dll",
-          "*.json"
+          "patcher-win.exe",
+          "patcher-mac",
+          "patcher-linux"
         ]
       },
       {
@@ -108,24 +104,6 @@
         "filter": [
           "**/*.json"
         ]
-      },
-      {
-        "from": "node_modules/electron-edge-js/lib",
-        "to": "patcher-edge-js/lib",
-        "filter": [
-          "**/*"
-        ]
-      },
-      {
-        "from": "node_modules/electron-edge-js/build/Release",
-        "to": "patcher-edge-js/build/Release",
-        "filter": [
-          "edge_coreclr.node"
-        ]
-      },
-      {
-        "from": "node_modules/electron-edge-js/tools/checkMono.js",
-        "to": "patcher-edge-js/tools/checkMono.js"
       }
     ],
     "win": {
@@ -133,6 +111,9 @@
       "target": [
         "nsis"
       ]
+    },
+    "nsis": {
+      "include": "build/installer.nsh"
     },
     "mac": {
       "artifactName": "Terraria-Patcher-${version}-${arch}.${ext}",
@@ -154,7 +135,7 @@
       }
     ]
   },
-  "pnpm": {
+    "pnpm": {
     "onlyBuiltDependencies": [
       " ",
       "-",
@@ -164,7 +145,6 @@
       "d",
       "e",
       "electron",
-      "electron-edge-js",
       "electron-winstaller",
       "esbuild",
       "h",

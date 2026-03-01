@@ -1,7 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
 import { join, dirname, normalize as normalizePath } from "path";
 import { spawn } from "child_process";
-import { createRequire } from "module";
 import {
   autoUpdater,
   type ProgressInfo,
@@ -10,19 +9,8 @@ import {
 import icon from "../../resources/terraria-logo.png?asset";
 import * as fse from "fs-extra";
 import { copySync, emptyDirSync, ensureDirSync } from "fs-extra";
-import { existsSync, copyFileSync, readdirSync, unlinkSync } from "fs";
-import os from "os";
-
-// Ensure .NET runtime discovery for edge-js (primarily Windows)
-if (process.platform === "win32") {
-  const dotnetDefault = "C:\\\\Program Files\\\\dotnet";
-  if (!process.env.DOTNET_ROOT || process.env.DOTNET_ROOT.trim() === "") {
-    process.env.DOTNET_ROOT = dotnetDefault;
-  }
-  if (!process.env.PATH?.toLowerCase().includes("\\\\dotnet")) {
-    process.env.PATH = `${dotnetDefault};${process.env.PATH ?? ""}`;
-  }
-}
+import { existsSync, copyFileSync, readdirSync } from "fs";
+import { PatcherBridge, getBridgeBinaryName } from "./bridge/PatcherBridge";
 
 // ─── Electron Store ──────────────────────────────────────────────────────────
 
@@ -82,18 +70,6 @@ type TerrariaAutoDetectResult = {
   durationMs: number;
 };
 
-type DotnetRuntimeCheck = {
-  ok: boolean;
-  message?: string;
-  runtimes?: string[];
-};
-
-type MonoCheck = {
-  ok: boolean;
-  message?: string;
-  hint?: string;
-};
-
 async function findFirstExistingPath(paths: string[]): Promise<string | null> {
   for (const candidate of paths) {
     if (!candidate) continue;
@@ -106,52 +82,11 @@ async function findFirstExistingPath(paths: string[]): Promise<string | null> {
   return null;
 }
 
-async function checkDotnetRuntime(): Promise<DotnetRuntimeCheck> {
-  return new Promise((resolve) => {
-    const child = spawn("dotnet", ["--list-runtimes"], {
-      windowsHide: true,
-      env: {
-        ...process.env,
-        DOTNET_ROOT: process.env.DOTNET_ROOT,
-        PATH: process.env.PATH,
-      },
-    });
-
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (c) => (stdout += c.toString()));
-    child.stderr.on("data", (c) => (stderr += c.toString()));
-
-    child.on("error", (err) => {
-      resolve({
-        ok: false,
-        message: `Failed to run dotnet: ${err.message}`,
-      });
-    });
-
-    child.on("close", () => {
-      const runtimes = stdout
-        .split(/\r?\n/)
-        .map((l) => l.trim())
-        .filter(Boolean);
-      const hasNet10 = runtimes.some((l) =>
-        /Microsoft\.NETCore\.App\s+10\./i.test(l),
-      );
-      if (hasNet10) {
-        resolve({ ok: true, runtimes });
-      } else {
-        resolve({
-          ok: false,
-          runtimes,
-          message:
-            "Required .NET runtime 10.x not found. Install .NET 10 Desktop Runtime (x64) from https://dotnet.microsoft.com/download/dotnet/10.0",
-        });
-      }
-    });
-  });
-}
-
-async function checkMonoCompiler(): Promise<{ ok: boolean; message?: string }> {
+async function checkMonoCompiler(): Promise<{
+  ok: boolean;
+  message?: string;
+  hint?: string;
+}> {
   return new Promise((resolve) => {
     const child = spawn("mcs", ["--version"]);
     let stdout = "";
@@ -715,11 +650,6 @@ async function detectTerrariaPaths(): Promise<string[]> {
   return candidates;
 }
 
-async function detectTerrariaPath(): Promise<string | null> {
-  const candidates = await detectTerrariaPaths();
-  return candidates[0] || null;
-}
-
 async function detectTerrariaPathWithTimeout(
   timeoutMs = TERRARIA_AUTODETECT_TIMEOUT_MS,
 ): Promise<TerrariaAutoDetectResult> {
@@ -940,7 +870,9 @@ async function ensureLinuxPluginCompilerWrapperAndIni(
   );
   try {
     await fse.chmod(pluginsLocalWrapper, 0o755);
-  } catch {}
+  } catch {
+    // Best effort on Linux/macOS permissions.
+  }
 }
 
 type ProfileConfigData = {
@@ -1228,6 +1160,32 @@ async function detectDotNetSdk10(): Promise<DotNetDeveloperPackCheck> {
 }
 
 async function getDotNetPrereqStatus(): Promise<DotNetPrereqStatus> {
+  if (app.isPackaged) {
+    return {
+      platform: process.platform,
+      runtime472Plus: {
+        ok: true,
+        requiredRelease: DOTNET_RUNTIME_MAJOR_REQUIRED,
+        detectedRelease: DOTNET_RUNTIME_MAJOR_REQUIRED,
+        detectedVersion: "bundled",
+        source: "unknown",
+      },
+      developerPack472: {
+        ok: true,
+        source: "unknown",
+        detectedVersion: "bundled",
+        requiredVersionMajor: DOTNET_RUNTIME_MAJOR_REQUIRED,
+        detectedVersionMajor: DOTNET_RUNTIME_MAJOR_REQUIRED,
+      },
+      links: {
+        microsoftPage: MICROSOFT_DOTNET_DOWNLOAD_URL,
+        githubMirror: PREREQS_RELEASE_URL,
+        githubRuntimeInstaller: GITHUB_DOTNET_RUNTIME_URL,
+        githubDeveloperPackInstaller: GITHUB_DOTNET_DEVPACK_URL,
+      },
+    };
+  }
+
   const runtime472Plus = await detectDotNetRuntime10();
   const developerPack472 = await detectDotNetSdk10();
   return {
@@ -1248,11 +1206,26 @@ function getBridgeRuntimeDir(): string {
     return join(process.resourcesPath, "patcher-bridge");
   }
 
-  return join(__dirname, "..", "..", "src", "main", "bridge", "bin", "Release");
+  return join(getProjectRootDir(), "resources", "patcher-bridge");
 }
 
-function getBridgeDllPath(): string {
-  return join(getBridgeRuntimeDir(), "TerrariaPatcherBridge.dll");
+function getBridgeBinaryPath(platform: NodeJS.Platform = process.platform): string {
+  return join(getBridgeRuntimeDir(), getBridgeBinaryName(platform));
+}
+
+function getBridgePublishRuntimeIdentifier(
+  platform: NodeJS.Platform = process.platform,
+  arch: NodeJS.Architecture = process.arch,
+): string {
+  if (platform === "win32") {
+    return arch === "arm64" ? "win-arm64" : "win-x64";
+  }
+
+  if (platform === "darwin") {
+    return arch === "arm64" ? "osx-arm64" : "osx-x64";
+  }
+
+  return "linux-musl-x64";
 }
 
 function getPluginsResourcesDir(): string {
@@ -1269,95 +1242,6 @@ function getMainLocalesDir(): string {
   }
 
   return join(__dirname, "..", "..", "src", "renderer", "src", "locales");
-}
-
-function getPackagedEdgeRuntimeBundleEntryPath(): string {
-  return join(process.resourcesPath, "patcher-edge-js", "lib", "edge.js");
-}
-
-function getPackagedEdgeAsarEntryPath(): string {
-  return join(
-    process.resourcesPath,
-    "app.asar.unpacked",
-    "node_modules",
-    "electron-edge-js",
-    "lib",
-    "edge.js",
-  );
-}
-
-function getPackagedEdgeRuntimeBundleNativePath(): string {
-  return join(
-    process.resourcesPath,
-    "patcher-edge-js",
-    "build",
-    "Release",
-    "edge_coreclr.node",
-  );
-}
-
-function getPackagedEdgeAsarNativePath(): string {
-  return join(
-    process.resourcesPath,
-    "app.asar.unpacked",
-    "node_modules",
-    "electron-edge-js",
-    "build",
-    "Release",
-    "edge_coreclr.node",
-  );
-}
-
-function getPackagedEdgeNativePath(): string {
-  if (process.platform === "win32") {
-    return join(
-      process.resourcesPath,
-      "patcher-edge-js",
-      "lib",
-      "native",
-      "win32",
-      process.arch,
-      process.versions.electron.split(".")[0] ?? "",
-      "edge_coreclr.node",
-    );
-  }
-
-  return getPackagedEdgeRuntimeBundleNativePath();
-}
-
-function getPackagedEdgeEntryCandidates(): string[] {
-  const candidates: string[] = [];
-  const seen = new Set<string>();
-  const push = (value: string) => {
-    if (!value || seen.has(value)) return;
-    seen.add(value);
-    candidates.push(value);
-  };
-
-  push(getPackagedEdgeRuntimeBundleEntryPath());
-  push(getPackagedEdgeAsarEntryPath());
-
-  return candidates;
-}
-
-function getPackagedEdgeNativeCandidates(): string[] {
-  const candidates: string[] = [];
-  const seen = new Set<string>();
-  const push = (value: string) => {
-    if (!value || seen.has(value)) return;
-    seen.add(value);
-    candidates.push(value);
-  };
-
-  if (process.platform === "win32") {
-    push(getPackagedEdgeNativePath());
-    push(getPackagedEdgeAsarNativePath());
-    return candidates;
-  }
-
-  push(getPackagedEdgeRuntimeBundleNativePath());
-  push(getPackagedEdgeAsarNativePath());
-  return candidates;
 }
 
 function loadMainLocalesSync(): Record<string, MainLocaleDict> {
@@ -1693,21 +1577,77 @@ async function runStartupRuntimeMaintenance(
   }
 }
 
+async function cleanupLegacyBridgeArtifacts(): Promise<void> {
+  if (!app.isPackaged) return;
+
+  const resourcesDir = process.resourcesPath;
+  const legacyTargets = [
+    join(resourcesDir, "patcher-edge-js"),
+    join(
+      resourcesDir,
+      "app.asar.unpacked",
+      "node_modules",
+      "electron-edge-js",
+    ),
+  ];
+
+  for (const target of legacyTargets) {
+    try {
+      if (await fse.pathExists(target)) {
+        await fse.remove(target);
+      }
+    } catch {
+      // Best effort cleanup; update/install should continue even if locked.
+    }
+  }
+
+  const bridgePath = join(resourcesDir, "patcher-bridge");
+  try {
+    if (await fse.pathExists(bridgePath)) {
+      const stat = await fse.stat(bridgePath);
+      if (stat.isFile()) {
+        await fse.remove(bridgePath);
+        return;
+      }
+    }
+  } catch {
+    // Continue with per-file cleanup below.
+  }
+
+  const legacyBridgeEntries = [
+    "TerrariaPatcherBridge.dll",
+    "TerrariaPatcherBridge.exe",
+    "TerrariaPatcherBridge",
+    "TerrariaPatcherBridge.deps.json",
+    "TerrariaPatcherBridge.runtimeconfig.json",
+    "Mono.Cecil.dll",
+    "Mono.Cecil.Rocks.dll",
+    "Mono.Cecil.pdb",
+    "Mono.Cecil.Rocks.pdb",
+    "TerrariaPatcherBridge.pdb",
+  ];
+
+  for (const entry of legacyBridgeEntries) {
+    const target = join(bridgePath, entry);
+    try {
+      if (await fse.pathExists(target)) {
+        await fse.remove(target);
+      }
+    } catch {
+      // Best effort cleanup.
+    }
+  }
+}
+
 function validateRuntimeDependencies(
   language?: string | null,
 ): RuntimeDependencyCheck {
   const missing: string[] = [];
   const bridgeDir = getBridgeRuntimeDir();
-  const bridgeDll = getBridgeDllPath();
+  const bridgeBinary = getBridgeBinaryPath();
   const pluginsDir = getPluginsResourcesDir();
 
-  const requiredBridgeFiles = [
-    bridgeDll,
-    join(bridgeDir, "TerrariaPatcherBridge.runtimeconfig.json"),
-    join(bridgeDir, "TerrariaPatcherBridge.deps.json"),
-    join(bridgeDir, "Mono.Cecil.dll"),
-    join(bridgeDir, "Mono.Cecil.Rocks.dll"),
-  ];
+  const requiredBridgeFiles = [bridgeBinary];
 
   for (const file of requiredBridgeFiles) {
     if (!existsSync(file)) missing.push(file);
@@ -1783,12 +1723,6 @@ function validateRuntimeDependencies(
         defaultValue: "Missing entries:",
       }),
       ...missing.map((m) => `- ${m}`),
-      "",
-      tMain("main.runtimeDeps.prereqsRelease", {
-        lang: language,
-        defaultValue: "Windows prerequisites release: {{url}}",
-        args: { url: PREREQS_RELEASE_URL },
-      }),
     ],
   };
 }
@@ -2007,6 +1941,8 @@ function initializeAutoUpdater(): void {
       error: undefined,
       message: "Update downloaded. Restart to install.",
     });
+
+    void cleanupLegacyBridgeArtifacts();
   });
 
   autoUpdater.on("error", (error) => {
@@ -2126,333 +2062,13 @@ function scheduleSilentStartupUpdateCheck(): void {
   }, 3500);
 }
 
-// ─── Edge.js Bridge ──────────────────────────────────────────────────────────
+// ─── Patcher Bridge (stdio IPC) ─────────────────────────────────────────────
 
-let patcherFunc:
-  | ((
-      input: object,
-      callback: (error: unknown, result: unknown) => void,
-    ) => void)
-  | null = null;
-let patcherFuncInitError: Error | null = null;
-let edgeInvokeQueue: Promise<void> = Promise.resolve();
-
-type EdgeModule = {
-  func: (options: {
-    assemblyFile: string;
-    typeName: string;
-    methodName: string;
-  }) => (
-    input: object,
-    callback: (error: unknown, result: unknown) => void,
-  ) => void;
-};
-
-let edgeModule: EdgeModule | null = null;
-const requireForMain = createRequire(import.meta.url);
-let packagedNonWindowsEdgeMode: "runtime" | "asar" | "module" = "runtime";
-type EdgeGlobalCache = {
-  __terrariaPatcherEdgeModule?: EdgeModule;
-  __terrariaPatcherEdgeFunc?: (
-    input: object,
-    callback: (error: unknown, result: unknown) => void,
-  ) => void;
-  __terrariaPatcherEdgeInitError?: Error;
-};
-const edgeGlobal = globalThis as typeof globalThis & EdgeGlobalCache;
-
-function clearRequireCache(moduleRef: string): void {
-  try {
-    const resolved = requireForMain.resolve(moduleRef);
-    const cache = (requireForMain as NodeRequire).cache;
-    if (cache?.[resolved]) {
-      delete cache[resolved];
-    }
-  } catch {
-    // Ignore missing module resolutions.
-  }
-}
-
-function resetEdgeRuntimeState(): void {
-  patcherFunc = null;
-  patcherFuncInitError = null;
-  edgeModule = null;
-  edgeGlobal.__terrariaPatcherEdgeFunc = undefined;
-  edgeGlobal.__terrariaPatcherEdgeModule = undefined;
-  edgeGlobal.__terrariaPatcherEdgeInitError = undefined;
-  delete process.env.EDGE_NATIVE;
-  delete process.env.EDGE_BOOTSTRAP_DIR;
-
-  clearRequireCache("electron-edge-js");
-  if (app.isPackaged) {
-    for (const edgeEntry of getPackagedEdgeEntryCandidates()) {
-      clearRequireCache(edgeEntry);
-    }
-    for (const edgeNative of getPackagedEdgeNativeCandidates()) {
-      clearRequireCache(edgeNative);
-    }
-  }
-}
-
-function isEdgeRecoverableInitError(message: string): boolean {
-  const raw = message || "";
-  const lower = raw.toLowerCase();
-  return (
-    raw.includes("initializeClrFunc is not a function") ||
-    raw.includes("Could not find any runtimeconfig file") ||
-    raw.includes("CoreClrEmbedding::Initialize") ||
-    lower.includes(".net runtime for electron-edge-js is not configured")
-  );
-}
-
-function getEdgeModule(): EdgeModule {
-  if (edgeGlobal.__terrariaPatcherEdgeModule) {
-    edgeModule = edgeGlobal.__terrariaPatcherEdgeModule;
-    return edgeModule;
-  }
-
-  if (edgeModule) return edgeModule;
-
-  try {
-    process.env.EDGE_USE_CORECLR = "1";
-
-    // In packaged builds, use a platform-specific loading strategy:
-    // - Windows: prefer isolated runtime bundle to avoid stale updater files.
-    // - Linux/macOS: load edge entry explicitly from app.asar.unpacked.
-    if (app.isPackaged) {
-      if (process.platform === "win32") {
-        // NSIS updates overlay new files on old ones without cleaning up.
-        // If we have to fallback to app.asar.unpacked on Windows, delete stale
-        // build/Release edge_coreclr.node so edge.js uses lib/native prebuilt.
-        const staleBuildReleaseCandidates = [
-          getPackagedEdgeAsarNativePath(),
-          getPackagedEdgeRuntimeBundleNativePath(),
-        ];
-        for (const staleBuildRelease of staleBuildReleaseCandidates) {
-          if (!existsSync(staleBuildRelease)) continue;
-          try {
-            unlinkSync(staleBuildRelease);
-          } catch {
-            // Best-effort: if we can't delete, edge.js will try to use it anyway.
-          }
-        }
-
-        for (const packagedEdgeEntry of getPackagedEdgeEntryCandidates()) {
-          if (!existsSync(packagedEdgeEntry)) continue;
-
-          // Do NOT set process.env.EDGE_NATIVE before requiring edge.js.
-          // edge.js ignores it (it does its own resolution and overwrites it).
-          // Pre-setting it can cause the .node file to appear under two cache
-          // keys in Node's require cache, triggering a double CoreCLR init
-          // assertion crash (g_coreclr == nullptr).
-          delete process.env.EDGE_NATIVE;
-          edgeModule = requireForMain(packagedEdgeEntry) as EdgeModule;
-          if (!edgeModule || typeof edgeModule.func !== "function") {
-            throw new Error(
-              `Invalid electron-edge-js module loaded from ${packagedEdgeEntry}. Missing edge.func export.`,
-            );
-          }
-          edgeGlobal.__terrariaPatcherEdgeModule = edgeModule;
-          return edgeModule;
-        }
-
-        throw new Error(
-          `Packaged edge module entry not found. Tried: ${getPackagedEdgeEntryCandidates().join(", ")}.`,
-        );
-      }
-
-      const runtimeEntry = getPackagedEdgeRuntimeBundleEntryPath();
-      const asarEntry = getPackagedEdgeAsarEntryPath();
-      const attempts =
-        packagedNonWindowsEdgeMode === "runtime"
-          ? [
-              { kind: "path" as const, ref: runtimeEntry },
-              { kind: "path" as const, ref: asarEntry },
-              { kind: "module" as const, ref: "electron-edge-js" },
-            ]
-          : packagedNonWindowsEdgeMode === "asar"
-            ? [
-                { kind: "path" as const, ref: asarEntry },
-                { kind: "path" as const, ref: runtimeEntry },
-                { kind: "module" as const, ref: "electron-edge-js" },
-              ]
-            : [
-                { kind: "module" as const, ref: "electron-edge-js" },
-                { kind: "path" as const, ref: runtimeEntry },
-                { kind: "path" as const, ref: asarEntry },
-              ];
-
-      let lastError: Error | null = null;
-      for (const attempt of attempts) {
-        try {
-          if (attempt.kind === "path" && !existsSync(attempt.ref)) {
-            continue;
-          }
-          delete process.env.EDGE_NATIVE;
-          edgeModule =
-            attempt.kind === "path"
-              ? (requireForMain(attempt.ref) as EdgeModule)
-              : (requireForMain("electron-edge-js") as EdgeModule);
-          if (!edgeModule || typeof edgeModule.func !== "function") {
-            throw new Error(
-              `Invalid electron-edge-js module loaded from ${attempt.ref}. Missing edge.func export.`,
-            );
-          }
-          edgeGlobal.__terrariaPatcherEdgeModule = edgeModule;
-          return edgeModule;
-        } catch (err: unknown) {
-          const normalized =
-            err instanceof Error
-              ? err
-              : new Error(typeof err === "string" ? err : String(err));
-          lastError = normalized;
-          console.warn(
-            `[edge] packaged non-win load attempt failed (${attempt.ref}): ${normalized.message}`,
-          );
-        }
-      }
-
-      if (lastError) throw lastError;
-      throw new Error(
-        `Packaged edge module entry not found for Linux/macOS. Tried: ${runtimeEntry}, ${asarEntry}, electron-edge-js module.`,
-      );
-    }
-
-    // Dev-only fallback (node_modules).
-    delete process.env.EDGE_NATIVE;
-    edgeModule = requireForMain("electron-edge-js") as EdgeModule;
-    if (!edgeModule || typeof edgeModule.func !== "function") {
-      throw new Error(
-        "Invalid electron-edge-js module loaded from node_modules. Missing edge.func export.",
-      );
-    }
-    edgeGlobal.__terrariaPatcherEdgeModule = edgeModule;
-    return edgeModule;
-  } catch (err: unknown) {
-    const rawMessage = err instanceof Error ? err.message : String(err);
-
-    if (
-      rawMessage.includes("Could not find any runtimeconfig file") ||
-      rawMessage.includes("CoreClrEmbedding::Initialize")
-    ) {
-      console.error("[edge] runtime init error:", rawMessage);
-      throw new Error(
-        "The .NET runtime for electron-edge-js is not configured on this system. Install .NET 10 Runtime (or SDK) and rebuild the C# bridge so runtimeconfig/deps files are generated.",
-      );
-    }
-
-    if (
-      rawMessage.includes("The edge native module is not available") &&
-      rawMessage.includes("edge_coreclr.node")
-    ) {
-      throw new Error(
-        `electron-edge-js native runtime was not found in this packaged build. Expected native path: ${getPackagedEdgeNativePath()}`,
-      );
-    }
-
-    throw err;
-  }
-}
-
-function getEdgeFunc(): (
-  input: object,
-) => Promise<{ success: boolean; message: string }> {
-  return (input: object) => {
-    const task = edgeInvokeQueue.then(async () => {
-      if (edgeGlobal.__terrariaPatcherEdgeInitError) {
-        patcherFuncInitError = edgeGlobal.__terrariaPatcherEdgeInitError;
-      }
-
-      if (patcherFuncInitError) {
-        throw patcherFuncInitError;
-      }
-
-      if (!patcherFunc && edgeGlobal.__terrariaPatcherEdgeFunc) {
-        patcherFunc = edgeGlobal.__terrariaPatcherEdgeFunc;
-      }
-
-      if (!patcherFunc) {
-        const bridgeDllPath = getBridgeDllPath();
-        const createManagedEntryPoint = () => {
-          const edge = getEdgeModule();
-          return edge.func({
-            assemblyFile: bridgeDllPath,
-            typeName: "TerrariaPatcherBridge.Startup",
-            methodName: "Invoke",
-          });
-        };
-        const normalizeError = (err: unknown): Error =>
-          err instanceof Error
-            ? err
-            : new Error(typeof err === "string" ? err : String(err));
-
-        try {
-          patcherFunc = createManagedEntryPoint();
-        } catch (err: unknown) {
-          let normalized = normalizeError(err);
-
-          const canRetryNonWindowsPackaged =
-            app.isPackaged &&
-            process.platform !== "win32" &&
-            isEdgeRecoverableInitError(normalized.message);
-
-          if (canRetryNonWindowsPackaged) {
-            const retryModes: Array<"runtime" | "asar" | "module"> =
-              packagedNonWindowsEdgeMode === "runtime"
-                ? ["asar", "module"]
-                : packagedNonWindowsEdgeMode === "asar"
-                  ? ["module", "runtime"]
-                  : ["runtime", "asar"];
-
-            for (const retryMode of retryModes) {
-              console.warn(
-                `[edge] recoverable init failure in ${packagedNonWindowsEdgeMode} mode (${normalized.message}). Retrying with ${retryMode} mode...`,
-              );
-              packagedNonWindowsEdgeMode = retryMode;
-              resetEdgeRuntimeState();
-              try {
-                patcherFunc = createManagedEntryPoint();
-                break;
-              } catch (retryErr: unknown) {
-                normalized = normalizeError(retryErr);
-              }
-            }
-          }
-
-          if (!patcherFunc) {
-            patcherFuncInitError = normalized;
-            edgeGlobal.__terrariaPatcherEdgeInitError = normalized;
-            console.error(
-              "[edge] failed to initialize patcher function:",
-              normalized,
-            );
-            throw normalized;
-          }
-        }
-
-        edgeGlobal.__terrariaPatcherEdgeFunc = patcherFunc;
-      }
-
-      const func = patcherFunc!;
-      return await new Promise<{ success: boolean; message: string }>(
-        (resolve, reject) => {
-          func(input, (error, result) => {
-            if (error) reject(error);
-            else resolve(result as { success: boolean; message: string });
-          });
-        },
-      );
-    });
-
-    // Keep the queue alive even if one invocation fails.
-    edgeInvokeQueue = task.then(
-      () => undefined,
-      () => undefined,
-    );
-
-    return task;
-  };
-}
+const patcherBridge = new PatcherBridge({
+  getRuntimeDir: getBridgeRuntimeDir,
+  platform: process.platform,
+  onStderr: (message) => console.warn("[patcher-bridge][stderr]", message),
+});
 
 // ─── IPC Handlers ────────────────────────────────────────────────────────────
 
@@ -2538,6 +2154,8 @@ function setupIpcHandlers(): void {
       return { success: false, notReady: true, state: updaterState };
     }
 
+    await cleanupLegacyBridgeArtifacts();
+
     setImmediate(() => {
       autoUpdater.quitAndInstall();
     });
@@ -2596,7 +2214,7 @@ function setupIpcHandlers(): void {
         projectRoot: getProjectRootDir(),
         bridgeProject: getBridgeProjectPath(),
         bridgeRuntimeDir: getBridgeRuntimeDir(),
-        bridgeDll: getBridgeDllPath(),
+        bridgeBinary: getBridgeBinaryPath(),
         pluginsResourcesDir: getPluginsResourcesDir(),
       },
       runtimeDeps: deps,
@@ -2627,8 +2245,11 @@ function setupIpcHandlers(): void {
     const startedAt = Date.now();
     const projectPath = getBridgeProjectPath();
     const cwd = getProjectRootDir();
+    const runtimeIdentifier = getBridgePublishRuntimeIdentifier();
+    const outputDir = getBridgeRuntimeDir();
 
     try {
+      await fse.ensureDir(outputDir);
       const result = await new Promise<{
         code: number;
         stdout: string;
@@ -2637,10 +2258,28 @@ function setupIpcHandlers(): void {
         let stdout = "";
         let stderr = "";
 
-        const child = spawn("dotnet", ["build", projectPath, "-c", "Release"], {
-          cwd,
-          windowsHide: true,
-        });
+        const child = spawn(
+          "dotnet",
+          [
+            "publish",
+            projectPath,
+            "-c",
+            "Release",
+            "-r",
+            runtimeIdentifier,
+            "--self-contained",
+            "true",
+            "-p:PublishSingleFile=true",
+            "-p:IncludeNativeLibrariesForSelfExtract=true",
+            "-p:DebugType=None",
+            "-o",
+            outputDir,
+          ],
+          {
+            cwd,
+            windowsHide: true,
+          },
+        );
 
         child.stdout.on("data", (chunk) => {
           stdout += String(chunk);
@@ -2659,6 +2298,27 @@ function setupIpcHandlers(): void {
           resolve({ code: code ?? 1, stdout, stderr });
         });
       });
+
+      if (result.code === 0) {
+        const publishedBinary = join(
+          outputDir,
+          process.platform === "win32"
+            ? "TerrariaPatcherBridge.exe"
+            : "TerrariaPatcherBridge",
+        );
+        const targetBinary = getBridgeBinaryPath();
+
+        if (
+          normalizePath(publishedBinary) !== normalizePath(targetBinary) &&
+          (await fse.pathExists(publishedBinary))
+        ) {
+          await fse.copy(publishedBinary, targetBinary, { overwrite: true });
+        }
+
+        if (process.platform !== "win32" && (await fse.pathExists(targetBinary))) {
+          await fse.chmod(targetBinary, 0o755);
+        }
+      }
 
       return {
         success: result.code === 0,
@@ -3098,12 +2758,15 @@ function setupIpcHandlers(): void {
         const backupPath = terrariaPath + ".bak";
         const hasBackup = await fse.pathExists(backupPath);
 
-        const patcher = getEdgeFunc();
-        const result = (await patcher({
+        const result = await patcherBridge.request<{
+          success: boolean;
+          exeVersion?: string;
+          bakVersion?: string;
+        }>({
           command: "getVersions",
           exePath: terrariaPath,
           bakPath: backupPath,
-        })) as { success: boolean; exeVersion?: string; bakVersion?: string };
+        });
 
         return {
           hasBackup,
@@ -3173,9 +2836,7 @@ function setupIpcHandlers(): void {
   ipcMain.handle(
     "patcher:verify-clean",
     async (_event, terrariaPath: string) => {
-      // Avoid early edge/coreclr initialization during pre-check on all
-      // platforms. Initializing edge here can poison the init cache and make
-      // the actual patch call fail later in the same app session.
+      // Kept as a lightweight pre-check endpoint; real validation happens during patch run.
       void terrariaPath;
       return { safe: true };
     },
@@ -3252,21 +2913,6 @@ function setupIpcHandlers(): void {
     ) => {
       try {
         const { terrariaPath, options } = payload;
-        if (patcherFuncInitError) {
-          // If a previous pre-check/init attempt failed, clear cached edge state
-          // so this patch run can perform a fresh initialization.
-          resetEdgeRuntimeState();
-        }
-        const edgeFunc = getEdgeFunc();
-
-        const dotnet = await checkDotnetRuntime();
-        if (!dotnet.ok) {
-          return {
-            success: false,
-            key: "patcher.messages.dotnetMissing",
-            args: { details: dotnet.message ?? "Missing .NET 10 runtime" },
-          };
-        }
 
         if (options.Plugins && process.platform !== "win32") {
           const mono = await checkMonoCompiler();
@@ -3315,7 +2961,11 @@ function setupIpcHandlers(): void {
 
         options.PatcherPath = getPluginsResourcesDir();
 
-        const result = await edgeFunc({
+        const result = await patcherBridge.request<{
+          success: boolean;
+          message?: string;
+        }>({
+          command: "patch",
           terrariaPath,
           options,
         });
@@ -3434,6 +3084,7 @@ app.whenReady().then(async () => {
     startupLanguage = app.getLocale();
   }
   mainLanguageHint = startupLanguage;
+  await cleanupLegacyBridgeArtifacts();
 
   const depsCheck = validateRuntimeDependencies(startupLanguage);
   if (!depsCheck.ok) {
@@ -3486,6 +3137,10 @@ app.whenReady().then(async () => {
   app.on("activate", function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+});
+
+app.on("before-quit", () => {
+  patcherBridge.dispose();
 });
 
 app.on("window-all-closed", () => {

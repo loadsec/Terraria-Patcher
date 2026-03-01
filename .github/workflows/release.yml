@@ -54,8 +54,8 @@ jobs:
           echo "Resolved tag: $TAG"
           echo "Resolved version: $VERSION"
 
-  build-bridge:
-    name: Build C# bridge (Windows)
+  build-windows:
+    name: Build Windows release
     runs-on: windows-latest
     needs: prepare
     steps:
@@ -82,35 +82,62 @@ jobs:
       - name: Install dependencies (no postinstall scripts)
         run: pnpm install --ignore-scripts
 
-      - name: Build bridge
-        run: pnpm run build:bridge
+      - name: Validate tag version matches package version
+        shell: bash
+        run: |
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          TAG_VERSION="${{ needs.prepare.outputs.version }}"
+          echo "Tag version: $TAG_VERSION"
+          echo "package.json version: $PKG_VERSION"
+          test "$PKG_VERSION" = "$TAG_VERSION"
 
-      - name: Upload bridge runtime artifact
+      - name: Build patcher bridge (win-x64)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path resources/patcher-bridge -Force | Out-Null
+          Get-ChildItem resources/patcher-bridge -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+
+          dotnet publish src/main/bridge/TerrariaPatcherBridge.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:DebugType=None `
+            -o resources/patcher-bridge
+
+          Copy-Item resources/patcher-bridge/TerrariaPatcherBridge.exe resources/patcher-bridge/patcher-win.exe -Force
+          Get-ChildItem resources/patcher-bridge -Force | Where-Object { $_.Name -ne 'patcher-win.exe' } | Remove-Item -Recurse -Force
+
+      - name: Build app bundle
+        run: pnpm exec electron-vite build
+
+      - name: Package app (Windows)
+        run: pnpm exec electron-builder --win --publish never
+
+      - name: Validate packaged bridge binary (Windows)
+        shell: pwsh
+        run: |
+          $bridge = "dist/win-unpacked/resources/patcher-bridge/patcher-win.exe"
+          if (!(Test-Path $bridge)) { throw "Missing packaged bridge binary: $bridge" }
+          Write-Host "Packaged bridge binary found: $bridge"
+          Get-FileHash $bridge | Format-List
+
+      - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: bridge-runtime
+          name: release-files-windows
           if-no-files-found: error
           path: |
-            src/main/bridge/bin/Release/*.dll
-            src/main/bridge/bin/Release/*.json
+            dist/*.exe
+            dist/*.zip
+            dist/latest*.yml
+            dist/*.blockmap
 
-  build-packages:
-    name: Build packages (${{ matrix.name }})
-    runs-on: ${{ matrix.os }}
-    needs: [prepare, build-bridge]
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: windows
-            os: windows-latest
-            builderArg: --win
-          - name: macos
-            os: macos-latest
-            builderArg: --mac
-          - name: linux
-            os: ubuntu-latest
-            builderArg: --linux
+  build-linux:
+    name: Build Linux release
+    runs-on: ubuntu-latest
+    needs: prepare
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -127,6 +154,11 @@ jobs:
         with:
           node-version: 22
 
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
       - name: Install dependencies (no postinstall scripts)
         run: pnpm install --ignore-scripts
 
@@ -139,79 +171,140 @@ jobs:
           echo "package.json version: $PKG_VERSION"
           test "$PKG_VERSION" = "$TAG_VERSION"
 
-      - name: Rebuild native dependencies for Electron
-        run: pnpm exec electron-builder install-app-deps
-
-      - name: Prepare electron-edge-js runtime bundle (Windows)
-        if: matrix.name == 'windows'
-        run: node node_modules/electron-edge-js/tools/install.js
-
-      - name: Download bridge runtime
-        uses: actions/download-artifact@v4
-        with:
-          name: bridge-runtime
-          path: src/main/bridge/bin/Release
-
-      - name: Validate plugin runtime resources
+      - name: Build patcher bridge (linux-musl-x64)
         shell: bash
         run: |
-          test -f "resources/plugins/PluginLoader.XNA.dll"
-          test -f "resources/plugins/PluginLoader.FNA.dll"
-          test -d "resources/plugins/Shared"
-          echo "Plugin runtime resources found:"
-          ls -lah resources/plugins/PluginLoader*.dll
-          sha256sum resources/plugins/PluginLoader*.dll
+          mkdir -p resources/patcher-bridge
+          find resources/patcher-bridge -mindepth 1 -maxdepth 1 -exec rm -rf {} +
 
-      - name: Validate edge native runtime
-        shell: bash
-        run: |
-          test -f "node_modules/electron-edge-js/build/Release/edge_coreclr.node"
-          echo "edge_coreclr.node found:"
-          ls -lah node_modules/electron-edge-js/build/Release/edge_coreclr.node
+          dotnet publish src/main/bridge/TerrariaPatcherBridge.csproj \
+            -c Release \
+            -r linux-musl-x64 \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -p:DebugType=None \
+            -o resources/patcher-bridge
 
-      - name: Build app bundle (skip bridge rebuild)
+          cp resources/patcher-bridge/TerrariaPatcherBridge resources/patcher-bridge/patcher-linux
+          chmod +x resources/patcher-bridge/patcher-linux
+          find resources/patcher-bridge -mindepth 1 -maxdepth 1 ! -name patcher-linux -exec rm -rf {} +
+
+      - name: Build app bundle
         run: pnpm exec electron-vite build
 
-      - name: Package app
-        run: pnpm exec electron-builder ${{ matrix.builderArg }} --publish never
+      - name: Package app (Linux)
+        run: pnpm exec electron-builder --linux --publish never
 
-      - name: Validate packaged edge runtime (Windows)
-        if: matrix.name == 'windows'
-        shell: pwsh
-        run: |
-          $edgeJs = "dist/win-unpacked/resources/patcher-edge-js/lib/edge.js"
-          if (!(Test-Path $edgeJs)) { throw "Missing packaged edge entry: $edgeJs" }
-          $edgeNode = Get-ChildItem "dist/win-unpacked/resources/patcher-edge-js/lib/native/win32/x64/*/edge_coreclr.node" -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($null -eq $edgeNode) { throw "Missing packaged edge native module under patcher-edge-js/lib/native/win32/x64/*/edge_coreclr.node" }
-          if (!(Test-Path $edgeNode.FullName)) { throw "Missing packaged edge native module: $($edgeNode.FullName)" }
-          Write-Host "Packaged edge entry found: $edgeJs"
-          Write-Host "Packaged edge native found: $($edgeNode.FullName)"
-          Get-FileHash $edgeNode.FullName | Format-List
-
-      - name: Validate packaged edge runtime (Linux)
-        if: matrix.name == 'linux'
+      - name: Validate packaged bridge binary (Linux)
         shell: bash
         run: |
-          test -f "dist/linux-unpacked/resources/patcher-edge-js/lib/edge.js"
-          test -f "dist/linux-unpacked/resources/patcher-edge-js/build/Release/edge_coreclr.node"
-          test -f "dist/linux-unpacked/resources/patcher-bridge/TerrariaPatcherBridge.runtimeconfig.json"
-          test -f "dist/linux-unpacked/resources/patcher-bridge/TerrariaPatcherBridge.deps.json"
-          echo "Linux packaged edge entry found:"
-          ls -lah "dist/linux-unpacked/resources/patcher-edge-js/lib/edge.js"
-          echo "Linux packaged edge native found:"
-          ls -lah "dist/linux-unpacked/resources/patcher-edge-js/build/Release/edge_coreclr.node"
-          echo "Linux packaged bridge runtime files found:"
-          ls -lah "dist/linux-unpacked/resources/patcher-bridge"/TerrariaPatcherBridge*.json
+          test -f "dist/linux-unpacked/resources/patcher-bridge/patcher-linux"
+          ls -lah "dist/linux-unpacked/resources/patcher-bridge/patcher-linux"
 
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: release-files-${{ matrix.name }}
+          name: release-files-linux
           if-no-files-found: error
           path: |
-            dist/*.exe
-            dist/*.dmg
             dist/*.AppImage
+            dist/*.zip
+            dist/latest*.yml
+            dist/*.blockmap
+
+  build-macos:
+    name: Build macOS release
+    runs-on: macos-latest
+    needs: prepare
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.tag }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install dependencies (no postinstall scripts)
+        run: pnpm install --ignore-scripts
+
+      - name: Validate tag version matches package version
+        shell: bash
+        run: |
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          TAG_VERSION="${{ needs.prepare.outputs.version }}"
+          echo "Tag version: $TAG_VERSION"
+          echo "package.json version: $PKG_VERSION"
+          test "$PKG_VERSION" = "$TAG_VERSION"
+
+      - name: Resolve macOS runtime identifier
+        id: mac_rid
+        shell: bash
+        run: |
+          ARCH="$(uname -m)"
+          if [[ "$ARCH" == "arm64" ]]; then
+            RID="osx-arm64"
+          else
+            RID="osx-x64"
+          fi
+          echo "rid=$RID" >> "$GITHUB_OUTPUT"
+          echo "Using RID: $RID"
+
+      - name: Build patcher bridge (macOS)
+        shell: bash
+        run: |
+          mkdir -p resources/patcher-bridge
+          find resources/patcher-bridge -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+
+          dotnet publish src/main/bridge/TerrariaPatcherBridge.csproj \
+            -c Release \
+            -r "${{ steps.mac_rid.outputs.rid }}" \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:IncludeNativeLibrariesForSelfExtract=true \
+            -p:DebugType=None \
+            -o resources/patcher-bridge
+
+          cp resources/patcher-bridge/TerrariaPatcherBridge resources/patcher-bridge/patcher-mac
+          chmod +x resources/patcher-bridge/patcher-mac
+          find resources/patcher-bridge -mindepth 1 -maxdepth 1 ! -name patcher-mac -exec rm -rf {} +
+
+      - name: Build app bundle
+        run: pnpm exec electron-vite build
+
+      - name: Package app (macOS)
+        run: pnpm exec electron-builder --mac --publish never
+
+      - name: Validate packaged bridge binary (macOS)
+        shell: bash
+        run: |
+          MATCH="$(find dist -type f -path "*/patcher-bridge/patcher-mac" | head -n 1)"
+          if [[ -z "$MATCH" ]]; then
+            echo "Missing packaged bridge binary under patcher-bridge/patcher-mac"
+            exit 1
+          fi
+          ls -lah "$MATCH"
+
+      - name: Upload packaged artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-files-macos
+          if-no-files-found: error
+          path: |
+            dist/*.dmg
             dist/*.zip
             dist/latest*.yml
             dist/*.blockmap
@@ -219,7 +312,7 @@ jobs:
   release-assets:
     name: Publish release assets + checksums
     runs-on: ubuntu-latest
-    needs: [prepare, build-packages]
+    needs: [prepare, build-windows, build-linux, build-macos]
     steps:
       - name: Download packaged artifacts
         uses: actions/download-artifact@v4
