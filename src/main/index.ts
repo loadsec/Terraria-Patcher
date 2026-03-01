@@ -2128,6 +2128,16 @@ type EdgeGlobalCache = {
 };
 const edgeGlobal = globalThis as typeof globalThis & EdgeGlobalCache;
 
+function resetEdgeRuntimeState(): void {
+  patcherFunc = null;
+  patcherFuncInitError = null;
+  edgeModule = null;
+  edgeGlobal.__terrariaPatcherEdgeFunc = undefined;
+  edgeGlobal.__terrariaPatcherEdgeModule = undefined;
+  edgeGlobal.__terrariaPatcherEdgeInitError = undefined;
+  delete process.env.EDGE_NATIVE;
+}
+
 function getEdgeModule(): EdgeModule {
   if (edgeGlobal.__terrariaPatcherEdgeModule) {
     edgeModule = edgeGlobal.__terrariaPatcherEdgeModule;
@@ -3006,54 +3016,11 @@ function setupIpcHandlers(): void {
   ipcMain.handle(
     "patcher:verify-clean",
     async (_event, terrariaPath: string) => {
-      try {
-        // Windows: avoid early edge/coreclr initialization during pre-check.
-        // Some environments can hit edge_coreclr bind/assert if initialized too early.
-        if (process.platform === "win32") {
-          return { safe: true };
-        }
-
-        const backupPath = terrariaPath + ".bak";
-        const hasBackup = await fse.pathExists(backupPath);
-
-        let exePatched = false;
-        let bakPatched = false;
-
-        const checkPatched = async (path: string) => {
-          if (!(await fse.pathExists(path))) return false;
-
-          try {
-            // We can use edge.js to run a minimal verification, reading references
-            const patcher = getEdgeFunc();
-            const result = (await patcher({
-              command: "checkClean",
-              exePath: path,
-            })) as unknown as { patched: boolean };
-            return result.patched;
-          } catch {
-            return false;
-          }
-        };
-
-        exePatched = await checkPatched(terrariaPath);
-        if (hasBackup) {
-          bakPatched = await checkPatched(backupPath);
-        }
-
-        if (hasBackup && exePatched && bakPatched) {
-          return {
-            safe: false,
-            key: "patcher.errors.doublePatch",
-            message:
-              "Both Terraria.exe and Terraria.exe.bak are already patched! You must verify game files via Steam to restore a clean version before proceeding.",
-          };
-        }
-
-        return { safe: true };
-      } catch (err) {
-        console.error("verify-clean error:", err);
-        return { safe: true }; // Assume safe to prevent blocking if edge-js fails here
-      }
+      // Avoid early edge/coreclr initialization during pre-check on all
+      // platforms. Initializing edge here can poison the init cache and make
+      // the actual patch call fail later in the same app session.
+      void terrariaPath;
+      return { safe: true };
     },
   );
 
@@ -3128,6 +3095,11 @@ function setupIpcHandlers(): void {
     ) => {
       try {
         const { terrariaPath, options } = payload;
+        if (patcherFuncInitError) {
+          // If a previous pre-check/init attempt failed, clear cached edge state
+          // so this patch run can perform a fresh initialization.
+          resetEdgeRuntimeState();
+        }
         const edgeFunc = getEdgeFunc();
 
         const dotnet = await checkDotnetRuntime();
