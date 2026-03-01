@@ -10,7 +10,9 @@
     "start": "electron-vite preview",
     "build:bridge": "node scripts/build-bridge-host.mjs",
     "build:bridge:win": "node scripts/build-bridge-host.mjs --runtime win-x64 --binary patcher-win.exe",
-    "build:bridge:linux": "node scripts/build-bridge-host.mjs --runtime linux-musl-x64 --binary patcher-linux",
+    "build:bridge:linux:musl": "node scripts/build-bridge-host.mjs --runtime linux-musl-x64 --binary patcher-linux",
+    "build:bridge:linux:gnu": "node scripts/build-bridge-host.mjs --runtime linux-x64 --binary patcher-linux-gnu",
+    "build:bridge:linux": "pnpm run build:bridge:linux:musl && pnpm run build:bridge:linux:gnu",
     "build:bridge:mac": "node scripts/build-bridge-host.mjs --runtime osx-x64 --binary patcher-mac",
     "build:plugin-loader-fna": "msbuild src/plugin-loader-fna/PluginLoader.FNA.csproj /p:Configuration=Release",
     "build:renderer": "electron-vite build",
@@ -92,7 +94,8 @@
         "filter": [
           "patcher-win.exe",
           "patcher-mac",
-          "patcher-linux"
+          "patcher-linux",
+          "patcher-linux-gnu"
         ]
       },
       {

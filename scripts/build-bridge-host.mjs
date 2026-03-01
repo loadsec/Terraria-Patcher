@@ -130,8 +130,16 @@ if (process.platform !== "win32" && existsSync(targetBinary)) {
   chmodSync(targetBinary, 0o755);
 }
 
+const keepEntries = new Set([
+  ".gitkeep",
+  "patcher-win.exe",
+  "patcher-mac",
+  "patcher-linux",
+  "patcher-linux-gnu",
+]);
+
 for (const entry of readdirSync(outputDir)) {
-  if (entry !== targetBinaryName && entry !== ".gitkeep") {
+  if (!keepEntries.has(entry)) {
     try {
       rmSync(join(outputDir, entry), { recursive: true, force: true });
     } catch {

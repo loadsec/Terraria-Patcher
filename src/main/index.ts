@@ -1645,12 +1645,15 @@ function validateRuntimeDependencies(
   const missing: string[] = [];
   const bridgeDir = getBridgeRuntimeDir();
   const bridgeBinary = getBridgeBinaryPath();
+  const bridgeLinuxFallback = join(bridgeDir, "patcher-linux-gnu");
   const pluginsDir = getPluginsResourcesDir();
 
-  const requiredBridgeFiles = [bridgeBinary];
-
-  for (const file of requiredBridgeFiles) {
-    if (!existsSync(file)) missing.push(file);
+  if (process.platform === "linux") {
+    if (!existsSync(bridgeBinary) && !existsSync(bridgeLinuxFallback)) {
+      missing.push(bridgeBinary, bridgeLinuxFallback);
+    }
+  } else {
+    if (!existsSync(bridgeBinary)) missing.push(bridgeBinary);
   }
 
   if (!existsSync(pluginsDir)) {

@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { existsSync } from "fs";
 import { chmodSync } from "fs";
 import { join } from "path";
-import { spawn, type ChildProcessWithoutNullStreams } from "child_process";
+import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from "child_process";
 
 type BridgeEnvelope = {
   id?: string;
@@ -24,11 +24,17 @@ export function getBridgeBinaryName(platform: NodeJS.Platform): string {
   return "patcher-linux";
 }
 
+export function getBridgeBinaryCandidates(platform: NodeJS.Platform): string[] {
+  if (platform === "linux") return ["patcher-linux", "patcher-linux-gnu"];
+  return [getBridgeBinaryName(platform)];
+}
+
 export class PatcherBridge {
   private child: ChildProcessWithoutNullStreams | null = null;
   private stdoutBuffer = "";
   private readonly pending = new Map<string, PendingRequest>();
   private disposed = false;
+  private selectedBinaryPath: string | null = null;
 
   constructor(
     private readonly options: {
@@ -40,10 +46,7 @@ export class PatcherBridge {
   ) {}
 
   getBinaryPath(): string {
-    return join(
-      this.options.getRuntimeDir(),
-      getBridgeBinaryName(this.options.platform),
-    );
+    return join(this.options.getRuntimeDir(), getBridgeBinaryName(this.options.platform));
   }
 
   async request<T = unknown>(payload: Record<string, unknown>): Promise<T> {
@@ -114,10 +117,7 @@ export class PatcherBridge {
       return this.child;
     }
 
-    const binaryPath = this.getBinaryPath();
-    if (!existsSync(binaryPath)) {
-      throw new Error(`Bridge executable was not found: ${binaryPath}`);
-    }
+    const binaryPath = this.resolveBinaryPath();
 
     if (this.options.platform !== "win32") {
       try {
@@ -140,6 +140,7 @@ export class PatcherBridge {
     });
 
     child.on("error", (err) => {
+      this.selectedBinaryPath = null;
       this.rejectAll(
         new Error(
           `Bridge process error: ${
@@ -162,6 +163,57 @@ export class PatcherBridge {
 
     this.child = child;
     return child;
+  }
+
+  private resolveBinaryPath(): string {
+    if (
+      this.selectedBinaryPath &&
+      existsSync(this.selectedBinaryPath)
+    ) {
+      return this.selectedBinaryPath;
+    }
+
+    const runtimeDir = this.options.getRuntimeDir();
+    const candidates = getBridgeBinaryCandidates(this.options.platform).map((name) =>
+      join(runtimeDir, name),
+    );
+    const failures: string[] = [];
+
+    for (const candidate of candidates) {
+      if (!existsSync(candidate)) {
+        failures.push(`${candidate} (missing)`);
+        continue;
+      }
+
+      if (this.options.platform !== "win32") {
+        try {
+          chmodSync(candidate, 0o755);
+        } catch {
+          // best effort
+        }
+      }
+
+      const probe = spawnSync(candidate, [], {
+        stdio: "ignore",
+        windowsHide: true,
+        input: "",
+        timeout: 15_000,
+      });
+
+      if (!probe.error) {
+        this.options.onStderr?.(`[bridge] Using binary: ${candidate}`);
+        this.selectedBinaryPath = candidate;
+        return candidate;
+      }
+
+      failures.push(
+        `${candidate} (${probe.error.code ?? probe.error.name}: ${probe.error.message})`,
+      );
+    }
+
+    throw new Error(
+      `Bridge executable is not runnable. Tried: ${failures.join(" | ")}`,
+    );
   }
 
   private handleStdoutChunk(chunk: string): void {
@@ -221,4 +273,3 @@ export class PatcherBridge {
     }
   }
 }
-
