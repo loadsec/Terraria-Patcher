@@ -464,6 +464,7 @@ namespace PluginLoader
             var stagedSourcesDir = Path.Combine(absWorkDir, "sources");
             Directory.CreateDirectory(stagedSourcesDir);
             var stagedSources = new List<string>(sources.Length);
+            var stagedSourcePairs = new List<KeyValuePair<string, string>>(sources.Length);
             for (var i = 0; i < sources.Length; i++)
             {
                 var sourcePath = sources[i];
@@ -474,6 +475,7 @@ namespace PluginLoader
                 var stagedPath = Path.Combine(stagedSourcesDir, i.ToString("000") + "_" + sourceName);
                 File.Copy(sourcePath, stagedPath, overwrite: true);
                 stagedSources.Add(stagedPath);
+                stagedSourcePairs.Add(new KeyValuePair<string, string>(sourcePath, stagedPath));
             }
 
             var missingStagedSources = stagedSources.Where(p => !File.Exists(p)).ToArray();
@@ -520,41 +522,36 @@ namespace PluginLoader
 
             Func<string, string> shellQuote = p => "'" + (p ?? string.Empty).Replace("'", "'\"'\"'") + "'";
 
-            // Write diagnostics artifacts, but execute through a shell script to avoid
-            // Mono's command line / response-file parsing issues on some Linux setups.
-            var scriptPath = Path.Combine(absWorkDir, "run-mcs.sh");
-            var scriptHome = string.Empty;
-            try { scriptHome = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) ?? string.Empty; }
-            catch { }
-            File.WriteAllText(
-                scriptPath,
-                "#!/usr/bin/env bash\nset -e\n" +
-                "exec /usr/bin/env -i " +
-                "PATH=" + shellQuote("/usr/bin:/bin:/usr/local/bin:/opt/mono/bin:/opt/homebrew/bin") + " " +
-                "HOME=" + shellQuote(scriptHome) + " " +
-                "TMPDIR=" + shellQuote(Path.GetTempPath()) + " " +
-                shellQuote(mcsPath) + " " +
-                string.Join(" ", mcsArgs.Select(shellQuote)) + "\n",
-                new UTF8Encoding(false));
-
             var rspPath = Path.Combine(absWorkDir, "args.rsp");
             File.WriteAllLines(
                 rspPath,
-                mcsArgs.Select(a => "\"" + (a ?? "").Replace("\"", "\\\"") + "\""),
+                mcsArgs,
                 new UTF8Encoding(false));
 
-            var bashPath = FindExecutable("bash", new[] { "/usr/bin/bash", "/bin/bash" }) ?? "/bin/sh";
-
             var startInfo = new ProcessStartInfo();
-            startInfo.FileName = bashPath;
+            startInfo.FileName = mcsPath;
             startInfo.WorkingDirectory = absWorkDir;
             startInfo.UseShellExecute = false;
             startInfo.RedirectStandardOutput = true;
             startInfo.RedirectStandardError = true;
             startInfo.CreateNoWindow = true;
-            startInfo.Arguments = "\"" + scriptPath.Replace("\"", "\\\"") + "\"";
-            startInfo.EnvironmentVariables.Clear();
-            startInfo.EnvironmentVariables["PATH"] = "/usr/bin:/bin:/usr/local/bin:/opt/mono/bin:/opt/homebrew/bin";
+            startInfo.Arguments = string.Join(" ", mcsArgs.Select(arg =>
+            {
+                var value = arg ?? string.Empty;
+                if (value.Length == 0)
+                    return "\"\"";
+                if (value.IndexOfAny(new[] { ' ', '\t', '"' }) < 0)
+                    return value;
+                return "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+            }));
+            var inheritedPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+            var toolPath = "/usr/bin:/bin:/usr/local/bin:/opt/mono/bin:/opt/homebrew/bin";
+            if (string.IsNullOrWhiteSpace(inheritedPath))
+                startInfo.EnvironmentVariables["PATH"] = toolPath;
+            else if (inheritedPath.IndexOf(toolPath, StringComparison.Ordinal) >= 0)
+                startInfo.EnvironmentVariables["PATH"] = inheritedPath;
+            else
+                startInfo.EnvironmentVariables["PATH"] = toolPath + ":" + inheritedPath;
             try
             {
                 var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -604,8 +601,13 @@ namespace PluginLoader
                 try
                 {
                     var nowUtc = DateTime.UtcNow;
-                    foreach (var stagedSource in stagedSources)
-                        File.SetLastWriteTimeUtc(stagedSource, nowUtc);
+                    foreach (var pair in stagedSourcePairs)
+                    {
+                        if (File.Exists(pair.Key))
+                            File.Copy(pair.Key, pair.Value, overwrite: true);
+                        if (File.Exists(pair.Value))
+                            File.SetLastWriteTimeUtc(pair.Value, nowUtc);
+                    }
                     Directory.SetLastWriteTimeUtc(stagedSourcesDir, nowUtc);
                 }
                 catch { }
@@ -622,7 +624,7 @@ namespace PluginLoader
                     combinedError.Trim() + Environment.NewLine +
                     "Compiler work dir: " + absWorkDir + Environment.NewLine +
                     "Compiler output: " + outputPath + Environment.NewLine +
-                    "Script: " + scriptPath + Environment.NewLine +
+                    "Compiler executable: " + mcsPath + Environment.NewLine +
                     "Rsp: " + rspPath + Environment.NewLine +
                     "Parent MONO_IOMAP: " + (Environment.GetEnvironmentVariable("MONO_IOMAP") ?? "<null>") + Environment.NewLine +
                     "Parent MONO_OPTIONS: " + (Environment.GetEnvironmentVariable("MONO_OPTIONS") ?? "<null>") + Environment.NewLine +
