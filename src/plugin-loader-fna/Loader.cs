@@ -523,9 +523,18 @@ namespace PluginLoader
             Func<string, string> shellQuote = p => "'" + (p ?? string.Empty).Replace("'", "'\"'\"'") + "'";
 
             var rspPath = Path.Combine(absWorkDir, "args.rsp");
+            Func<string, string> formatRspArg = arg =>
+            {
+                var value = arg ?? string.Empty;
+                if (value.Length == 0)
+                    return "\"\"";
+                if (value.IndexOfAny(new[] { ' ', '\t', '"' }) < 0)
+                    return value;
+                return "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+            };
             File.WriteAllLines(
                 rspPath,
-                mcsArgs,
+                mcsArgs.Select(formatRspArg),
                 new UTF8Encoding(false));
 
             var startInfo = new ProcessStartInfo();
@@ -535,15 +544,10 @@ namespace PluginLoader
             startInfo.RedirectStandardOutput = true;
             startInfo.RedirectStandardError = true;
             startInfo.CreateNoWindow = true;
-            startInfo.Arguments = string.Join(" ", mcsArgs.Select(arg =>
-            {
-                var value = arg ?? string.Empty;
-                if (value.Length == 0)
-                    return "\"\"";
-                if (value.IndexOfAny(new[] { ' ', '\t', '"' }) < 0)
-                    return value;
-                return "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
-            }));
+            startInfo.Arguments =
+                rspPath.IndexOfAny(new[] { ' ', '\t', '"' }) < 0
+                    ? "@" + rspPath
+                    : "@\"" + rspPath.Replace("\"", "\\\"") + "\"";
             var inheritedPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
             var toolPath = "/usr/bin:/bin:/usr/local/bin:/opt/mono/bin:/opt/homebrew/bin";
             if (string.IsNullOrWhiteSpace(inheritedPath))
