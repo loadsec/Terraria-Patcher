@@ -16,23 +16,23 @@ release/
 *.blockmap
 latest*.yml
 
+# Generated bridge binaries copied before packaging
+resources/patcher-bridge/*
+!resources/patcher-bridge/.gitkeep
+
 # TypeScript incremental build metadata
 *.tsbuildinfo
 
 # -----------------------------------------------------------------------------
-# C# bridge build artifacts (Mono.Cecil / edge-js bridge)
+# C# build artifacts (.NET bridge + plugin loaders)
 # -----------------------------------------------------------------------------
 src/main/bridge/obj/
-src/main/bridge/bin/*
-!src/main/bridge/bin/Release/
-src/main/bridge/bin/Release/*
-!src/main/bridge/bin/Release/*.dll
-!src/main/bridge/bin/Release/*.json
-src/main/bridge/bin/Release/*.pdb
+src/main/bridge/bin/
 
-# FNA plugin loader build artifacts
 src/plugin-loader-fna/bin/
 src/plugin-loader-fna/obj/
+src/plugin-loader-xna/bin/
+src/plugin-loader-xna/obj/
 
 # -----------------------------------------------------------------------------
 # Logs / coverage / caches
