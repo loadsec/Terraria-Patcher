@@ -188,6 +188,21 @@ jobs:
           Write-Host "Packaged edge native found: $($edgeNode.FullName)"
           Get-FileHash $edgeNode.FullName | Format-List
 
+      - name: Validate packaged edge runtime (Linux)
+        if: matrix.name == 'linux'
+        shell: bash
+        run: |
+          test -f "dist/linux-unpacked/resources/patcher-edge-js/lib/edge.js"
+          test -f "dist/linux-unpacked/resources/patcher-edge-js/build/Release/edge_coreclr.node"
+          test -f "dist/linux-unpacked/resources/patcher-bridge/TerrariaPatcherBridge.runtimeconfig.json"
+          test -f "dist/linux-unpacked/resources/patcher-bridge/TerrariaPatcherBridge.deps.json"
+          echo "Linux packaged edge entry found:"
+          ls -lah "dist/linux-unpacked/resources/patcher-edge-js/lib/edge.js"
+          echo "Linux packaged edge native found:"
+          ls -lah "dist/linux-unpacked/resources/patcher-edge-js/build/Release/edge_coreclr.node"
+          echo "Linux packaged bridge runtime files found:"
+          ls -lah "dist/linux-unpacked/resources/patcher-bridge"/TerrariaPatcherBridge*.json
+
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
         with:

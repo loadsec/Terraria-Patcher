@@ -1286,6 +1286,28 @@ function getPackagedEdgeAsarEntryPath(): string {
   );
 }
 
+function getPackagedEdgeRuntimeBundleNativePath(): string {
+  return join(
+    process.resourcesPath,
+    "patcher-edge-js",
+    "build",
+    "Release",
+    "edge_coreclr.node",
+  );
+}
+
+function getPackagedEdgeAsarNativePath(): string {
+  return join(
+    process.resourcesPath,
+    "app.asar.unpacked",
+    "node_modules",
+    "electron-edge-js",
+    "build",
+    "Release",
+    "edge_coreclr.node",
+  );
+}
+
 function getPackagedEdgeNativePath(): string {
   if (process.platform === "win32") {
     return join(
@@ -1300,15 +1322,7 @@ function getPackagedEdgeNativePath(): string {
     );
   }
 
-  return join(
-    process.resourcesPath,
-    "app.asar.unpacked",
-    "node_modules",
-    "electron-edge-js",
-    "build",
-    "Release",
-    "edge_coreclr.node",
-  );
+  return getPackagedEdgeRuntimeBundleNativePath();
 }
 
 function getPackagedEdgeEntryCandidates(): string[] {
@@ -1320,11 +1334,29 @@ function getPackagedEdgeEntryCandidates(): string[] {
     candidates.push(value);
   };
 
+  push(getPackagedEdgeRuntimeBundleEntryPath());
+  push(getPackagedEdgeAsarEntryPath());
+
+  return candidates;
+}
+
+function getPackagedEdgeNativeCandidates(): string[] {
+  const candidates: string[] = [];
+  const seen = new Set<string>();
+  const push = (value: string) => {
+    if (!value || seen.has(value)) return;
+    seen.add(value);
+    candidates.push(value);
+  };
+
   if (process.platform === "win32") {
-    push(getPackagedEdgeRuntimeBundleEntryPath());
-    push(getPackagedEdgeAsarEntryPath());
+    push(getPackagedEdgeNativePath());
+    push(getPackagedEdgeAsarNativePath());
+    return candidates;
   }
 
+  push(getPackagedEdgeRuntimeBundleNativePath());
+  push(getPackagedEdgeAsarNativePath());
   return candidates;
 }
 
@@ -2118,6 +2150,7 @@ type EdgeModule = {
 
 let edgeModule: EdgeModule | null = null;
 const requireForMain = createRequire(import.meta.url);
+let packagedNonWindowsEdgeMode: "runtime" | "asar" | "module" = "runtime";
 type EdgeGlobalCache = {
   __terrariaPatcherEdgeModule?: EdgeModule;
   __terrariaPatcherEdgeFunc?: (
@@ -2128,6 +2161,18 @@ type EdgeGlobalCache = {
 };
 const edgeGlobal = globalThis as typeof globalThis & EdgeGlobalCache;
 
+function clearRequireCache(moduleRef: string): void {
+  try {
+    const resolved = requireForMain.resolve(moduleRef);
+    const cache = (requireForMain as NodeRequire).cache;
+    if (cache?.[resolved]) {
+      delete cache[resolved];
+    }
+  } catch {
+    // Ignore missing module resolutions.
+  }
+}
+
 function resetEdgeRuntimeState(): void {
   patcherFunc = null;
   patcherFuncInitError = null;
@@ -2136,6 +2181,28 @@ function resetEdgeRuntimeState(): void {
   edgeGlobal.__terrariaPatcherEdgeModule = undefined;
   edgeGlobal.__terrariaPatcherEdgeInitError = undefined;
   delete process.env.EDGE_NATIVE;
+  delete process.env.EDGE_BOOTSTRAP_DIR;
+
+  clearRequireCache("electron-edge-js");
+  if (app.isPackaged) {
+    for (const edgeEntry of getPackagedEdgeEntryCandidates()) {
+      clearRequireCache(edgeEntry);
+    }
+    for (const edgeNative of getPackagedEdgeNativeCandidates()) {
+      clearRequireCache(edgeNative);
+    }
+  }
+}
+
+function isEdgeRecoverableInitError(message: string): boolean {
+  const raw = message || "";
+  const lower = raw.toLowerCase();
+  return (
+    raw.includes("initializeClrFunc is not a function") ||
+    raw.includes("Could not find any runtimeconfig file") ||
+    raw.includes("CoreClrEmbedding::Initialize") ||
+    lower.includes(".net runtime for electron-edge-js is not configured")
+  );
 }
 
 function getEdgeModule(): EdgeModule {
@@ -2157,16 +2224,12 @@ function getEdgeModule(): EdgeModule {
         // NSIS updates overlay new files on old ones without cleaning up.
         // If we have to fallback to app.asar.unpacked on Windows, delete stale
         // build/Release edge_coreclr.node so edge.js uses lib/native prebuilt.
-        const staleBuildRelease = join(
-          process.resourcesPath,
-          "app.asar.unpacked",
-          "node_modules",
-          "electron-edge-js",
-          "build",
-          "Release",
-          "edge_coreclr.node",
-        );
-        if (existsSync(staleBuildRelease)) {
+        const staleBuildReleaseCandidates = [
+          getPackagedEdgeAsarNativePath(),
+          getPackagedEdgeRuntimeBundleNativePath(),
+        ];
+        for (const staleBuildRelease of staleBuildReleaseCandidates) {
+          if (!existsSync(staleBuildRelease)) continue;
           try {
             unlinkSync(staleBuildRelease);
           } catch {
@@ -2198,22 +2261,61 @@ function getEdgeModule(): EdgeModule {
         );
       }
 
-      const packagedEdgeEntry = getPackagedEdgeAsarEntryPath();
-      if (!existsSync(packagedEdgeEntry)) {
-        throw new Error(
-          `Packaged edge module entry not found: ${packagedEdgeEntry}.`,
-        );
+      const runtimeEntry = getPackagedEdgeRuntimeBundleEntryPath();
+      const asarEntry = getPackagedEdgeAsarEntryPath();
+      const attempts =
+        packagedNonWindowsEdgeMode === "runtime"
+          ? [
+              { kind: "path" as const, ref: runtimeEntry },
+              { kind: "path" as const, ref: asarEntry },
+              { kind: "module" as const, ref: "electron-edge-js" },
+            ]
+          : packagedNonWindowsEdgeMode === "asar"
+            ? [
+                { kind: "path" as const, ref: asarEntry },
+                { kind: "path" as const, ref: runtimeEntry },
+                { kind: "module" as const, ref: "electron-edge-js" },
+              ]
+            : [
+                { kind: "module" as const, ref: "electron-edge-js" },
+                { kind: "path" as const, ref: runtimeEntry },
+                { kind: "path" as const, ref: asarEntry },
+              ];
+
+      let lastError: Error | null = null;
+      for (const attempt of attempts) {
+        try {
+          if (attempt.kind === "path" && !existsSync(attempt.ref)) {
+            continue;
+          }
+          delete process.env.EDGE_NATIVE;
+          edgeModule =
+            attempt.kind === "path"
+              ? (requireForMain(attempt.ref) as EdgeModule)
+              : (requireForMain("electron-edge-js") as EdgeModule);
+          if (!edgeModule || typeof edgeModule.func !== "function") {
+            throw new Error(
+              `Invalid electron-edge-js module loaded from ${attempt.ref}. Missing edge.func export.`,
+            );
+          }
+          edgeGlobal.__terrariaPatcherEdgeModule = edgeModule;
+          return edgeModule;
+        } catch (err: unknown) {
+          const normalized =
+            err instanceof Error
+              ? err
+              : new Error(typeof err === "string" ? err : String(err));
+          lastError = normalized;
+          console.warn(
+            `[edge] packaged non-win load attempt failed (${attempt.ref}): ${normalized.message}`,
+          );
+        }
       }
 
-      delete process.env.EDGE_NATIVE;
-      edgeModule = requireForMain(packagedEdgeEntry) as EdgeModule;
-      if (!edgeModule || typeof edgeModule.func !== "function") {
-        throw new Error(
-          `Invalid electron-edge-js module loaded from ${packagedEdgeEntry}. Missing edge.func export.`,
-        );
-      }
-      edgeGlobal.__terrariaPatcherEdgeModule = edgeModule;
-      return edgeModule;
+      if (lastError) throw lastError;
+      throw new Error(
+        `Packaged edge module entry not found for Linux/macOS. Tried: ${runtimeEntry}, ${asarEntry}, electron-edge-js module.`,
+      );
     }
 
     // Dev-only fallback (node_modules).
@@ -2233,6 +2335,7 @@ function getEdgeModule(): EdgeModule {
       rawMessage.includes("Could not find any runtimeconfig file") ||
       rawMessage.includes("CoreClrEmbedding::Initialize")
     ) {
+      console.error("[edge] runtime init error:", rawMessage);
       throw new Error(
         "The .NET runtime for electron-edge-js is not configured on this system. Install .NET 10 Runtime (or SDK) and rebuild the C# bridge so runtimeconfig/deps files are generated.",
       );
@@ -2270,26 +2373,61 @@ function getEdgeFunc(): (
 
       if (!patcherFunc) {
         const bridgeDllPath = getBridgeDllPath();
-        const edge = getEdgeModule();
-
-        try {
-          patcherFunc = edge.func({
+        const createManagedEntryPoint = () => {
+          const edge = getEdgeModule();
+          return edge.func({
             assemblyFile: bridgeDllPath,
             typeName: "TerrariaPatcherBridge.Startup",
             methodName: "Invoke",
           });
+        };
+        const normalizeError = (err: unknown): Error =>
+          err instanceof Error
+            ? err
+            : new Error(typeof err === "string" ? err : String(err));
+
+        try {
+          patcherFunc = createManagedEntryPoint();
         } catch (err: unknown) {
-          const normalized =
-            err instanceof Error
-              ? err
-              : new Error(typeof err === "string" ? err : String(err));
-          patcherFuncInitError = normalized;
-          edgeGlobal.__terrariaPatcherEdgeInitError = normalized;
-          console.error(
-            "[edge] failed to initialize patcher function:",
-            normalized,
-          );
-          throw normalized;
+          let normalized = normalizeError(err);
+
+          const canRetryNonWindowsPackaged =
+            app.isPackaged &&
+            process.platform !== "win32" &&
+            isEdgeRecoverableInitError(normalized.message);
+
+          if (canRetryNonWindowsPackaged) {
+            const retryModes: Array<"runtime" | "asar" | "module"> =
+              packagedNonWindowsEdgeMode === "runtime"
+                ? ["asar", "module"]
+                : packagedNonWindowsEdgeMode === "asar"
+                  ? ["module", "runtime"]
+                  : ["runtime", "asar"];
+
+            for (const retryMode of retryModes) {
+              console.warn(
+                `[edge] recoverable init failure in ${packagedNonWindowsEdgeMode} mode (${normalized.message}). Retrying with ${retryMode} mode...`,
+              );
+              packagedNonWindowsEdgeMode = retryMode;
+              resetEdgeRuntimeState();
+              try {
+                patcherFunc = createManagedEntryPoint();
+                break;
+              } catch (retryErr: unknown) {
+                normalized = normalizeError(retryErr);
+              }
+            }
+          }
+
+          if (!patcherFunc) {
+            patcherFuncInitError = normalized;
+            edgeGlobal.__terrariaPatcherEdgeInitError = normalized;
+            console.error(
+              "[edge] failed to initialize patcher function:",
+              normalized,
+            );
+            throw normalized;
+          }
         }
 
         edgeGlobal.__terrariaPatcherEdgeFunc = patcherFunc;
