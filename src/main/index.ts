@@ -1271,7 +1271,11 @@ function getMainLocalesDir(): string {
   return join(__dirname, "..", "..", "src", "renderer", "src", "locales");
 }
 
-function getPackagedEdgeJsEntryPath(): string {
+function getPackagedEdgeRuntimeBundleEntryPath(): string {
+  return join(process.resourcesPath, "patcher-edge-js", "lib", "edge.js");
+}
+
+function getPackagedEdgeAsarEntryPath(): string {
   return join(
     process.resourcesPath,
     "app.asar.unpacked",
@@ -1283,6 +1287,19 @@ function getPackagedEdgeJsEntryPath(): string {
 }
 
 function getPackagedEdgeNativePath(): string {
+  if (process.platform === "win32") {
+    return join(
+      process.resourcesPath,
+      "patcher-edge-js",
+      "lib",
+      "native",
+      "win32",
+      process.arch,
+      process.versions.electron.split(".")[0] ?? "",
+      "edge_coreclr.node",
+    );
+  }
+
   return join(
     process.resourcesPath,
     "app.asar.unpacked",
@@ -1292,6 +1309,25 @@ function getPackagedEdgeNativePath(): string {
     "Release",
     "edge_coreclr.node",
   );
+}
+
+function getPackagedEdgeEntryCandidates(): string[] {
+  const candidates: string[] = [];
+  const seen = new Set<string>();
+  const push = (value: string) => {
+    if (!value || seen.has(value)) return;
+    seen.add(value);
+    candidates.push(value);
+  };
+
+  if (process.platform === "win32") {
+    push(getPackagedEdgeRuntimeBundleEntryPath());
+    push(getPackagedEdgeAsarEntryPath());
+  } else {
+    push(getPackagedEdgeAsarEntryPath());
+  }
+
+  return candidates;
 }
 
 function loadMainLocalesSync(): Record<string, MainLocaleDict> {
@@ -2105,15 +2141,13 @@ function getEdgeModule(): EdgeModule {
   try {
     process.env.EDGE_USE_CORECLR = "1";
 
-    // In packaged builds, always load edge from app.asar.unpacked/node_modules
-    // to avoid JS/native mismatches after updates.
+    // In packaged builds, prefer loading edge from extraResources on Windows
+    // and fallback to app.asar.unpacked when needed.
     if (app.isPackaged) {
       // NSIS updates overlay new files on old ones without cleaning up.
-      // Previous versions packaged a CI-compiled build/Release/edge_coreclr.node
-      // that is incompatible. edge.js checks build/Release/ FIRST — if this stale
-      // file exists, it loads the wrong binary and crashes with g_coreclr assert.
-      // Delete it so edge.js falls through to the correct prebuilt in lib/native/.
-      if (process.platform !== "linux") {
+      // If we have to fallback to app.asar.unpacked on Windows, delete stale
+      // build/Release edge_coreclr.node so edge.js uses lib/native prebuilt.
+      if (process.platform === "win32") {
         const staleBuildRelease = join(
           process.resourcesPath,
           "app.asar.unpacked",
@@ -2131,8 +2165,10 @@ function getEdgeModule(): EdgeModule {
           }
         }
       }
-      const packagedEdgeEntry = getPackagedEdgeJsEntryPath();
-      if (existsSync(packagedEdgeEntry)) {
+
+      for (const packagedEdgeEntry of getPackagedEdgeEntryCandidates()) {
+        if (!existsSync(packagedEdgeEntry)) continue;
+
         // Do NOT set process.env.EDGE_NATIVE before requiring edge.js.
         // edge.js ignores it (it does its own resolution and overwrites it).
         // Pre-setting it can cause the .node file to appear under two cache
@@ -2150,7 +2186,7 @@ function getEdgeModule(): EdgeModule {
       }
 
       throw new Error(
-        `Packaged edge module entry not found: ${packagedEdgeEntry}. Refusing to fall back to bundled node_modules to avoid JS/native mismatch.`,
+        `Packaged edge module entry not found. Tried: ${getPackagedEdgeEntryCandidates().join(", ")}. Refusing to fall back to bundled node_modules to avoid JS/native mismatch.`,
       );
     }
 

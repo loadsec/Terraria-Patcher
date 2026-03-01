@@ -142,6 +142,10 @@ jobs:
       - name: Rebuild native dependencies for Electron
         run: pnpm exec electron-builder install-app-deps
 
+      - name: Prepare electron-edge-js runtime bundle (Windows)
+        if: matrix.name == 'windows'
+        run: node node_modules/electron-edge-js/tools/install.js
+
       - name: Download bridge runtime
         uses: actions/download-artifact@v4
         with:
@@ -175,13 +179,14 @@ jobs:
         if: matrix.name == 'windows'
         shell: pwsh
         run: |
-          $edgeJs = "dist/win-unpacked/resources/app.asar.unpacked/node_modules/electron-edge-js/lib/edge.js"
-          $edgeNode = "dist/win-unpacked/resources/app.asar.unpacked/node_modules/electron-edge-js/build/Release/edge_coreclr.node"
+          $edgeJs = "dist/win-unpacked/resources/patcher-edge-js/lib/edge.js"
           if (!(Test-Path $edgeJs)) { throw "Missing packaged edge entry: $edgeJs" }
-          if (!(Test-Path $edgeNode)) { throw "Missing packaged edge native module: $edgeNode" }
+          $edgeNode = Get-ChildItem "dist/win-unpacked/resources/patcher-edge-js/lib/native/win32/x64/*/edge_coreclr.node" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($null -eq $edgeNode) { throw "Missing packaged edge native module under patcher-edge-js/lib/native/win32/x64/*/edge_coreclr.node" }
+          if (!(Test-Path $edgeNode.FullName)) { throw "Missing packaged edge native module: $($edgeNode.FullName)" }
           Write-Host "Packaged edge entry found: $edgeJs"
-          Write-Host "Packaged edge native found: $edgeNode"
-          Get-FileHash $edgeNode | Format-List
+          Write-Host "Packaged edge native found: $($edgeNode.FullName)"
+          Get-FileHash $edgeNode.FullName | Format-List
 
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4

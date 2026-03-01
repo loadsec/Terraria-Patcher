@@ -108,6 +108,17 @@
         "filter": [
           "**/*.json"
         ]
+      },
+      {
+        "from": "node_modules/electron-edge-js/lib",
+        "to": "patcher-edge-js/lib",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "node_modules/electron-edge-js/tools/checkMono.js",
+        "to": "patcher-edge-js/tools/checkMono.js"
       }
     ],
     "win": {
