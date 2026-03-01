@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
 import { join, dirname, normalize as normalizePath } from "path";
 import { spawn } from "child_process";
+import { createHash } from "crypto";
 import {
   autoUpdater,
   type ProgressInfo,
@@ -9,7 +10,13 @@ import {
 import icon from "../../resources/terraria-logo.png?asset";
 import * as fse from "fs-extra";
 import { copySync, emptyDirSync, ensureDirSync } from "fs-extra";
-import { appendFileSync, copyFileSync, existsSync, readdirSync } from "fs";
+import {
+  appendFileSync,
+  copyFileSync,
+  existsSync,
+  readdirSync,
+  statSync,
+} from "fs";
 import { PatcherBridge, getBridgeBinaryName } from "./bridge/PatcherBridge";
 
 // ─── Electron Store ──────────────────────────────────────────────────────────
@@ -1655,7 +1662,7 @@ const PLUGIN_LOADER_DLLS = [
   "PluginLoader.FNA.dll",
 ] as const;
 const RUNTIME_SYNC_MARKER_FILE = ".TerrariaPatcherRuntimeSync.json";
-const RUNTIME_SYNC_MARKER_SCHEMA = 1;
+const RUNTIME_SYNC_MARKER_SCHEMA = 2;
 const RUNTIME_SYNC_STORE_VERSION_KEY: keyof StoreSchema =
   "runtimeFilesSyncedVersion";
 const RUNTIME_SYNC_STORE_PATH_KEY: keyof StoreSchema = "runtimeFilesSyncedPath";
@@ -1666,6 +1673,7 @@ type RuntimeSyncMarker = {
   platform: NodeJS.Platform;
   syncedAt: string;
   activePlugins: string[];
+  resourceSignature: string;
 };
 
 let pluginRuntimeSyncQueue: Promise<void> = Promise.resolve();
@@ -1747,6 +1755,43 @@ function normalizeActivePlugins(
   return selected;
 }
 
+function appendPathStatToHash(hash: ReturnType<typeof createHash>, path: string): void {
+  try {
+    const stat = statSync(path);
+    hash.update(path);
+    hash.update(String(stat.size));
+    hash.update(String(stat.mtimeMs));
+  } catch {
+    hash.update(path);
+    hash.update("missing");
+  }
+}
+
+function computeRuntimeResourcesSignature(
+  resourcesPluginsDir: string,
+  activePlugins: string[],
+): string {
+  const hash = createHash("sha256");
+  hash.update(`schema:${RUNTIME_SYNC_MARKER_SCHEMA}`);
+
+  for (const loaderName of PLUGIN_LOADER_DLLS) {
+    appendPathStatToHash(hash, join(resourcesPluginsDir, loaderName));
+  }
+
+  appendPathStatToHash(hash, join(resourcesPluginsDir, "Shared"));
+  appendPathStatToHash(hash, join(resourcesPluginsDir, ".PluginLoaderTools"));
+  appendPathStatToHash(
+    hash,
+    join(resourcesPluginsDir, ".PluginLoaderTools", "mono", "lib", "mono", "4.5", "mcs.exe"),
+  );
+
+  for (const pluginName of [...activePlugins].sort((a, b) => a.localeCompare(b))) {
+    appendPathStatToHash(hash, join(resourcesPluginsDir, pluginName));
+  }
+
+  return hash.digest("hex");
+}
+
 async function readRuntimeSyncMarker(
   pluginsDestDir: string,
 ): Promise<RuntimeSyncMarker | null> {
@@ -1768,6 +1813,10 @@ async function readRuntimeSyncMarker(
       activePlugins: marker.activePlugins.filter(
         (p): p is string => typeof p === "string",
       ),
+      resourceSignature:
+        typeof marker.resourceSignature === "string"
+          ? marker.resourceSignature
+          : "",
     };
   } catch {
     return null;
@@ -1777,6 +1826,7 @@ async function readRuntimeSyncMarker(
 async function writeRuntimeSyncMarker(
   pluginsDestDir: string,
   activePlugins: string[],
+  resourceSignature: string,
 ): Promise<void> {
   const marker: RuntimeSyncMarker = {
     schema: RUNTIME_SYNC_MARKER_SCHEMA,
@@ -1784,6 +1834,7 @@ async function writeRuntimeSyncMarker(
     platform: process.platform,
     syncedAt: new Date().toISOString(),
     activePlugins: [...activePlugins],
+    resourceSignature,
   };
   const markerPath = getRuntimeSyncMarkerPath(pluginsDestDir);
   await fse.writeJson(markerPath, marker, { spaces: 2 });
@@ -1867,8 +1918,12 @@ async function syncManagedPluginRuntime(
     copiedPlugins++;
   }
 
+  const resourceSignature = computeRuntimeResourcesSignature(
+    resourcesPluginsDir,
+    activePlugins,
+  );
   await ensureUnixPluginCompilerWrapperAndIni(terrariaPath, pluginsDestDir);
-  await writeRuntimeSyncMarker(pluginsDestDir, activePlugins);
+  await writeRuntimeSyncMarker(pluginsDestDir, activePlugins, resourceSignature);
   await markRuntimeFilesSynced(terrariaPath);
   writePatcherRuntimeLog(
     "INFO",
@@ -1918,6 +1973,13 @@ async function shouldRunStartupRuntimeSync(
     (pluginName) => !existsSync(join(pluginsDestDir, pluginName)),
   );
   if (missingActivePluginSources) return true;
+
+  const resourceSignature = computeRuntimeResourcesSignature(
+    resourcesPluginsDir,
+    normalizedActivePlugins,
+  );
+  if (!marker.resourceSignature) return true;
+  if (marker.resourceSignature !== resourceSignature) return true;
 
   if (process.platform !== "win32") {
     const compilerWrapperPath = join(
