@@ -348,7 +348,8 @@ namespace PluginLoader
             // Resolve ALL paths to absolute BEFORE anything changes CurrentDirectory.
             compileReferences = references.Where(r => !string.IsNullOrWhiteSpace(r)).Select(r => Path.GetFullPath(r)).ToArray();
             compileSources = sources.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => Path.GetFullPath(s)).ToArray();
-            var compilerWorkDir = CreateFnaCompilerWorkDir(compileSources, preferLocal: false);
+            // Prefer local work dir under Terraria/Plugins to avoid Steam Runtime mount/namespace issues.
+            var compilerWorkDir = CreateFnaCompilerWorkDir(compileSources, preferLocal: true);
             // Do NOT change Environment.CurrentDirectory — it breaks Path.GetFullPath in CompileFnaAssemblyWithMcs.
 #endif
 #if FNA
@@ -359,8 +360,11 @@ namespace PluginLoader
             }
             catch (Exception ex) when (
                 ex.Message != null &&
-                ex.Message.IndexOf("error CS2001", StringComparison.OrdinalIgnoreCase) >= 0 &&
-                ex.Message.IndexOf("/tmp/TerrariaPluginLoaderFNA", StringComparison.OrdinalIgnoreCase) >= 0)
+                (
+                    ex.Message.IndexOf("error CS2001", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    ex.Message.IndexOf("error CS2011", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    ex.Message.IndexOf("Unable to open response file", StringComparison.OrdinalIgnoreCase) >= 0
+                ))
             {
                 var localCompilerWorkDir = CreateFnaCompilerWorkDir(compileSources, preferLocal: true);
                 compiledAssembly = CompileFnaAssemblyWithMcs(compileReferences, compileSources, localCompilerWorkDir);
@@ -522,32 +526,39 @@ namespace PluginLoader
 
             Func<string, string> shellQuote = p => "'" + (p ?? string.Empty).Replace("'", "'\"'\"'") + "'";
 
-            var rspPath = Path.Combine(absWorkDir, "args.rsp");
-            Func<string, string> formatRspArg = arg =>
-            {
-                var value = arg ?? string.Empty;
-                if (value.Length == 0)
-                    return "\"\"";
-                if (value.IndexOfAny(new[] { ' ', '\t', '"' }) < 0)
-                    return value;
-                return "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
-            };
-            File.WriteAllLines(
-                rspPath,
-                mcsArgs.Select(formatRspArg),
-                new UTF8Encoding(false));
-
             var startInfo = new ProcessStartInfo();
-            startInfo.FileName = mcsPath;
+            var shouldUseShellScriptLaunch =
+                mcsPath.EndsWith(".sh", StringComparison.OrdinalIgnoreCase) ||
+                mcsPath.EndsWith("/mcs", StringComparison.OrdinalIgnoreCase) ||
+                mcsPath.EndsWith("\\mcs", StringComparison.OrdinalIgnoreCase);
+            string scriptPath = null;
+            if (shouldUseShellScriptLaunch)
+            {
+                scriptPath = Path.Combine(absWorkDir, "run-mcs.sh");
+                File.WriteAllText(
+                    scriptPath,
+                    "#!/usr/bin/env bash\nset -e\n" +
+                    "exec " + shellQuote(mcsPath) + " " + string.Join(" ", mcsArgs.Select(shellQuote)) + "\n",
+                    new UTF8Encoding(false));
+
+                var bashPath = FindExecutable("bash", new[] { "/usr/bin/bash", "/bin/bash" }) ?? "/bin/sh";
+                startInfo.FileName = bashPath;
+                startInfo.Arguments = "\"" + scriptPath.Replace("\"", "\\\"") + "\"";
+            }
+            else
+            {
+                startInfo.FileName = mcsPath;
+                startInfo.Arguments = string.Join(" ", mcsArgs.Select(arg =>
+                {
+                    var value = arg ?? string.Empty;
+                    return "\"" + value.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+                }));
+            }
             startInfo.WorkingDirectory = absWorkDir;
             startInfo.UseShellExecute = false;
             startInfo.RedirectStandardOutput = true;
             startInfo.RedirectStandardError = true;
             startInfo.CreateNoWindow = true;
-            startInfo.Arguments =
-                rspPath.IndexOfAny(new[] { ' ', '\t', '"' }) < 0
-                    ? "@" + rspPath
-                    : "@\"" + rspPath.Replace("\"", "\\\"") + "\"";
             var inheritedPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
             var toolPath = "/usr/bin:/bin:/usr/local/bin:/opt/mono/bin:/opt/homebrew/bin";
             if (string.IsNullOrWhiteSpace(inheritedPath))
@@ -563,7 +574,9 @@ namespace PluginLoader
                     startInfo.EnvironmentVariables["HOME"] = home;
             }
             catch { }
-            startInfo.EnvironmentVariables["TMPDIR"] = Path.GetTempPath();
+            // Keep compiler temporaries in the same location as staged sources to avoid
+            // containerized /tmp visibility issues on some Linux/Steam runtimes.
+            startInfo.EnvironmentVariables["TMPDIR"] = absWorkDir;
             if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("LANG")))
                 startInfo.EnvironmentVariables["LANG"] = Environment.GetEnvironmentVariable("LANG");
             if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("LC_ALL")))
@@ -629,7 +642,7 @@ namespace PluginLoader
                     "Compiler work dir: " + absWorkDir + Environment.NewLine +
                     "Compiler output: " + outputPath + Environment.NewLine +
                     "Compiler executable: " + mcsPath + Environment.NewLine +
-                    "Rsp: " + rspPath + Environment.NewLine +
+                    "Script: " + (scriptPath ?? "<none>") + Environment.NewLine +
                     "Parent MONO_IOMAP: " + (Environment.GetEnvironmentVariable("MONO_IOMAP") ?? "<null>") + Environment.NewLine +
                     "Parent MONO_OPTIONS: " + (Environment.GetEnvironmentVariable("MONO_OPTIONS") ?? "<null>") + Environment.NewLine +
                     "Parent MONO_PATH: " + (Environment.GetEnvironmentVariable("MONO_PATH") ?? "<null>") + Environment.NewLine +

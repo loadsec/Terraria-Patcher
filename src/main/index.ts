@@ -1039,8 +1039,14 @@ function getUnixPluginCompilerWrapperScript(): string {
 set -e
 
 # This script lives in Plugins/.PluginLoaderTools and prioritizes local toolchains
-# bundled by Terraria Patcher, while preferring host/system Mono when available.
+# bundled by Terraria Patcher first, then falls back to host/system Mono.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+ensure_executable() {
+  if [ -f "$1" ] && [ ! -x "$1" ]; then
+    chmod +x "$1" >/dev/null 2>&1 || true
+  fi
+}
 
 set_mono_cfg_dir() {
   if [ -f "$1/config" ]; then
@@ -1052,7 +1058,43 @@ set_mono_cfg_dir() {
   fi
 }
 
-# 1) Host Mono exposed by Steam Runtime (pressure-vessel) under /run/host.
+# 1) Local mcs wrappers/binaries copied by Patcher.
+for candidate in \
+  "$SCRIPT_DIR/mcs" \
+  "$SCRIPT_DIR/mcs.sh" \
+  "$SCRIPT_DIR/bin/mcs" \
+  "$SCRIPT_DIR/bin/mcs.sh" \
+  "$SCRIPT_DIR/mono/bin/mcs" \
+  "$SCRIPT_DIR/mono/bin/mcs.sh"
+do
+  ensure_executable "$candidate"
+  if [ -x "$candidate" ]; then
+    exec "$candidate" "$@"
+  fi
+done
+
+# 2) Local portable mono + mcs.exe payload.
+ensure_executable "$SCRIPT_DIR/mono/bin/mono"
+LOCAL_MCS_EXE=""
+for mcs_candidate in \
+  "$SCRIPT_DIR/mono/lib/mono/4.5/mcs.exe" \
+  "$SCRIPT_DIR/mono/lib/mono/4.0/mcs.exe" \
+  "$SCRIPT_DIR/mono/lib/mono/mcs.exe"
+do
+  if [ -f "$mcs_candidate" ]; then
+    LOCAL_MCS_EXE="$mcs_candidate"
+    break
+  fi
+done
+if [ -x "$SCRIPT_DIR/mono/bin/mono" ] && [ -n "$LOCAL_MCS_EXE" ]; then
+  if [ -d "$SCRIPT_DIR/mono/etc" ]; then
+    set_mono_cfg_dir "$SCRIPT_DIR/mono/etc"
+  fi
+  export MONO_GAC_PREFIX="$SCRIPT_DIR/mono"
+  exec "$SCRIPT_DIR/mono/bin/mono" "$LOCAL_MCS_EXE" "$@"
+fi
+
+# 3) Host Mono exposed by Steam Runtime (pressure-vessel) under /run/host.
 if [ -x /run/host/usr/bin/mono ] && [ -f /run/host/usr/lib/mono/4.5/mcs.exe ]; then
   export MONO_CFG_DIR=/run/host/etc
   export MONO_GAC_PREFIX=/run/host/usr
@@ -1062,7 +1104,7 @@ if [ -x /run/host/usr/bin/mcs ]; then
   exec /run/host/usr/bin/mcs "$@"
 fi
 
-# 2) System fallback (native installs).
+# 4) System fallback (native installs).
 if [ -x /usr/bin/mcs ]; then
   exec /usr/bin/mcs "$@"
 fi
@@ -1082,29 +1124,6 @@ if [ -x /opt/homebrew/bin/mcs ]; then
 fi
 if [ -x /usr/local/bin/mcs ]; then
   exec /usr/local/bin/mcs "$@"
-fi
-
-# 3) Local mcs wrappers/binaries copied by Patcher.
-for candidate in \
-  "$SCRIPT_DIR/mcs" \
-  "$SCRIPT_DIR/mcs.sh" \
-  "$SCRIPT_DIR/bin/mcs" \
-  "$SCRIPT_DIR/bin/mcs.sh" \
-  "$SCRIPT_DIR/mono/bin/mcs" \
-  "$SCRIPT_DIR/mono/bin/mcs.sh"
-do
-  if [ -x "$candidate" ]; then
-    exec "$candidate" "$@"
-  fi
-done
-
-# 4) Local portable mono + mcs.exe payload.
-if [ -x "$SCRIPT_DIR/mono/bin/mono" ] && [ -f "$SCRIPT_DIR/mono/lib/mono/4.5/mcs.exe" ]; then
-  if [ -d "$SCRIPT_DIR/mono/etc" ]; then
-    set_mono_cfg_dir "$SCRIPT_DIR/mono/etc"
-  fi
-  export MONO_GAC_PREFIX="$SCRIPT_DIR/mono"
-  exec "$SCRIPT_DIR/mono/bin/mono" "$SCRIPT_DIR/mono/lib/mono/4.5/mcs.exe" "$@"
 fi
 
 echo "mcs-host.sh: no accessible Mono/mcs compiler found (checked local .PluginLoaderTools, /run/host, /usr and macOS Mono paths)." >&2
@@ -1987,6 +2006,8 @@ async function shouldRunStartupRuntimeSync(
       UNIX_PLUGIN_COMPILER_WRAPPER_RELATIVE_PATH,
     );
     if (!existsSync(compilerWrapperPath)) return true;
+    const currentWrapperContent = await readTextIfExists(compilerWrapperPath);
+    if (currentWrapperContent !== getUnixPluginCompilerWrapperScript()) return true;
   }
 
   return false;
