@@ -241,6 +241,45 @@ async function runMonoCompilerProbe(
   });
 }
 
+async function runMonoCompilerCompileProbe(
+  candidate: MonoCompilerCandidate,
+): Promise<{ ok: boolean; stdout: string; stderr: string; error?: string }> {
+  const tmpBase = process.env.TMPDIR || process.env.TEMP || "/tmp";
+  const probeDir = join(
+    tmpBase,
+    `terraria-patcher-mcs-probe-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+  );
+  const probeSource = join(probeDir, "probe.cs");
+  const probeOutput = join(probeDir, "probe.dll");
+
+  try {
+    await fse.ensureDir(probeDir);
+    await fse.writeFile(
+      probeSource,
+      "public class __TerrariaPatcherMonoProbe { }\n",
+      "utf8",
+    );
+
+    return await runMonoCompilerProbe({
+      ...candidate,
+      args: ["-target:library", `-out:${probeOutput}`, probeSource],
+    });
+  } catch (err) {
+    return {
+      ok: false,
+      stdout: "",
+      stderr: "",
+      error: err instanceof Error ? err.message : String(err),
+    };
+  } finally {
+    try {
+      await fse.remove(probeDir);
+    } catch {
+      // best effort temp cleanup
+    }
+  }
+}
+
 function getLinuxMonoCompilerProbeCandidates(
   terrariaPath?: string,
 ): MonoCompilerCandidate[] {
@@ -373,7 +412,24 @@ async function checkMonoCompilerWithCandidates(terrariaPath?: string): Promise<{
     }
 
     const probe = await runMonoCompilerProbe(candidate);
-    if (probe.ok) return { ok: true };
+    if (probe.ok) {
+      if (process.platform !== "linux") {
+        return { ok: true };
+      }
+
+      const compileProbe = await runMonoCompilerCompileProbe(candidate);
+      if (compileProbe.ok) {
+        return { ok: true };
+      }
+
+      const compileDetail =
+        compileProbe.error ||
+        compileProbe.stderr.trim() ||
+        compileProbe.stdout.trim() ||
+        "compile smoke test failed";
+      failures.push(`${candidate.label}: ${compileDetail}`);
+      continue;
+    }
 
     const detail =
       probe.error ||
@@ -1048,6 +1104,16 @@ ensure_executable() {
   fi
 }
 
+prepend_library_path() {
+  if [ -d "$1" ]; then
+    if [ -n "$LD_LIBRARY_PATH" ]; then
+      export LD_LIBRARY_PATH="$1:$LD_LIBRARY_PATH"
+    else
+      export LD_LIBRARY_PATH="$1"
+    fi
+  fi
+}
+
 set_mono_cfg_dir() {
   if [ -f "$1/config" ]; then
     export MONO_CFG_DIR="$1"
@@ -1091,7 +1157,32 @@ if [ -x "$SCRIPT_DIR/mono/bin/mono" ] && [ -n "$LOCAL_MCS_EXE" ]; then
     set_mono_cfg_dir "$SCRIPT_DIR/mono/etc"
   fi
   export MONO_GAC_PREFIX="$SCRIPT_DIR/mono"
-  exec "$SCRIPT_DIR/mono/bin/mono" "$LOCAL_MCS_EXE" "$@"
+  prepend_library_path "$SCRIPT_DIR/mono/lib/native"
+  prepend_library_path "$SCRIPT_DIR/mono/lib"
+  prepend_library_path "$SCRIPT_DIR/mono/lib/mono/4.5"
+
+  # Probe local portable mono with a tiny compile to detect missing native libs
+  # (for example libSystem.Native.so) before using it.
+  PROBE_DIR=""
+  PROBE_FILE=""
+  PROBE_OUT=""
+  if command -v mktemp >/dev/null 2>&1; then
+    PROBE_DIR="$(mktemp -d "\${TMPDIR:-/tmp}/pluginloader-mono-probe.XXXXXX" 2>/dev/null || true)"
+  fi
+  if [ -n "$PROBE_DIR" ] && [ -d "$PROBE_DIR" ]; then
+    PROBE_FILE="$PROBE_DIR/probe.cs"
+    PROBE_OUT="$PROBE_DIR/probe.dll"
+    printf '%s\n' 'public class __PluginLoaderMonoProbe { }' > "$PROBE_FILE"
+    if "$SCRIPT_DIR/mono/bin/mono" "$LOCAL_MCS_EXE" -target:library -out:"$PROBE_OUT" "$PROBE_FILE" >/dev/null 2>&1; then
+      rm -rf "$PROBE_DIR" >/dev/null 2>&1 || true
+      exec "$SCRIPT_DIR/mono/bin/mono" "$LOCAL_MCS_EXE" "$@"
+    fi
+    rm -rf "$PROBE_DIR" >/dev/null 2>&1 || true
+    echo "mcs-host.sh: bundled portable mono probe failed, falling back to host/system Mono." >&2
+  else
+    # If mktemp is not available, still attempt local mono directly.
+    exec "$SCRIPT_DIR/mono/bin/mono" "$LOCAL_MCS_EXE" "$@"
+  fi
 fi
 
 # 3) Host Mono exposed by Steam Runtime (pressure-vessel) under /run/host.
@@ -1802,6 +1893,14 @@ function computeRuntimeResourcesSignature(
   appendPathStatToHash(
     hash,
     join(resourcesPluginsDir, ".PluginLoaderTools", "mono", "lib", "mono", "4.5", "mcs.exe"),
+  );
+  appendPathStatToHash(
+    hash,
+    join(resourcesPluginsDir, ".PluginLoaderTools", "mono", "lib", "libSystem.Native.so"),
+  );
+  appendPathStatToHash(
+    hash,
+    join(resourcesPluginsDir, ".PluginLoaderTools", "mono", "lib", "native", "libSystem.Native.so"),
   );
 
   for (const pluginName of [...activePlugins].sort((a, b) => a.localeCompare(b))) {

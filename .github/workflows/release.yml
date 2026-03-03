@@ -249,6 +249,9 @@ jobs:
           ls -lah "dist/linux-unpacked/resources/patcher-bridge/patcher-linux"
           test -f "dist/linux-unpacked/resources/patcher-resources/plugins/.PluginLoaderTools/mono/lib/mono/4.5/mcs.exe"
           ls -lah "dist/linux-unpacked/resources/patcher-resources/plugins/.PluginLoaderTools/mono/lib/mono/4.5/mcs.exe"
+          test -f "dist/linux-unpacked/resources/patcher-resources/plugins/.PluginLoaderTools/mono/lib/libSystem.Native.so"
+          ls -lah "dist/linux-unpacked/resources/patcher-resources/plugins/.PluginLoaderTools/mono/lib/libSystem.Native.so"
+          nm -D "dist/linux-unpacked/resources/patcher-resources/plugins/.PluginLoaderTools/mono/lib/libSystem.Native.so" | grep -q "SystemNative_Stat2"
 
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
