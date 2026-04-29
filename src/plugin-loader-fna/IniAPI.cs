@@ -8,7 +8,31 @@ namespace PluginLoader
 {
     public static class IniAPI
     {
-        private static readonly string iniPath = System.IO.Path.Combine(Environment.CurrentDirectory, "Plugins.ini");
+        public static readonly string GameBaseDirectory = GetGameBaseDirectory();
+        private static readonly string iniPath = System.IO.Path.Combine(GameBaseDirectory, "Plugins.ini");
+
+        private static string GetGameBaseDirectory()
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(AppDomain.CurrentDomain.BaseDirectory))
+                    return System.IO.Path.GetFullPath(AppDomain.CurrentDomain.BaseDirectory);
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(Environment.CurrentDirectory))
+                    return System.IO.Path.GetFullPath(Environment.CurrentDirectory);
+            }
+            catch
+            {
+            }
+
+            return ".";
+        }
 
 #if FNA
         private static Dictionary<string, Dictionary<string, string>> ParseIni(string path)

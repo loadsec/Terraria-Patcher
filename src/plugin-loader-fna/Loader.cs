@@ -215,7 +215,8 @@ namespace PluginLoader
                 
                 try
                 {
-                    var pluginsFolder = Path.Combine(".", "Plugins");
+                    var gameBaseDirectory = IniAPI.GameBaseDirectory;
+                    var pluginsFolder = Path.Combine(gameBaseDirectory, "Plugins");
                     var sharedFolder = Path.Combine(pluginsFolder, "Shared");
 
 #if !FNA
@@ -298,7 +299,7 @@ namespace PluginLoader
                 var resourceName = assembly.GetManifestResourceNames().FirstOrDefault(s => s.Contains(dllName));
                 if (resourceName == null) throw new Exception(error);
 
-                var path = Path.Combine(".", dllName);
+                var path = Path.Combine(IniAPI.GameBaseDirectory, dllName);
                 if (!File.Exists(path) || forceExtract)
                 {
                     using (var stream = assembly.GetManifestResourceStream(resourceName))

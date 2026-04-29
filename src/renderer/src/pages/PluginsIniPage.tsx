@@ -162,7 +162,10 @@ export default function PluginsIniPage() {
   }, [t]);
 
   useEffect(() => {
-    loadIni();
+    const timer = window.setTimeout(() => {
+      void loadIni();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [loadIni]);
 
   const handleSave = async () => {

@@ -261,18 +261,15 @@ export default function ConfigPage() {
   }, []);
 
   useEffect(() => {
-    if (!updaterState?.releaseNotes) {
-      setReleaseNotesExpanded(false);
-    }
-  }, [updaterState?.releaseNotes]);
-
-  useEffect(() => {
     let disposed = false;
 
     const loadUpdaterState = async () => {
       try {
         const state = await window.api.updater.getState();
-        if (!disposed) setUpdaterState(state);
+        if (!disposed) {
+          setUpdaterState(state);
+          if (!state.releaseNotes) setReleaseNotesExpanded(false);
+        }
       } catch (err) {
         console.error("Failed to load updater state:", err);
       }
@@ -283,6 +280,7 @@ export default function ConfigPage() {
     const unsubscribe = window.api.updater.onStateChange((state) => {
       if (disposed) return;
       setUpdaterState(state);
+      if (!state.releaseNotes) setReleaseNotesExpanded(false);
       if (!state.checking) setIsCheckingUpdates(false);
       if (!state.downloading) setIsDownloadingUpdate(false);
     });

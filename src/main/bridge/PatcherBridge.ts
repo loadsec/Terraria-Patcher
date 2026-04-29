@@ -206,8 +206,9 @@ export class PatcherBridge {
         return candidate;
       }
 
+      const probeError = probe.error as Error & { code?: string };
       failures.push(
-        `${candidate} (${probe.error.code ?? probe.error.name}: ${probe.error.message})`,
+        `${candidate} (${probeError.code ?? probeError.name}: ${probeError.message})`,
       );
     }
 

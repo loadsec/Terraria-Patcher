@@ -12,6 +12,17 @@
     "noEntriesDesc": "Adicione versões no version.json e traduções no changelog.json."
   },
   "releases": {
+    "v1_2_1": {
+      "title": "Correções de Plugins no Linux + Dependências Atualizadas",
+      "summary": "Corrige o carregamento dos plugins no Linux/Steam Runtime, atualiza dependências dentro das versões estáveis atuais e prepara a release 1.2.1 sem retornar ao runtime Edge antigo.",
+      "changes": [
+        "Corrigido o loader de plugins para procurar `Plugins`, `Plugins.ini` e DLLs auxiliares a partir da pasta base do Terraria, evitando falhas quando o jogo abre com outro diretório atual no Linux/Steam.",
+        "Ajustada a validação do bridge para manter o TypeScript limpo ao reportar erros de executáveis do patcher não iniciáveis.",
+        "Atualizadas dependências dentro das faixas compatíveis atuais, incluindo Electron 39.8.x, Vite 7.3.x, React 19.2.x, Tailwind 4.2.x e ESLint/React Hooks.",
+        "Corrigidos avisos novos do lint de React Hooks sem desativar a regra, mantendo o banner de updates, o detector mobile, as notas de release e o editor de Plugins.ini compatíveis.",
+        "Atualizados metadados da versão para `1.2.1`; a linha 1.2.x continua usando a bridge standalone e não depende mais de `electron-edge-js`."
+      ]
+    },
     "v1_2_0": {
       "title": "Bridge IPC Independente + Pipeline de Build Refeito",
       "summary": "Removemos o electron-edge-js e migramos para uma bridge C# independente (.NET 10) via stdio JSON, com limpeza agressiva de runtime legado e novo CI por plataforma.",

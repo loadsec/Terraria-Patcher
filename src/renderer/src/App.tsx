@@ -127,13 +127,6 @@ function HeaderUpdateNotice() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!updaterState) return;
-    if (!["available", "downloading", "downloaded"].includes(updaterState.phase)) {
-      setDismissedVersion(null);
-    }
-  }, [updaterState]);
-
   if (!updaterState) return null;
   if (location.pathname === "/config") return null;
   if (!["available", "downloading", "downloaded"].includes(updaterState.phase)) {
