@@ -17,6 +17,8 @@
       "summary": "Fixes Linux/Steam Runtime plugin loading, updates dependencies within the current stable ranges, and prepares the 1.2.1 release without returning to the old Edge runtime.",
       "changes": [
         "Fixed the plugin loader to resolve `Plugins`, `Plugins.ini`, and helper DLLs from Terraria's base directory, avoiding failures when Linux/Steam starts the game with a different current directory.",
+        "Removed Windows-only code from the FNA/Linux plugin loader build, avoiding load failures during Terraria/Mono `ForceJITOnAssembly`.",
+        "The FNA loader now skips compilation when there are no active `.cs` plugins, allowing the game to start with plugin support enabled and an empty plugin list.",
         "Adjusted bridge validation so TypeScript remains clean when reporting non-runnable patcher executable errors.",
         "Updated dependencies within compatible current ranges, including Electron 39.8.x, Vite 7.3.x, React 19.2.x, Tailwind 4.2.x, and ESLint/React Hooks.",
         "Resolved new React Hooks lint findings without disabling the rule, keeping the update banner, mobile detector, release notes, and Plugins.ini editor compatible.",

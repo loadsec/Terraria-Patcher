@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+#if !FNA
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using Microsoft.Win32;
+#endif
 
 namespace PluginLoader
 {
     public static class Utils
     {
+#if !FNA
         #region UAC / Admin / Elevated
 
         private const string uacRegistryKey = "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\System";
@@ -124,6 +127,7 @@ namespace PluginLoader
         }
 
         #endregion
+#endif
         
         public static bool IsFileLocked(FileInfo file)
         {

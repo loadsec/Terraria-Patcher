@@ -349,6 +349,11 @@ namespace PluginLoader
             // Resolve ALL paths to absolute BEFORE anything changes CurrentDirectory.
             compileReferences = references.Where(r => !string.IsNullOrWhiteSpace(r)).Select(r => Path.GetFullPath(r)).ToArray();
             compileSources = sources.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => Path.GetFullPath(s)).ToArray();
+            if (compileSources.Length == 0)
+            {
+                AppendLog("INFO", "No plugin source files found; skipping FNA plugin compilation.");
+                return;
+            }
             // Prefer local work dir under Terraria/Plugins to avoid Steam Runtime mount/namespace issues.
             var compilerWorkDir = CreateFnaCompilerWorkDir(compileSources, preferLocal: true);
             // Do NOT change Environment.CurrentDirectory — it breaks Path.GetFullPath in CompileFnaAssemblyWithMcs.
