@@ -1,4 +1,4 @@
-import { Heart, Github, Code2, MonitorSmartphone } from "lucide-react";
+import { Heart, Github, Code2, MonitorSmartphone, Info } from "lucide-react";
 import { useTranslation, Trans } from "react-i18next";
 
 export default function AboutPage() {
@@ -9,7 +9,7 @@ export default function AboutPage() {
       {/* Page header */}
       <div>
         <h1 className="text-xl font-bold tracking-tight flex items-center gap-2 font-mono">
-          <span className="text-primary select-none">&gt;_</span>
+          <Info className="h-5 w-5 text-primary shrink-0" />
           {t("about.title")}
         </h1>
         <p className="text-xs text-muted-foreground mt-1 font-mono">{t("about.subtitle")}</p>

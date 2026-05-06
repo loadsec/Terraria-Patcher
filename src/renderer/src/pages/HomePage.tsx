@@ -179,8 +179,8 @@ export default function HomePage() {
 
             {/* Title */}
             <div className="mb-4">
-              <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
-                <span className="font-mono text-primary select-none mr-2">&gt;_</span>
+              <h1 className="text-xl font-bold tracking-tight sm:text-2xl flex items-center gap-2">
+                <Zap className="h-5 w-5 text-primary shrink-0" />
                 {t("home.hero.title", "Patch, configure, and manage Terraria")}
               </h1>
               <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed max-w-2xl">

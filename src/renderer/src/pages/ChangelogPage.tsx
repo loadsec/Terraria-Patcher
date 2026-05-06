@@ -76,7 +76,7 @@ export default function ChangelogPage() {
       {/* Page header */}
       <div>
         <h1 className="text-xl font-bold tracking-tight flex items-center gap-2 font-mono">
-          <span className="text-primary select-none">&gt;_</span>
+          <BookOpen className="h-5 w-5 text-primary shrink-0" />
           {t("changelog.title")}
         </h1>
         <p className="text-xs text-muted-foreground mt-1 font-mono">{t("changelog.subtitle")}</p>

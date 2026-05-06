@@ -14,6 +14,7 @@ import {
   Tag,
   Trash2,
   FolderOpen,
+  Settings,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -815,7 +816,7 @@ export default function ConfigPage() {
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight flex items-center gap-2 font-mono">
-            <span className="text-primary select-none">&gt;_</span>
+            <Settings className="h-5 w-5 text-primary shrink-0" />
             {t("config.title")}
           </h1>
           <p className="text-xs text-muted-foreground mt-1 pl-6 font-mono">

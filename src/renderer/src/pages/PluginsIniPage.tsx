@@ -347,7 +347,7 @@ export default function PluginsIniPage() {
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight flex items-center gap-2 font-mono">
-            <span className="text-primary select-none">&gt;_</span>
+            <FileText className="h-5 w-5 text-primary shrink-0" />
             {t("plugins.ini.title", "Plugins.ini Editor")}
           </h1>
           <p className="text-xs text-muted-foreground mt-1 pl-6 font-mono">
