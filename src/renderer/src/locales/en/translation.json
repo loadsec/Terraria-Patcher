@@ -293,6 +293,8 @@
   "home": {
     "hero": {
       "badge": "Desktop patching toolkit for Terraria",
+      "statusReady": "READY",
+      "statusActionNeeded": "ACTION NEEDED",
       "title": "Patch, configure, and manage Terraria in one place",
       "description": "Use IL patching features, plugin sync, Plugins.ini editing, configuration profiles, and update checks from a single modern desktop interface.",
       "primaryBtn": "Open Patcher",
@@ -354,6 +356,7 @@
         "title": "Current Build",
         "subtitle": "Version, compatibility and quick references.",
         "appVersion": "App Version",
+        "appName": "App name",
         "terrariaTarget": "Terraria Target",
         "releaseDate": "Release Date",
         "changelogBtn": "View Changelog",

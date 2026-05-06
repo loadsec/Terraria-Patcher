@@ -137,7 +137,7 @@ export default function HomePage() {
   const systemOk = terrariaPathConfigured && runtimeOk && updaterTone !== "danger";
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-4 animate-in fade-in duration-500">
 
       {/* ── HERO ─────────────────────────────────────────────── */}
       <section className="relative overflow-hidden rounded-none border bg-card">
@@ -166,29 +166,28 @@ export default function HomePage() {
                 ? "border-primary/40 text-primary bg-primary/10"
                 : "border-amber-500/40 text-amber-500 bg-amber-500/10",
             )}>
-            {systemOk ? "READY" : "ACTION NEEDED"}
+            {systemOk ? t("home.hero.statusReady") : t("home.hero.statusActionNeeded")}
           </Badge>
         </div>
 
         {/* Hero body */}
-        <div className="relative px-6 py-8 lg:px-8">
+        <div className="relative px-5 py-5 lg:px-6">
           {/* Ambient glow */}
-          <div className="pointer-events-none absolute -top-10 -right-10 h-64 w-64 rounded-full bg-primary/8 blur-3xl" />
-          <div className="pointer-events-none absolute bottom-0 left-20 h-32 w-32 rounded-full bg-primary/5 blur-2xl" />
+          <div className="pointer-events-none absolute -top-10 -right-10 h-48 w-48 rounded-full bg-primary/8 blur-3xl" />
 
           <div className="relative">
             {/* Prompt */}
-            <p className="mb-4 font-mono text-[11px] text-primary/50 select-none">
+            <p className="mb-3 font-mono text-[11px] text-primary/50 select-none">
               $ terraria-patcher --status --interactive
             </p>
 
             {/* Title */}
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+            <div className="mb-4">
+              <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
                 <span className="font-mono text-primary select-none mr-2">&gt;_</span>
                 {t("home.hero.title", "Patch, configure, and manage Terraria")}
               </h1>
-              <p className="mt-2 pl-9 text-sm text-muted-foreground sm:text-base leading-relaxed max-w-2xl">
+              <p className="mt-1.5 pl-8 text-sm text-muted-foreground leading-relaxed max-w-2xl">
                 {t(
                   "home.hero.description",
                   "IL patching, plugin sync, Plugins.ini editing, config profiles and update checks — from one desktop interface.",
@@ -210,26 +209,26 @@ export default function HomePage() {
               />
               <StatCard
                 label={t("home.hero.metrics.terrariaPath", "Game path")}
-                value={terrariaPathConfigured ? "Configured" : "Not set"}
-                sub={terrariaPathConfigured ? terrariaPath : "Set in Config →"}
+                value={terrariaPathConfigured ? t("home.hero.metrics.pathConfigured") : t("home.hero.metrics.pathMissing")}
+                sub={terrariaPathConfigured ? terrariaPath : t("home.hero.metrics.pathHint")}
                 tone={terrariaPathConfigured ? "success" : "warning"}
               />
               <StatCard
                 label={t("home.hero.metrics.runtimeLabel", "Runtime")}
-                value={runtimeOk ? "Detected" : "Missing"}
-                sub="Native bridge"
+                value={runtimeOk ? t("home.status.runtime.ok") : t("home.status.runtime.missing")}
+                sub={t("home.hero.metrics.runtimeHint")}
                 tone={runtimeOk ? "success" : "warning"}
               />
             </div>
 
             {/* CTA */}
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Button onClick={() => navigate("/patcher")} className="gap-2">
-                <Zap className="h-4 w-4" />
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => navigate("/patcher")} className="gap-2">
+                <Zap className="h-3.5 w-3.5" />
                 {t("home.shortcuts.patcher", "Open Patcher")}
               </Button>
-              <Button variant="outline" onClick={() => navigate("/config")} className="gap-2">
-                <Settings className="h-4 w-4" />
+              <Button size="sm" variant="outline" onClick={() => navigate("/config")} className="gap-2">
+                <Settings className="h-3.5 w-3.5" />
                 {t("home.shortcuts.config", "Configuration")}
               </Button>
             </div>
@@ -238,12 +237,12 @@ export default function HomePage() {
       </section>
 
       {/* ── MAIN GRID ────────────────────────────────────────── */}
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-3 lg:grid-cols-3">
 
         {/* Quick Access — 1 col */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           <SectionHeader icon={<ArrowRight className="h-3.5 w-3.5" />} title={t("home.shortcuts.title", "Quick Access")} />
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1">
             <NavTile
               icon={<Wrench className="h-4 w-4" />}
               title={t("home.shortcuts.patcher", "Patcher")}
@@ -272,20 +271,20 @@ export default function HomePage() {
         </div>
 
         {/* System Status — 1 col */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           <SectionHeader icon={<Shield className="h-3.5 w-3.5" />} title={t("home.status.title", "System Status")} />
           <div className="flex flex-col divide-y divide-border/50 border border-border/60 bg-card overflow-hidden">
             <StatusRow
               label={t("home.status.terrariaPath", "Terraria path")}
-              value={terrariaPathConfigured ? "Configured" : "Not configured"}
+              value={terrariaPathConfigured ? t("home.status.configured") : t("home.status.notConfigured")}
               tone={terrariaPathConfigured ? "success" : "warning"}
             />
             <StatusRow
               label={t("home.status.pluginSupport", "Plugin support")}
               value={
-                pluginSupport === null ? "Loading…"
-                : pluginSupport ? "Enabled"
-                : "Disabled"
+                pluginSupport === null ? t("home.status.loading")
+                : pluginSupport ? t("home.status.enabled")
+                : t("home.status.disabled")
               }
               tone={pluginSupport === null ? "neutral" : pluginSupport ? "success" : "warning"}
             />
@@ -294,24 +293,29 @@ export default function HomePage() {
               value={
                 updaterState
                   ? t(`config.updates.phase.${updaterState.phase}`, updaterState.phase)
-                  : "Loading…"
+                  : t("home.status.loading")
               }
               tone={updaterTone}
               hint={
                 updaterLagCount && updaterLagCount > 0
                   ? updaterLagCount === 1
-                    ? "1 release behind"
-                    : `${updaterLagCount} releases behind`
+                    ? t("config.updates.behindCountOne")
+                    : t("config.updates.behindCountMany", { count: updaterLagCount })
                   : updaterState?.message
               }
             />
             <StatusRow
               label={t("home.status.runtime.label", ".NET Runtime")}
-              value={runtimeOk ? "Detected" : "Missing"}
+              value={runtimeOk ? t("home.status.runtime.ok") : t("home.status.runtime.missing")}
               tone={runtimeOk ? "success" : "warning"}
               hint={
                 dotnetPrereqs
-                  ? `Major: ${typeof dotnetPrereqs.runtime472Plus.detectedRelease === "number" ? dotnetPrereqs.runtime472Plus.detectedRelease : "N/A"} / req. ${dotnetPrereqs.runtime472Plus.requiredRelease}`
+                  ? t("home.status.runtime.releaseHint", {
+                      detected: typeof dotnetPrereqs.runtime472Plus.detectedRelease === "number"
+                        ? dotnetPrereqs.runtime472Plus.detectedRelease
+                        : t("home.status.notDetectedShort"),
+                      required: dotnetPrereqs.runtime472Plus.requiredRelease,
+                    })
                   : undefined
               }
             />
@@ -319,15 +323,15 @@ export default function HomePage() {
         </div>
 
         {/* Build info — 1 col */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           <SectionHeader icon={<PackageCheck className="h-3.5 w-3.5" />} title={t("home.cards.build.title", "Current Build")} />
           <div className="flex flex-col divide-y divide-border/50 border border-border/60 bg-card overflow-hidden">
-            <InfoRow label="App version" value={`v${appVersion}`} />
-            <InfoRow label="Terraria target" value={`${terrariaVersion} (${terrariaRange})`} />
-            <InfoRow label="Release date" value={latestReleaseDate || "—"} />
-            <InfoRow label="App name" value={appName} />
+            <InfoRow label={t("home.cards.build.appVersion")} value={`v${appVersion}`} />
+            <InfoRow label={t("home.cards.build.terrariaTarget")} value={`${terrariaVersion} (${terrariaRange})`} />
+            <InfoRow label={t("home.cards.build.releaseDate")} value={latestReleaseDate || "—"} />
+            <InfoRow label={t("home.cards.build.appName")} value={appName} />
           </div>
-          <div className="flex gap-2 mt-1">
+          <div className="flex gap-2">
             <Button size="sm" variant="outline" className="gap-1.5 text-xs flex-1" onClick={() => navigate("/changelog")}>
               <BookOpen className="h-3.5 w-3.5" />
               {t("home.cards.build.changelogBtn", "Changelog")}
@@ -342,7 +346,7 @@ export default function HomePage() {
 
       {/* ── WORKFLOW ─────────────────────────────────────────── */}
       <div>
-        <SectionHeader icon={<Wrench className="h-3.5 w-3.5" />} title={t("home.workflow.title", "Recommended Workflow")} className="mb-2" />
+        <SectionHeader icon={<Wrench className="h-3.5 w-3.5" />} title={t("home.workflow.title", "Recommended Workflow")} className="mb-1.5" />
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <WorkflowStep
             n={1}
@@ -375,7 +379,7 @@ export default function HomePage() {
 
       {/* ── NOTES ────────────────────────────────────────────── */}
       <div>
-        <SectionHeader icon={<AlertTriangle className="h-3.5 w-3.5" />} title={t("home.cards.notes.title", "Important Notes")} tone="warning" className="mb-2" />
+        <SectionHeader icon={<AlertTriangle className="h-3.5 w-3.5" />} title={t("home.cards.notes.title", "Important Notes")} tone="warning" className="mb-1.5" />
         <div className="border border-border/60 border-l-2 border-l-amber-500/60 bg-card divide-y divide-border/50 overflow-hidden">
           {[
             t("home.notes.backup", "Use backup/restore before repatching to avoid stacking patches on an already modified Terraria.exe."),
@@ -383,7 +387,7 @@ export default function HomePage() {
             t("home.notes.recovery", "If something goes wrong with Steam, verify file integrity. In extreme cases, reinstall Terraria and repatch."),
             t("home.notes.repatchAfterUpdate", "Whenever Terraria updates, you must patch again — updates restore the original executable."),
           ].map((note, i) => (
-            <div key={i} className="flex items-start gap-3 px-4 py-2.5">
+            <div key={i} className="flex items-start gap-2.5 px-3 py-2">
               <span className="shrink-0 mt-0.5 font-mono text-[10px] font-bold text-amber-500/60 select-none w-4 text-right">
                 {String(i + 1).padStart(2, "0")}
               </span>
@@ -442,22 +446,20 @@ function StatCard({
 }) {
   return (
     <div className={cn(
-      "relative border border-border/60 bg-background/60 p-3 overflow-hidden",
-      tone === "success" && "border-t-primary/50",
-      tone === "warning" && "border-t-amber-500/50",
+      "relative border border-border/60 bg-background/60 p-2.5 overflow-hidden",
     )}>
       <div className={cn(
         "absolute top-0 left-0 right-0 h-px",
         tone === "success" ? "bg-primary/60" : tone === "warning" ? "bg-amber-500/60" : "bg-border/30",
       )} />
-      <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60 mb-1.5 truncate">{label}</p>
+      <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground/60 mb-1 truncate">{label}</p>
       <p className={cn(
-        "font-mono text-sm font-bold leading-tight truncate",
+        "font-mono text-xs font-bold leading-tight truncate",
         tone === "success" ? "text-primary" : tone === "warning" ? "text-amber-500" : "text-foreground",
       )}>
         {value}
       </p>
-      {sub ? <p className="mt-1 font-mono text-[10px] text-muted-foreground/50 truncate">{sub}</p> : null}
+      {sub ? <p className="mt-0.5 font-mono text-[10px] text-muted-foreground/50 truncate">{sub}</p> : null}
     </div>
   );
 }
@@ -474,7 +476,7 @@ function StatusRow({
   hint?: string;
 }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5">
+    <div className="flex items-center gap-2.5 px-3 py-2">
       <div className={cn(
         "shrink-0 h-1.5 w-1.5 rounded-full",
         tone === "success" && "bg-primary",
@@ -501,7 +503,7 @@ function StatusRow({
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 px-4 py-2.5">
+    <div className="flex items-center justify-between gap-4 px-3 py-2">
       <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/60 shrink-0">{label}</span>
       <span className="font-mono text-xs font-semibold text-foreground truncate text-right">{value}</span>
     </div>
@@ -523,15 +525,15 @@ function NavTile({
     <button
       type="button"
       onClick={onClick}
-      className="group flex items-center gap-3 border border-border/60 bg-card px-3 py-2.5 text-left transition-all hover:border-primary/50 hover:bg-primary/5 w-full">
-      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center border border-border/60 bg-muted/40 text-muted-foreground group-hover:border-primary/40 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+      className="group flex items-center gap-2.5 border border-border/60 bg-card px-3 py-2 text-left transition-all hover:border-primary/50 hover:bg-primary/5 w-full">
+      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center border border-border/60 bg-muted/40 text-muted-foreground group-hover:border-primary/40 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
         {icon}
       </span>
       <div className="min-w-0 flex-1">
         <p className="font-mono text-xs font-semibold leading-tight text-foreground group-hover:text-primary transition-colors">{title}</p>
         <p className="font-mono text-[10px] text-muted-foreground/60 truncate">{desc}</p>
       </div>
-      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/30 transition-all group-hover:translate-x-0.5 group-hover:text-primary/60" />
+      <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground/30 transition-all group-hover:translate-x-0.5 group-hover:text-primary/60" />
     </button>
   );
 }
@@ -550,23 +552,23 @@ function WorkflowStep({
   onAction?: () => void;
 }) {
   return (
-    <div className="relative border border-border/60 bg-card p-4 overflow-hidden">
+    <div className="relative border border-border/60 bg-card p-3 overflow-hidden">
       {/* Step number watermark */}
-      <span className="absolute -right-1 -top-2 font-mono text-5xl font-black text-primary/5 select-none leading-none">
+      <span className="absolute -right-1 -top-1 font-mono text-4xl font-black text-primary/5 select-none leading-none">
         {n}
       </span>
-      <div className="relative flex items-start gap-3">
+      <div className="relative flex items-start gap-2.5">
         <span className="mt-px shrink-0 font-mono text-[10px] font-bold text-primary/60 select-none">
           {String(n).padStart(2, "0")}
         </span>
         <div className="min-w-0 flex-1">
           <p className="font-mono text-xs font-bold text-foreground leading-snug">{title}</p>
-          {desc ? <p className="mt-1 font-mono text-[10px] text-muted-foreground/70 leading-snug">{desc}</p> : null}
+          {desc ? <p className="mt-0.5 font-mono text-[10px] text-muted-foreground/70 leading-snug">{desc}</p> : null}
           {actionLabel && onAction ? (
             <button
               type="button"
               onClick={onAction}
-              className="mt-2 inline-flex items-center gap-1 font-mono text-[10px] font-bold text-primary hover:underline uppercase tracking-wider">
+              className="mt-1.5 inline-flex items-center gap-1 font-mono text-[10px] font-bold text-primary hover:underline uppercase tracking-wider">
               {actionLabel}
               <ArrowRight className="h-3 w-3" />
             </button>

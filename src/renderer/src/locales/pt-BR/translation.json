@@ -293,6 +293,8 @@
   "home": {
     "hero": {
       "badge": "Toolkit desktop de patching para Terraria",
+      "statusReady": "PRONTO",
+      "statusActionNeeded": "AÇÃO NECESSÁRIA",
       "title": "Aplique patches, configure e gerencie o Terraria em um só lugar",
       "description": "Use recursos de patching IL, sincronização de plugins, edição de Plugins.ini, perfis de configuração e verificação de atualizações em uma interface desktop moderna.",
       "primaryBtn": "Abrir Patcher",
@@ -354,6 +356,7 @@
         "title": "Build Atual",
         "subtitle": "Versão, compatibilidade e referências rápidas.",
         "appVersion": "Versão do App",
+        "appName": "Nome do App",
         "terrariaTarget": "Terraria Alvo",
         "releaseDate": "Data da Release",
         "changelogBtn": "Ver Changelog",
