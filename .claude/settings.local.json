@@ -1,7 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "PowerShell(Head *)"
+      "PowerShell(Head *)",
+      "mcp__shadcn__get_add_command_for_items",
+      "Bash(pnpm dlx *)",
+      "Bash(pnpm dev *)",
+      "Bash(timeout 15)",
+      "Bash(Start-Sleep -Seconds 12)",
+      "Bash(Get-Content \"C:\\\\Users\\\\Louan\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Louan-Documents-GitHub-Terraria-Patcher\\\\99b0965c-10f7-494e-88fe-f28e17c3931e\\\\tasks\\\\bqb1yll39.output\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -Last 40)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp"
     ]
   }
 }

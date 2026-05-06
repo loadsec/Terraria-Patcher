@@ -15,6 +15,7 @@ import {
   Trash2,
   FolderOpen,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -185,7 +186,6 @@ export default function ConfigPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [terrariaPath, setTerrariaPath] = useState("");
   const [pluginSupport, setPluginSupport] = useState(true);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [isExportingProfile, setIsExportingProfile] = useState(false);
   const [isImportingProfile, setIsImportingProfile] = useState(false);
   const [updaterState, setUpdaterState] = useState<UpdaterState | null>(null);
@@ -209,9 +209,12 @@ export default function ConfigPage() {
     "microsoftPage" | "githubRelease" | "githubRuntime" | "githubDeveloperPack" | null
   >(null);
 
-  const flashMessage = (message: string) => {
-    setSaveMessage(message);
-    setTimeout(() => setSaveMessage(null), 3000);
+  const flashMessage = (message: string, isError = false) => {
+    if (isError) {
+      toast.error(message);
+    } else {
+      toast.success(message);
+    }
   };
 
   // Load persisted config on mount
@@ -314,7 +317,7 @@ export default function ConfigPage() {
       flashMessage(t("config.saved", "Configuration saved!"));
     } catch (err) {
       console.error("Failed to save config:", err);
-      flashMessage(t("config.saveFailed", "Failed to save configuration."));
+      flashMessage(t("config.saveFailed", "Failed to save configuration."), true);
     }
   };
 
@@ -804,11 +807,6 @@ export default function ConfigPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {saveMessage && (
-            <span className="text-xs text-primary font-mono animate-in fade-in duration-300">
-              {saveMessage}
-            </span>
-          )}
           <Button onClick={handleSaveConfig} className="gap-2 shrink-0">
             <Save className="h-4 w-4" />
             {t("config.saveBtn", "Save Configuration")}

@@ -21,6 +21,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AppSidebar } from "@/components/AppSidebar";
+import { Toaster } from "@/components/ui/sonner";
 import HomePage from "@/pages/HomePage";
 import PatcherPage from "@/pages/PatcherPage";
 import PluginsIniPage from "@/pages/PluginsIniPage";
@@ -292,6 +293,7 @@ function App(): React.ReactElement {
 
   return (
     <ThemeProvider defaultTheme="dark" storageKey="terraria-patcher-theme">
+      <Toaster position="bottom-right" richColors />
       <HashRouter>
         <TooltipProvider>
           <SidebarProvider>
