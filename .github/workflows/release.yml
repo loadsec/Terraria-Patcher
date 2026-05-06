@@ -258,7 +258,7 @@ jobs:
 
   build-macos:
     name: Build macOS release
-    runs-on: macos-latest
+    runs-on: macos-14
     needs: prepare
     env:
       MONO_REQUIRED_VERSION: "6."
