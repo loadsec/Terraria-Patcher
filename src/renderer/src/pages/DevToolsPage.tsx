@@ -188,7 +188,7 @@ export default function DevToolsPage() {
           </div>
         </div>
         {flash ? (
-          <span className="text-sm text-emerald-600 dark:text-emerald-400">
+          <span className="text-sm text-primary">
             {flash}
           </span>
         ) : null}
@@ -359,7 +359,7 @@ export default function DevToolsPage() {
                 className={cn(
                   "text-sm font-semibold",
                   devStatus?.runtimeDeps.ok
-                    ? "text-emerald-600 dark:text-emerald-400"
+                    ? "text-primary"
                     : "text-amber-600 dark:text-amber-400",
                 )}>
                 {devStatus?.runtimeDeps.ok
@@ -403,7 +403,7 @@ export default function DevToolsPage() {
                   className={cn(
                     "mt-1 text-sm font-semibold",
                     devStatus?.dotnetPrereqs.runtime472Plus.ok
-                        ? "text-emerald-600 dark:text-emerald-400"
+                        ? "text-primary"
                         : "text-amber-600 dark:text-amber-400",
                   )}>
                   {devStatus?.dotnetPrereqs.runtime472Plus.ok
@@ -503,7 +503,7 @@ export default function DevToolsPage() {
                   className={cn(
                     "font-medium",
                     devStatus?.dotnetPrereqs.developerPack472.ok
-                      ? "text-emerald-600 dark:text-emerald-400"
+                      ? "text-primary"
                       : "text-amber-600 dark:text-amber-400",
                   )}>
                   {devStatus?.dotnetPrereqs.developerPack472.ok
@@ -606,7 +606,7 @@ export default function DevToolsPage() {
                   className={cn(
                     "text-xs font-medium",
                     bridgeBuildResult.success
-                      ? "text-emerald-600 dark:text-emerald-400"
+                      ? "text-primary"
                       : "text-destructive",
                   )}>
                   {bridgeBuildResult.success

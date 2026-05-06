@@ -521,7 +521,7 @@ export default function PluginsIniPage() {
                               className={cn(
                                 "text-[10px] uppercase tracking-wider rounded px-2 py-1 border font-medium",
                                 fieldType === "bool" &&
-                                  "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300",
+                                  "border-primary/30 bg-primary/10 text-primary",
                                 fieldType === "number" &&
                                   "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300",
                                 fieldType === "hotkey" &&

@@ -216,7 +216,7 @@ function HeaderUpdateNotice() {
             <AlertTitle className="line-clamp-none flex flex-wrap items-center gap-2 text-sm">
               <span>{title}</span>
               {updaterState.latestVersion ? (
-                <span className="inline-flex items-center rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                <span className="inline-flex items-center rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
                   v{updaterState.latestVersion}
                 </span>
               ) : null}
@@ -297,10 +297,10 @@ function App(): React.ReactElement {
           <SidebarProvider>
             <AppSidebar />
             <SidebarInset className="flex flex-col h-screen overflow-hidden">
-              <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+              <header className="flex h-12 shrink-0 items-center gap-2 border-b bg-sidebar/40 backdrop-blur-sm px-4">
                 <SidebarTrigger className="-ml-1" />
-                <Separator orientation="vertical" className="mr-2 !h-4" />
-                <span className="text-sm text-muted-foreground mr-auto">
+                <Separator orientation="vertical" className="mr-1 !h-4" />
+                <span className="text-xs font-medium text-muted-foreground mr-auto tracking-wide">
                   {t("sidebar.title")}
                 </span>
                 <ThemeToggleButton />

@@ -93,7 +93,7 @@ export default function AboutPage() {
         {/* Technology Stack Section */}
         <div className="rounded-xl border bg-card p-6 flex flex-col md:col-span-2">
           <div className="flex items-center gap-3 border-b pb-4 mb-4">
-            <div className="flex p-2 rounded-md bg-emerald-500/10 text-emerald-500">
+            <div className="flex p-2 rounded-md bg-primary/10 text-primary">
               <Code2 className="h-5 w-5" />
             </div>
             <h2 className="font-semibold text-lg">{t("about.stack.title")}</h2>

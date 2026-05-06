@@ -710,7 +710,7 @@ export default function ConfigPage() {
   const updaterStatusBadgeClass = cn(
     "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold border",
     updaterStatusTone === "success" &&
-      "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+      "border-primary/30 bg-primary/10 text-primary",
     updaterStatusTone === "warning" &&
       "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
     updaterStatusTone === "danger" &&
@@ -810,7 +810,7 @@ export default function ConfigPage() {
         </div>
         <div className="flex items-center gap-3">
           {saveMessage && (
-            <span className="text-sm text-emerald-500 animate-in fade-in duration-300">
+            <span className="text-sm text-primary animate-in fade-in duration-300">
               {saveMessage}
             </span>
           )}
@@ -1042,7 +1042,7 @@ export default function ConfigPage() {
                     className={cn(
                       "text-sm font-semibold",
                       dotnetPrereqs.runtime472Plus.ok
-                        ? "text-emerald-600 dark:text-emerald-400"
+                        ? "text-primary"
                         : "text-amber-600 dark:text-amber-400",
                     )}>
                     {dotnetPrereqs.runtime472Plus.ok
@@ -1078,7 +1078,7 @@ export default function ConfigPage() {
                     className={cn(
                       "text-sm font-semibold",
                       dotnetPrereqs.developerPack472.ok
-                        ? "text-emerald-600 dark:text-emerald-400"
+                        ? "text-primary"
                         : "text-muted-foreground",
                     )}>
                     {dotnetPrereqs.developerPack472.ok

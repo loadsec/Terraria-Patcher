@@ -184,7 +184,7 @@ export default function ChangelogPage() {
                   <div
                     className={
                       isLatest
-                        ? "absolute left-[6px] top-6 h-4 w-4 rounded-full border-2 border-background bg-emerald-400 shadow-[0_0_0_4px_hsl(var(--background))]"
+                        ? "absolute left-[6px] top-6 h-4 w-4 rounded-full border-2 border-background bg-primary shadow-[0_0_0_4px_hsl(var(--background))]"
                         : "absolute left-[6px] top-6 h-4 w-4 rounded-full border-2 border-background bg-[#5A433A] shadow-[0_0_0_4px_hsl(var(--background))]"
                     }
                   />
@@ -193,7 +193,7 @@ export default function ChangelogPage() {
                     <div
                       className={
                         isLatest
-                          ? "absolute inset-y-0 left-0 w-1 bg-emerald-400"
+                          ? "absolute inset-y-0 left-0 w-1 bg-primary"
                           : "absolute inset-y-0 left-0 w-1 bg-[#5A433A]"
                       }
                     />
@@ -205,7 +205,7 @@ export default function ChangelogPage() {
                               v{release.version}
                             </CardTitle>
                             {isLatest ? (
-                              <span className="inline-flex items-center rounded-full border border-emerald-500/35 bg-emerald-500/12 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-400">
+                              <span className="inline-flex items-center rounded-full border border-primary/35 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
                                 {t("page.latestBadge", { ns: "changelog" })}
                               </span>
                             ) : null}
@@ -235,7 +235,7 @@ export default function ChangelogPage() {
                               key={`${release.id}-${index}`}
                               className={
                                 isLatest
-                                  ? "relative pl-4 text-sm leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-emerald-400/90 before:content-['']"
+                                  ? "relative pl-4 text-sm leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-primary/90 before:content-['']"
                                   : "relative pl-4 text-sm leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-[#5A433A]/90 before:content-['']"
                               }>
                               <span>{change}</span>
