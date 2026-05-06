@@ -97,7 +97,7 @@ export function AppSidebar() {
 
         {/* // nav */}
         <div className="px-3 pb-1 group-data-[collapsible=icon]:hidden">
-          <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-muted-foreground/35 select-none">
+          <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-sky-400/60 select-none">
             // nav
           </span>
         </div>
@@ -122,7 +122,7 @@ export function AppSidebar() {
 
         {/* // tools */}
         <div className="px-3 pt-2 pb-1 group-data-[collapsible=icon]:hidden">
-          <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-muted-foreground/35 select-none">
+          <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-primary/60 select-none">
             // {t("sidebar.tools", "tools")}
           </span>
         </div>
@@ -147,7 +147,7 @@ export function AppSidebar() {
 
         {/* // system */}
         <div className="px-3 pt-2 pb-1 group-data-[collapsible=icon]:hidden">
-          <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-muted-foreground/35 select-none">
+          <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-violet-400/60 select-none">
             // {t("sidebar.system", "system")}
           </span>
         </div>
@@ -172,7 +172,7 @@ export function AppSidebar() {
           <>
             <SidebarSeparator className="mx-3 my-1" />
             <div className="px-3 pt-2 pb-1 group-data-[collapsible=icon]:hidden">
-              <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-amber-500/50 select-none">
+              <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-amber-500/60 select-none">
                 // {t("sidebar.developer", "dev")}
               </span>
             </div>
@@ -207,7 +207,7 @@ export function AppSidebar() {
               v{appVersion}
             </span>
           </div>
-          <p className="mt-0.5 text-[9px] font-mono text-muted-foreground/50 truncate">
+          <p className="mt-0.5 text-[9px] font-mono text-muted-foreground truncate">
             {terrariaRange
               ? `terraria ${terrariaVersion} (${terrariaRange})`
               : `terraria ${terrariaVersion}`}

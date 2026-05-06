@@ -180,7 +180,7 @@ export default function ChangelogPage() {
                           <span className="text-[10px] font-mono text-muted-foreground/60">{releaseText.title}</span>
                         ) : null}
                       </div>
-                      <span className="text-[10px] font-mono text-muted-foreground/50 shrink-0">
+                      <span className="text-[10px] font-mono text-muted-foreground shrink-0">
                         {formatDate(release.date, i18n.language)}
                       </span>
                     </div>

@@ -795,8 +795,9 @@ export default function ConfigPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between shrink-0">
+    <div className="space-y-4 animate-in fade-in duration-500">
+      {/* Page header */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight flex items-center gap-2 font-mono">
             <span className="text-primary select-none">&gt;_</span>
@@ -806,629 +807,520 @@ export default function ConfigPage() {
             {t("config.subtitle")}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button onClick={handleSaveConfig} className="gap-2 shrink-0">
-            <Save className="h-4 w-4" />
-            {t("config.saveBtn", "Save Configuration")}
-          </Button>
-        </div>
+        <Button onClick={handleSaveConfig} size="sm" className="gap-1.5 shrink-0">
+          <Save className="h-3.5 w-3.5" />
+          {t("config.saveBtn", "Save Configuration")}
+        </Button>
       </div>
 
-      <div className="flex flex-col gap-6">
-        {/* Updates */}
-        <div className="border border-l-2 border-l-primary/30 bg-card text-card-foreground">
-          <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
-            <div className="h-4 w-[2px] bg-primary/50 shrink-0" />
-            <div>
-              <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
-                {t("config.updates.title", "App Updates")}
-              </h3>
-              <p className="text-[10px] text-muted-foreground/60 font-mono">
-                {t("config.updates.desc", "Check for new releases, download updates and install them without leaving the app.")}
+      {/* Updates */}
+      <div className="border border-l-2 border-l-primary/30 bg-card">
+        <div className="px-4 py-3 border-b bg-muted/10">
+          <div className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
+            {t("config.updates.title")}
+          </div>
+          <div className="text-[10px] font-mono text-muted-foreground">
+            {t("config.updates.desc")}
+          </div>
+        </div>
+        <div className="p-4 space-y-3">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="flex items-center justify-between gap-3 border border-border/60 bg-card/50 px-3 py-2">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60 shrink-0">
+                {t("config.updates.currentVersion")}
               </p>
+              <div className="text-right min-w-0">
+                <p className="font-mono text-sm font-bold text-foreground leading-tight">
+                  v{updaterState?.currentVersion || "1.0.0"}
+                </p>
+                {updaterBehindText ? (
+                  <p className="font-mono text-[10px] text-amber-500">{updaterBehindText}</p>
+                ) : (
+                  <p className="font-mono text-[10px] text-muted-foreground">
+                    {t("config.updates.installedBuild")}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-3 border border-border/60 bg-card/50 px-3 py-2">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60 shrink-0">
+                {t("config.updates.latestVersion")}
+              </p>
+              <div className="text-right min-w-0">
+                <p className="font-mono text-sm font-bold text-foreground leading-tight">
+                  {updaterState?.latestVersion
+                    ? `v${updaterState.latestVersion}`
+                    : t("config.updates.unknown")}
+                </p>
+                {formattedReleaseDate ? (
+                  <p className="font-mono text-[10px] text-muted-foreground inline-flex items-center gap-1 justify-end">
+                    <Clock3 className="h-2.5 w-2.5" />
+                    {formattedReleaseDate}
+                  </p>
+                ) : updaterState?.releaseName ? (
+                  <p className="font-mono text-[10px] text-muted-foreground truncate">
+                    {updaterState.releaseName}
+                  </p>
+                ) : null}
+              </div>
             </div>
           </div>
-          <div className="p-6 space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="border border-border/60 bg-muted/20 p-4">
-                <div className="flex items-start gap-3">
-                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center bg-primary/10 text-primary border border-primary/20">
-                    <PackageCheck className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0 space-y-1">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      {t("config.updates.currentVersion", "Current version")}
-                    </p>
-                    <p className="text-lg font-semibold leading-none">
-                      v{updaterState?.currentVersion || "1.0.0"}
-                    </p>
-                    {updaterBehindText ? (
-                      <p className="text-xs text-muted-foreground">{updaterBehindText}</p>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        {t("config.updates.installedBuild", "Installed build")}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
 
-              <div className="border border-border/60 bg-muted/20 p-4">
-                <div className="flex items-start gap-3">
-                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center bg-primary/10 text-primary border border-primary/20">
-                    <Tag className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0 space-y-1">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      {t("config.updates.latestVersion", "Latest version")}
-                    </p>
-                    <p className="text-lg font-semibold leading-none">
-                      {updaterState?.latestVersion
-                        ? `v${updaterState.latestVersion}`
-                        : t("config.updates.unknown", "Unknown")}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      {formattedReleaseDate ? (
-                        <span className="inline-flex items-center gap-1">
-                          <Clock3 className="h-3.5 w-3.5" />
-                          {formattedReleaseDate}
-                        </span>
-                      ) : null}
-                      {updaterState?.releaseName ? (
-                        <span className="truncate">{updaterState.releaseName}</span>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="border border-border/60 bg-background/60 p-3 space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className={updaterStatusBadgeClass}>
-                    {updatePhaseLabel}
-                  </span>
-                  {updaterState?.latestVersion ? (
-                    <span className="text-sm text-muted-foreground">
-                      v{updaterState.latestVersion}
-                    </span>
-                  ) : null}
-                </div>
-                {updaterState?.lastCheckedAt ? (
-                  <span className="text-xs text-muted-foreground">
-                    {t("config.updates.lastChecked", {
-                      time: formatUpdateDate(updaterState.lastCheckedAt, i18n.language),
-                      defaultValue: `Last checked: ${formatUpdateDate(updaterState.lastCheckedAt, i18n.language)}`,
-                    })}
+          <div className="border border-border/60 bg-card/50 p-3 space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className={updaterStatusBadgeClass}>{updatePhaseLabel}</span>
+                {updaterState?.latestVersion ? (
+                  <span className="font-mono text-xs text-muted-foreground">
+                    v{updaterState.latestVersion}
                   </span>
                 ) : null}
               </div>
-
-              <p className="text-sm text-muted-foreground">
-                {updaterUiMessage}
-              </p>
-
-              {(updaterState?.downloading || updaterState?.downloaded) && (
-                <div className="space-y-2">
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-primary transition-all duration-300"
-                      style={{ width: `${updateProgressPercent}%` }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>
-                      {t("config.updates.progress", {
-                        percent: updateProgressPercent,
-                        defaultValue: `${updateProgressPercent}%`,
-                      })}
-                    </span>
-                    {typeof updaterState?.percent === "number" && (
-                      <span>{updateProgressPercent}%</span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {updaterState?.releaseNotes ? (
-                <div className="rounded-md border border-border/50 bg-muted/20">
-                  <button
-                    type="button"
-                    onClick={() => setReleaseNotesExpanded((prev) => !prev)}
-                    className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-muted/20 transition-colors">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {t("config.updates.releaseNotes", "Release notes")}
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {releaseNotesExpanded
-                          ? t("config.updates.releaseNotesHide", "Hide patch notes")
-                          : t("config.updates.releaseNotesShow", "Show patch notes")}
-                      </p>
-                    </div>
-                    <ChevronDown
-                      className={cn(
-                        "h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
-                        releaseNotesExpanded && "rotate-180",
-                      )}
-                    />
-                  </button>
-                  {releaseNotesExpanded ? (
-                    <div className="border-t border-border/40 p-3 pt-3 animate-in fade-in slide-in-from-top-1 duration-200">
-                      <ReleaseNotesContent value={updaterState.releaseNotes} />
-                    </div>
-                  ) : null}
-                </div>
+              {updaterState?.lastCheckedAt ? (
+                <span className="font-mono text-[10px] text-muted-foreground">
+                  {t("config.updates.lastChecked", {
+                    time: formatUpdateDate(updaterState.lastCheckedAt, i18n.language),
+                    defaultValue: `Last checked: ${formatUpdateDate(updaterState.lastCheckedAt, i18n.language)}`,
+                  })}
+                </span>
               ) : null}
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                className="gap-2"
-                onClick={handleCheckUpdates}
-                disabled={isCheckingUpdates || isDownloadingUpdate || updaterState?.checking}>
-                {isCheckingUpdates || updaterState?.checking ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-                {t("config.updates.checkBtn", "Check for Updates")}
-              </Button>
+            <p className="font-mono text-xs text-muted-foreground">{updaterUiMessage}</p>
 
-              <Button
-                type="button"
-                variant="outline"
-                className="gap-2"
-                onClick={handleDownloadUpdate}
-                disabled={
-                  !updaterState?.supported ||
-                  !updaterState?.updateAvailable ||
-                  updaterState?.downloaded ||
-                  isDownloadingUpdate ||
-                  updaterState?.downloading ||
-                  updaterState?.checking
-                }>
-                {isDownloadingUpdate || updaterState?.downloading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <DownloadCloud className="h-4 w-4" />
-                )}
-                {t("config.updates.downloadBtn", "Download Update")}
-              </Button>
-
-              <Button
-                type="button"
-                className="gap-2"
-                onClick={handleInstallUpdate}
-                disabled={!updaterState?.downloaded}>
-                <Rocket className="h-4 w-4" />
-                {t("config.updates.installBtn", "Install & Restart")}
-              </Button>
-            </div>
-
-          </div>
-        </div>
-
-        {dotnetPrereqs && (
-          <div className="border border-l-2 border-l-primary/30 bg-card text-card-foreground">
-            <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
-              <div className="h-4 w-[2px] bg-primary/50 shrink-0" />
-              <div>
-                <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
-                  {t("config.prereqs.title", ".NET Runtime / SDK Prerequisites")}
-                </h3>
-                <p className="text-[10px] text-muted-foreground/60 font-mono">
-                  {t("config.prereqs.desc", "Check whether .NET 10 Runtime / SDK are available on your system. Terraria Patcher uses them for the C# bridge.")}
-                </p>
-              </div>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="border border-border/60 bg-muted/20 p-3">
-                  <p className="text-xs text-muted-foreground font-mono">
-                    {t("config.prereqs.runtimeStatus", "Runtime (.NET 10+)")}
-                  </p>
-                  <p
-                    className={cn(
-                      "text-sm font-semibold",
-                      dotnetPrereqs.runtime472Plus.ok
-                        ? "text-primary"
-                        : "text-amber-600 dark:text-amber-400",
-                    )}>
-                    {dotnetPrereqs.runtime472Plus.ok
-                      ? t("config.prereqs.detected", "Detected (compatible)")
-                      : t("config.prereqs.missing", "Missing or incompatible")}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {t("config.prereqs.releaseValues", {
-                      detected:
-                        typeof dotnetPrereqs.runtime472Plus.detectedRelease === "number"
-                          ? dotnetPrereqs.runtime472Plus.detectedRelease
-                          : t("config.prereqs.notDetected", "Not detected"),
-                      required: dotnetPrereqs.runtime472Plus.requiredRelease,
-                      defaultValue:
-                        "Detected major: {{detected}} • Required: {{required}}",
-                    })}
-                  </p>
-                  {dotnetPrereqs.runtime472Plus.detectedVersion && (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {t("config.prereqs.detectedVersion", {
-                        version: dotnetPrereqs.runtime472Plus.detectedVersion,
-                        defaultValue: "Detected version: {{version}}",
-                      })}
-                    </p>
-                  )}
-                </div>
-
-                <div className="border border-border/60 bg-muted/20 p-3">
-                  <p className="text-xs text-muted-foreground font-mono">
-                    {t("config.prereqs.devPackStatus", ".NET SDK (contributors)")}
-                  </p>
-                  <p
-                    className={cn(
-                      "text-sm font-semibold",
-                      dotnetPrereqs.developerPack472.ok
-                        ? "text-primary"
-                        : "text-muted-foreground",
-                    )}>
-                    {dotnetPrereqs.developerPack472.ok
-                      ? t("config.prereqs.detected", "Detected (compatible)")
-                      : t(
-                          "config.prereqs.optionalMissing",
-                          "Not detected (optional for normal users)",
-                        )}
-                  </p>
-                  {dotnetPrereqs.developerPack472.detectedVersion && (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {t("config.prereqs.sdkDetectedVersion", {
-                        version: dotnetPrereqs.developerPack472.detectedVersion,
-                        defaultValue: "Detected SDK: {{version}}",
-                      })}
-                    </p>
-                  )}
-                  {(dotnetPrereqs.developerPack472.installationFolder ||
-                    dotnetPrereqs.developerPack472.referenceAssembliesPath) && (
-                    <p className="mt-1 text-xs text-muted-foreground break-all">
-                      {dotnetPrereqs.developerPack472.installationFolder ||
-                        dotnetPrereqs.developerPack472.referenceAssembliesPath}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {!dotnetPrereqs.runtime472Plus.ok && (
-                <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-3">
-                  <p className="text-sm text-muted-foreground">
-                    {t(
-                      "config.prereqs.recommendation",
-                      "Recommended: install the .NET 10 Runtime from Microsoft first. Contributors building the bridge should also install the .NET 10 SDK.",
-                    )}
-                  </p>
-                </div>
-              )}
-
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="gap-2"
-                  onClick={() => void refreshPrereqStatus()}
-                  disabled={isRefreshingPrereqs}>
-                  {isRefreshingPrereqs ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4" />
-                  )}
-                  {t("config.prereqs.refreshBtn", "Refresh Status")}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => void openPrereqLink("microsoftPage")}
-                  disabled={openingPrereqLink !== null}>
-                  {openingPrereqLink === "microsoftPage" ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4" />
-                  )}
-                  {t("config.prereqs.microsoftBtn", "Open Microsoft (.NET page)")}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => void openPrereqLink("githubRuntime")}
-                  disabled={openingPrereqLink !== null}>
-                  {openingPrereqLink === "githubRuntime" ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="h-4 w-4" />
-                  )}
-                  {t("config.prereqs.githubRuntimeBtn", "Open .NET Runtime Download")}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="gap-2"
-                  onClick={() => void openPrereqLink("githubRelease")}
-                  disabled={openingPrereqLink !== null}>
-                  <Download className="h-4 w-4" />
-                  {t("config.prereqs.githubReleaseBtn", "Open .NET Downloads Page")}
-                </Button>
-              </div>
-
-              <p className="text-xs text-muted-foreground">
-                {t(
-                  "config.prereqs.userVsContributor",
-                  "Normal users usually only need the .NET Runtime. Contributors who compile the C# bridge should install the .NET SDK.",
-                )}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Settings Profile */}
-        <div className="border border-l-2 border-l-primary/30 bg-card text-card-foreground">
-          <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
-            <div className="h-4 w-[2px] bg-primary/50 shrink-0" />
-            <div>
-              <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
-                {t("config.profile.title", "Settings Profile")}
-              </h3>
-              <p className="text-[10px] text-muted-foreground/60 font-mono">
-                {t("config.profile.desc", "Export or import your patch selections and app settings as a JSON file.")}
-              </p>
-            </div>
-          </div>
-          <div className="p-6 space-y-4">
-            <p className="text-sm text-muted-foreground">
-              {t(
-                "config.profile.includes",
-                "Includes patch options, selected persistent buffs, active plugins, plugin support, language, and Terraria path.",
-              )}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                className="gap-2"
-                onClick={handleExportProfile}
-                disabled={isExportingProfile || isImportingProfile}>
-                {isExportingProfile ? (
-                  <Save className="h-4 w-4 animate-pulse" />
-                ) : (
-                  <Download className="h-4 w-4" />
-                )}
-                {t("config.profile.exportBtn", "Export Profile")}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="gap-2"
-                onClick={handleImportProfile}
-                disabled={isImportingProfile || isExportingProfile}>
-                {isImportingProfile ? (
-                  <Save className="h-4 w-4 animate-pulse" />
-                ) : (
-                  <Upload className="h-4 w-4" />
-                )}
-                {t("config.profile.importBtn", "Import Profile")}
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                className="gap-2"
-                onClick={handleResetProfile}
-                disabled={isResettingProfile || isImportingProfile || isExportingProfile}>
-                {isResettingProfile ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="h-4 w-4" />
-                )}
-                {t("config.profile.resetBtn", "Reset App Data")}
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {t(
-                "config.profile.resetHint",
-                "Resets saved configuration/profile data to defaults. Common Terraria paths may be auto-detected again.",
-              )}
-            </p>
-          </div>
-        </div>
-
-        {/* Language Preferences */}
-        <div className="border border-l-2 border-l-primary/30 bg-card text-card-foreground">
-          <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
-            <div className="h-4 w-[2px] bg-primary/50 shrink-0" />
-            <div>
-              <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
-                {t("config.language.title")}
-              </h3>
-              <p className="text-[10px] text-muted-foreground/60 font-mono">
-                {t("config.language.desc")}
-              </p>
-            </div>
-          </div>
-          <div className="p-6">
-            <div className="flex flex-col gap-4">
-              <label
-                htmlFor="language-search"
-                className="text-sm font-medium leading-none">
-                {t("config.language.label")}
-              </label>
-
-              <div className="flex items-center gap-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="language-search"
-                    placeholder={t(
-                      "config.language.searchPlaceholder",
-                      "Search...",
-                    )}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
+            {(updaterState?.downloading || updaterState?.downloaded) && (
+              <div className="space-y-1.5">
+                <div className="h-1.5 w-full overflow-hidden bg-muted">
+                  <div
+                    className="h-full bg-primary transition-all duration-300"
+                    style={{ width: `${updateProgressPercent}%` }}
                   />
                 </div>
-              </div>
-
-              <div className="h-[200px] rounded-md border bg-muted/30">
-                <ScrollArea className="h-full p-4">
-                  <div className="flex flex-col gap-2">
-                    {filteredLanguages.length === 0 ? (
-                      <div className="text-center text-sm text-muted-foreground py-4">
-                        {t("patcher.empty", "No results found.")}
-                      </div>
-                    ) : (
-                      filteredLanguages.map((lang) => (
-                        <button
-                          key={lang.id}
-                          onClick={() => {
-                            setSelectedLang(lang.id);
-                            i18n.changeLanguage(lang.id);
-                          }}
-                          className={cn(
-                            "flex items-center justify-between w-full px-3 py-2.5 rounded-md text-sm transition-colors",
-                            selectedLang === lang.id
-                              ? "bg-primary/10 text-primary font-medium"
-                              : "hover:bg-muted font-normal text-muted-foreground hover:text-foreground",
-                          )}>
-                          <span>{lang.label}</span>
-                          {selectedLang === lang.id && (
-                            <Check className="h-4 w-4" />
-                          )}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </ScrollArea>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Game Directory Card */}
-        <div className="border border-l-2 border-l-primary/30 bg-card text-card-foreground">
-          <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
-            <div className="h-4 w-[2px] bg-primary/50 shrink-0" />
-            <div>
-              <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
-                {t("config.gameDirectory.title")}
-              </h3>
-              <p className="text-[10px] text-muted-foreground/60 font-mono">
-                {t("config.gameDirectory.desc")}
-              </p>
-            </div>
-          </div>
-          <div className="p-6">
-            <div className="flex flex-col gap-3">
-              <label
-                htmlFor="terraria-path"
-                className="text-sm font-medium leading-none">
-                {t("config.gameDirectory.label")}
-              </label>
-              <div className="flex flex-wrap gap-2">
-                <input
-                  id="terraria-path"
-                  value={terrariaPath}
-                  readOnly
-                  placeholder={t(
-                    "config.gameDirectory.placeholder",
-                    "Select Terraria.exe...",
-                  )}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                />
-                <Button
-                  variant="secondary"
-                  onClick={handleBrowse}
-                  className="h-9 gap-2">
-                  <FolderOpen className="h-4 w-4" />
-                  {t("config.gameDirectory.browse")}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleAutoDetectTerraria}
-                  disabled={isAutoDetectingTerraria}
-                  className="h-9 gap-2">
-                  {isAutoDetectingTerraria ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Search className="h-4 w-4" />
-                  )}
-                  {isAutoDetectingTerraria
-                    ? t("config.gameDirectory.autoDetectSearching", "Detecting...")
-                    : t("config.gameDirectory.autoDetectBtn", "Auto Detect")}
-                </Button>
-              </div>
-              <p className="text-[13px] text-muted-foreground mt-1">
-                {t("config.gameDirectory.help")}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {t(
-                  "config.gameDirectory.autoDetectHelp",
-                  "Common Steam/GOG install paths are auto-detected when possible. If not found, select the path manually.",
-                )}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* App Preferences */}
-        <div className="border border-l-2 border-l-primary/30 bg-card text-card-foreground">
-          <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
-            <div className="h-4 w-[2px] bg-primary/50 shrink-0" />
-            <div>
-              <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
-                {t("config.appPreferences.title")}
-              </h3>
-              <p className="text-[10px] text-muted-foreground/60 font-mono">
-                {t("config.appPreferences.desc")}
-              </p>
-            </div>
-          </div>
-          <div className="p-6">
-            <div className="flex items-start space-x-3 group">
-              <Checkbox
-                id="plugin-support"
-                checked={pluginSupport}
-                onCheckedChange={(checked) =>
-                  setPluginSupport(checked === true)
-                }
-                className="mt-0.5"
-              />
-              <div className="space-y-1 leading-none">
-                <Label
-                  htmlFor="plugin-support"
-                  className="text-sm font-medium leading-none cursor-pointer group-hover:text-primary transition-colors">
-                  {t("config.appPreferences.pluginLabel")}
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  <Trans i18nKey="config.appPreferences.pluginDesc">
-                    Load third-party patches from the <code>\Plugins\*.cs</code>{" "}
-                    directory.
-                  </Trans>
+                <p className="font-mono text-[10px] text-muted-foreground">
+                  {t("config.updates.progress", {
+                    percent: updateProgressPercent,
+                    defaultValue: `${updateProgressPercent}%`,
+                  })}
                 </p>
               </div>
-            </div>
+            )}
+
+            {updaterState?.releaseNotes ? (
+              <div className="border border-border/50">
+                <button
+                  type="button"
+                  onClick={() => setReleaseNotesExpanded((prev) => !prev)}
+                  className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-muted/20 transition-colors">
+                  <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">
+                    {releaseNotesExpanded
+                      ? t("config.updates.releaseNotesHide")
+                      : t("config.updates.releaseNotesShow")}
+                  </span>
+                  <ChevronDown
+                    className={cn(
+                      "h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200",
+                      releaseNotesExpanded && "rotate-180",
+                    )}
+                  />
+                </button>
+                {releaseNotesExpanded ? (
+                  <div className="border-t border-border/40 p-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <ReleaseNotesContent value={updaterState.releaseNotes} />
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleCheckUpdates}
+              disabled={isCheckingUpdates || isDownloadingUpdate || updaterState?.checking}>
+              {isCheckingUpdates || updaterState?.checking ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5" />
+              )}
+              {t("config.updates.checkBtn")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleDownloadUpdate}
+              disabled={
+                !updaterState?.supported ||
+                !updaterState?.updateAvailable ||
+                updaterState?.downloaded ||
+                isDownloadingUpdate ||
+                updaterState?.downloading ||
+                updaterState?.checking
+              }>
+              {isDownloadingUpdate || updaterState?.downloading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <DownloadCloud className="h-3.5 w-3.5" />
+              )}
+              {t("config.updates.downloadBtn")}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleInstallUpdate}
+              disabled={!updaterState?.downloaded}>
+              <Rocket className="h-3.5 w-3.5" />
+              {t("config.updates.installBtn")}
+            </Button>
           </div>
         </div>
       </div>
 
-      {/* Bottom Save Action */}
-      <div className="flex justify-end pt-4 mt-4 border-t border-muted/20">
-        <Button onClick={handleSaveConfig} className="gap-2 shrink-0">
-          <Save className="h-4 w-4" />
-          {t("config.saveBtn", "Save Configuration")}
-        </Button>
+      {dotnetPrereqs && (
+        <div className="border border-l-2 border-l-primary/30 bg-card">
+          <div className="px-4 py-3 border-b bg-muted/10">
+            <div className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
+              {t("config.prereqs.title")}
+            </div>
+            <div className="text-[10px] font-mono text-muted-foreground">
+              {t("config.prereqs.desc")}
+            </div>
+          </div>
+          <div className="p-4 space-y-3">
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="border border-border/60 bg-card/50 p-3 space-y-1">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">
+                  {t("config.prereqs.runtimeStatus")}
+                </p>
+                <p className={cn(
+                  "font-mono text-xs font-semibold",
+                  dotnetPrereqs.runtime472Plus.ok ? "text-primary" : "text-amber-500",
+                )}>
+                  {dotnetPrereqs.runtime472Plus.ok
+                    ? t("config.prereqs.detected")
+                    : t("config.prereqs.missing")}
+                </p>
+                <p className="font-mono text-[10px] text-muted-foreground">
+                  {t("config.prereqs.releaseValues", {
+                    detected: typeof dotnetPrereqs.runtime472Plus.detectedRelease === "number"
+                      ? dotnetPrereqs.runtime472Plus.detectedRelease
+                      : t("config.prereqs.notDetected"),
+                    required: dotnetPrereqs.runtime472Plus.requiredRelease,
+                    defaultValue: "Detected major: {{detected}} • Required: {{required}}",
+                  })}
+                </p>
+                {dotnetPrereqs.runtime472Plus.detectedVersion && (
+                  <p className="font-mono text-[10px] text-muted-foreground">
+                    {t("config.prereqs.detectedVersion", {
+                      version: dotnetPrereqs.runtime472Plus.detectedVersion,
+                      defaultValue: "Detected version: {{version}}",
+                    })}
+                  </p>
+                )}
+              </div>
+              <div className="border border-border/60 bg-card/50 p-3 space-y-1">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">
+                  {t("config.prereqs.devPackStatus")}
+                </p>
+                <p className={cn(
+                  "font-mono text-xs font-semibold",
+                  dotnetPrereqs.developerPack472.ok ? "text-primary" : "text-muted-foreground",
+                )}>
+                  {dotnetPrereqs.developerPack472.ok
+                    ? t("config.prereqs.detected")
+                    : t("config.prereqs.optionalMissing")}
+                </p>
+                {dotnetPrereqs.developerPack472.detectedVersion && (
+                  <p className="font-mono text-[10px] text-muted-foreground">
+                    {t("config.prereqs.sdkDetectedVersion", {
+                      version: dotnetPrereqs.developerPack472.detectedVersion,
+                      defaultValue: "Detected SDK: {{version}}",
+                    })}
+                  </p>
+                )}
+                {(dotnetPrereqs.developerPack472.installationFolder ||
+                  dotnetPrereqs.developerPack472.referenceAssembliesPath) && (
+                  <p className="font-mono text-[10px] text-muted-foreground break-all">
+                    {dotnetPrereqs.developerPack472.installationFolder ||
+                      dotnetPrereqs.developerPack472.referenceAssembliesPath}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {!dotnetPrereqs.runtime472Plus.ok && (
+              <p className="font-mono text-xs text-muted-foreground border border-dashed border-border/60 bg-muted/10 px-3 py-2">
+                {t("config.prereqs.recommendation")}
+              </p>
+            )}
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => void refreshPrereqStatus()}
+                disabled={isRefreshingPrereqs}>
+                {isRefreshingPrereqs ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3.5 w-3.5" />
+                )}
+                {t("config.prereqs.refreshBtn")}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => void openPrereqLink("microsoftPage")}
+                disabled={openingPrereqLink !== null}>
+                {openingPrereqLink === "microsoftPage" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5" />
+                )}
+                {t("config.prereqs.microsoftBtn")}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => void openPrereqLink("githubRuntime")}
+                disabled={openingPrereqLink !== null}>
+                {openingPrereqLink === "githubRuntime" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5" />
+                )}
+                {t("config.prereqs.githubRuntimeBtn")}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => void openPrereqLink("githubRelease")}
+                disabled={openingPrereqLink !== null}>
+                <Download className="h-3.5 w-3.5" />
+                {t("config.prereqs.githubReleaseBtn")}
+              </Button>
+            </div>
+
+            <p className="font-mono text-[10px] text-muted-foreground">
+              {t("config.prereqs.userVsContributor")}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Profile */}
+      <div className="border border-l-2 border-l-primary/30 bg-card">
+        <div className="px-4 py-3 border-b bg-muted/10">
+          <div className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
+            {t("config.profile.title")}
+          </div>
+          <div className="text-[10px] font-mono text-muted-foreground">
+            {t("config.profile.desc")}
+          </div>
+        </div>
+        <div className="p-4 space-y-3">
+          <p className="font-mono text-xs text-muted-foreground">
+            {t("config.profile.includes")}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleExportProfile}
+              disabled={isExportingProfile || isImportingProfile}>
+              {isExportingProfile ? (
+                <Save className="h-3.5 w-3.5 animate-pulse" />
+              ) : (
+                <Download className="h-3.5 w-3.5" />
+              )}
+              {t("config.profile.exportBtn")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleImportProfile}
+              disabled={isImportingProfile || isExportingProfile}>
+              {isImportingProfile ? (
+                <Save className="h-3.5 w-3.5 animate-pulse" />
+              ) : (
+                <Upload className="h-3.5 w-3.5" />
+              )}
+              {t("config.profile.importBtn")}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleResetProfile}
+              disabled={isResettingProfile || isImportingProfile || isExportingProfile}>
+              {isResettingProfile ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="h-3.5 w-3.5" />
+              )}
+              {t("config.profile.resetBtn")}
+            </Button>
+          </div>
+          <p className="font-mono text-[10px] text-muted-foreground">
+            {t("config.profile.resetHint")}
+          </p>
+        </div>
+      </div>
+
+      {/* Language */}
+      <div className="border border-l-2 border-l-primary/30 bg-card">
+        <div className="px-4 py-3 border-b bg-muted/10">
+          <div className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
+            {t("config.language.title")}
+          </div>
+          <div className="text-[10px] font-mono text-muted-foreground">
+            {t("config.language.desc")}
+          </div>
+        </div>
+        <div className="p-4 space-y-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+            <Input
+              id="language-search"
+              placeholder={t("config.language.searchPlaceholder")}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-8 pl-8 font-mono text-xs"
+            />
+          </div>
+          <div className="border border-border/60 bg-card/50 divide-y divide-border/50 overflow-hidden">
+            {filteredLanguages.length === 0 ? (
+              <p className="px-3 py-2.5 font-mono text-xs text-muted-foreground/60 text-center">
+                {t("patcher.empty")}
+              </p>
+            ) : (
+              filteredLanguages.map((lang) => (
+                <button
+                  key={lang.id}
+                  onClick={() => {
+                    setSelectedLang(lang.id);
+                    i18n.changeLanguage(lang.id);
+                  }}
+                  className={cn(
+                    "flex items-center justify-between w-full px-3 py-2.5 text-left transition-colors",
+                    selectedLang === lang.id
+                      ? "bg-primary/10 text-primary"
+                      : "hover:bg-muted/10 text-muted-foreground hover:text-foreground",
+                  )}>
+                  <span className="font-mono text-xs">{lang.label}</span>
+                  {selectedLang === lang.id && (
+                    <Check className="h-3.5 w-3.5 shrink-0" />
+                  )}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Game Directory */}
+      <div className="border border-l-2 border-l-primary/30 bg-card">
+        <div className="px-4 py-3 border-b bg-muted/10">
+          <div className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
+            {t("config.gameDirectory.title")}
+          </div>
+          <div className="text-[10px] font-mono text-muted-foreground">
+            {t("config.gameDirectory.desc")}
+          </div>
+        </div>
+        <div className="p-4 space-y-2">
+          <label htmlFor="terraria-path" className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground/60">
+            {t("config.gameDirectory.label")}
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <input
+              id="terraria-path"
+              value={terrariaPath}
+              readOnly
+              placeholder={t("config.gameDirectory.placeholder")}
+              className="flex h-8 flex-1 min-w-0 border border-input bg-transparent px-3 py-1 font-mono text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleBrowse}
+              className="h-8 gap-1.5 shrink-0">
+              <FolderOpen className="h-3.5 w-3.5" />
+              {t("config.gameDirectory.browse")}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAutoDetectTerraria}
+              disabled={isAutoDetectingTerraria}
+              className="h-8 gap-1.5 shrink-0">
+              {isAutoDetectingTerraria ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Search className="h-3.5 w-3.5" />
+              )}
+              {isAutoDetectingTerraria
+                ? t("config.gameDirectory.autoDetectSearching")
+                : t("config.gameDirectory.autoDetectBtn")}
+            </Button>
+          </div>
+          <p className="font-mono text-[10px] text-muted-foreground">
+            {t("config.gameDirectory.help")}
+          </p>
+        </div>
+      </div>
+
+      {/* App Preferences */}
+      <div className="border border-l-2 border-l-primary/30 bg-card">
+        <div className="px-4 py-3 border-b bg-muted/10">
+          <div className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
+            {t("config.appPreferences.title")}
+          </div>
+          <div className="text-[10px] font-mono text-muted-foreground">
+            {t("config.appPreferences.desc")}
+          </div>
+        </div>
+        <div className="p-4">
+          <div className="flex items-center justify-between gap-3 border border-border/60 bg-card/50 px-3 py-2.5">
+            <div className="min-w-0">
+              <Label
+                htmlFor="plugin-support"
+                className="text-sm font-medium cursor-pointer">
+                {t("config.appPreferences.pluginLabel")}
+              </Label>
+              <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">
+                <Trans i18nKey="config.appPreferences.pluginDesc">
+                  Load third-party patches from the <code>\Plugins\*.cs</code>{" "}
+                  directory.
+                </Trans>
+              </p>
+            </div>
+            <Checkbox
+              id="plugin-support"
+              checked={pluginSupport}
+              onCheckedChange={(checked) => setPluginSupport(checked === true)}
+              className="shrink-0"
+            />
+          </div>
+        </div>
       </div>
 
       <Dialog open={autoDetectDialogOpen} onOpenChange={setAutoDetectDialogOpen}>

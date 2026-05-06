@@ -14,11 +14,16 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-border": "var(--border)",
           "--normal-text": "var(--popover-foreground)",
           "--success-bg": "var(--popover)",
-          "--success-border": "var(--border)",
+          "--success-border": "var(--primary)",
           "--success-text": "var(--popover-foreground)",
           "--error-bg": "var(--popover)",
-          "--error-border": "var(--border)",
+          "--error-border": "var(--destructive)",
           "--error-text": "var(--popover-foreground)",
+          "--warning-bg": "var(--popover)",
+          "--warning-border": "oklch(0.795 0.184 86)",
+          "--warning-text": "var(--popover-foreground)",
+          "--border-radius": "0px",
+          "--font": '"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace',
         } as React.CSSProperties
       }
       {...props}
