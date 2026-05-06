@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
   Moon,
   Sun,
+  Monitor,
   DownloadCloud,
   Rocket,
   CircleAlert,
@@ -52,38 +53,34 @@ type HeaderUpdaterState = {
 function ThemeToggleButton() {
   const { theme, setTheme } = useTheme();
   const { t } = useTranslation();
-  // Ensure we match the exact current visual state even if set to "system"
-  const isDark =
-    theme === "dark" ||
-    (theme === "system" &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+  const options = [
+    { value: "light" as const, icon: Sun,     label: t("header.themeLight", "Light") },
+    { value: "system" as const, icon: Monitor, label: t("header.themeSystem", "System") },
+    { value: "dark" as const,  icon: Moon,    label: t("header.themeDark", "Dark") },
+  ] as const;
 
   return (
-    <button
-      onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center rounded-full border border-border bg-muted hover:bg-accent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-      role="switch"
-      aria-checked={isDark}
-      title={t("header.toggleTheme", "Toggle Theme")}>
-      <span className="sr-only">{t("header.toggleTheme", "Toggle Theme")}</span>
-      <span className="absolute inset-0 flex items-center justify-between px-2 pointer-events-none">
-        <Sun
-          className={`h-4 w-4 text-muted-foreground transition-opacity duration-300 ${
-            isDark ? "opacity-100" : "opacity-0"
-          }`}
-        />
-        <Moon
-          className={`h-4 w-4 text-muted-foreground transition-opacity duration-300 ${
-            isDark ? "opacity-0" : "opacity-100"
-          }`}
-        />
-      </span>
-      <span
-        className={`pointer-events-none block h-6 w-6 mx-1 rounded-full bg-foreground shadow-sm ring-0 transition-transform duration-300 z-10 ${
-          isDark ? "translate-x-6" : "translate-x-0"
-        }`}
-      />
-    </button>
+    <div
+      role="group"
+      aria-label={t("header.toggleTheme", "Toggle Theme")}
+      className="inline-flex border border-border bg-muted h-7">
+      {options.map(({ value, icon: Icon, label }) => (
+        <button
+          key={value}
+          type="button"
+          onClick={() => setTheme(value)}
+          title={label}
+          className={
+            theme === value
+              ? "flex items-center justify-center w-7 h-full bg-background text-foreground transition-colors"
+              : "flex items-center justify-center w-7 h-full text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          }>
+          <Icon className="h-3.5 w-3.5" />
+          <span className="sr-only">{label}</span>
+        </button>
+      ))}
+    </div>
   );
 }
 

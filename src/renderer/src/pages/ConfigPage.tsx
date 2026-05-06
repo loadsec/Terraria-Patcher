@@ -239,7 +239,8 @@ export default function ConfigPage() {
       }
     };
     void loadConfig();
-  }, [i18n]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     let disposed = false;
