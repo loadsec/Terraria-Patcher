@@ -72,7 +72,16 @@ export default function ChangelogPage() {
     : null;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-4 animate-in fade-in duration-500 pb-4">
+      {/* Page header */}
+      <div>
+        <h1 className="text-xl font-bold tracking-tight flex items-center gap-2 font-mono">
+          <span className="text-primary select-none">&gt;_</span>
+          {t("changelog.title")}
+        </h1>
+        <p className="text-xs text-muted-foreground mt-1 font-mono">{t("changelog.subtitle")}</p>
+      </div>
+
       {/* Hero version card */}
       <div className="border border-l-2 border-l-primary/50 bg-card">
         <div className="px-5 py-3 border-b bg-muted/10 flex items-center justify-between gap-4">
@@ -82,7 +91,7 @@ export default function ChangelogPage() {
               <h1 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
                 {t("page.currentVersionTitle", { ns: "changelog" })}
               </h1>
-              <p className="text-[10px] text-muted-foreground/60 font-mono">
+              <p className="text-[10px] text-muted-foreground font-mono">
                 {t("page.currentVersionDesc", { ns: "changelog" })}
               </p>
             </div>
@@ -123,12 +132,12 @@ export default function ChangelogPage() {
 
       <div className="space-y-4">
         <div className="flex items-center gap-2.5">
-          <BookOpen className="h-3.5 w-3.5 text-muted-foreground/60" />
+          <BookOpen className="h-3.5 w-3.5 text-muted-foreground" />
           <div>
             <h2 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
               {t("page.releaseHistoryTitle", { ns: "changelog" })}
             </h2>
-            <p className="text-[10px] font-mono text-muted-foreground/60">
+            <p className="text-[10px] font-mono text-muted-foreground">
               {t("page.subtitle", { ns: "changelog" })}
             </p>
           </div>
@@ -137,7 +146,7 @@ export default function ChangelogPage() {
         {releases.length === 0 ? (
           <div className="border border-dashed border-border/60 p-6 text-center">
             <p className="text-sm font-mono text-muted-foreground">{t("page.noEntriesTitle", { ns: "changelog" })}</p>
-            <p className="text-xs font-mono text-muted-foreground/60 mt-1">{t("page.noEntriesDesc", { ns: "changelog" })}</p>
+            <p className="text-xs font-mono text-muted-foreground mt-1">{t("page.noEntriesDesc", { ns: "changelog" })}</p>
           </div>
         ) : (
           <div className="relative space-y-5">
@@ -167,7 +176,7 @@ export default function ChangelogPage() {
                     <div className="px-5 py-3 border-b bg-muted/10 flex items-center justify-between gap-4">
                       <div className="flex items-center gap-2.5">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className={`text-sm font-mono font-bold ${isLatest ? "text-primary" : "text-foreground/70"}`}>
+                          <span className={`text-sm font-mono font-bold ${isLatest ? "text-primary" : "text-muted-foreground"}`}>
                             v{release.version}
                           </span>
                           {isLatest ? (
@@ -177,7 +186,7 @@ export default function ChangelogPage() {
                           ) : null}
                         </div>
                         {releaseText?.title ? (
-                          <span className="text-[10px] font-mono text-muted-foreground/60">{releaseText.title}</span>
+                          <span className="text-[10px] font-mono text-muted-foreground">{releaseText.title}</span>
                         ) : null}
                       </div>
                       <span className="text-[10px] font-mono text-muted-foreground shrink-0">

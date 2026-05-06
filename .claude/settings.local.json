@@ -12,7 +12,10 @@
       "mcp__Claude_in_Chrome__tabs_context_mcp",
       "Bash(Select-String -Path \"src/renderer/src/pages/HomePage.tsx\" -Pattern \"muted-foreground/50\")",
       "Bash(Measure-Object)",
-      "Bash(Select-Object -ExpandProperty Count)"
+      "Bash(Select-Object -ExpandProperty Count)",
+      "mcp__Claude_in_Chrome__browser_batch",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__computer"
     ]
   }
 }
