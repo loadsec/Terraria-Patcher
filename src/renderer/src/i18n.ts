@@ -20,11 +20,8 @@ const resources = {
 };
 
 i18n
-  // Detect user language
   .use(LanguageDetector)
-  // Pass the i18n instance to react-i18next.
   .use(initReactI18next)
-  // Initialize i18next
   .init({
     resources,
     ns: ["translation", "changelog"],
@@ -32,7 +29,11 @@ i18n
     fallbackLng: "en",
     debug: false,
     interpolation: {
-      escapeValue: false, // Not needed for React
+      escapeValue: false,
+    },
+    detection: {
+      order: ["navigator"],
+      caches: [],
     },
   });
 

@@ -43,6 +43,18 @@ const AVAILABLE_LANGUAGES = [
   { id: "pt-BR", label: "Português Brasileiro" },
 ];
 
+function detectSystemLanguage(): string {
+  const available = AVAILABLE_LANGUAGES.map((l) => l.id);
+  const candidates = Array.from(navigator.languages?.length ? navigator.languages : [navigator.language]);
+  for (const candidate of candidates) {
+    if (available.includes(candidate)) return candidate;
+    const prefix = candidate.split("-")[0];
+    const match = available.find((lang) => lang.split("-")[0] === prefix);
+    if (match) return match;
+  }
+  return "en";
+}
+
 type UpdaterState = {
   supported: boolean;
   phase:
@@ -224,11 +236,13 @@ export default function ConfigPage() {
         const path = (await window.api.config.get("terrariaPath")) as string;
         if (path) setTerrariaPath(path);
 
-        const lang = (await window.api.config.get("language")) as string;
-        if (lang) {
-          setSelectedLang(lang);
-          i18n.changeLanguage(lang);
+        const storedLang = (await window.api.config.get("language")) as string;
+        const lang = storedLang || detectSystemLanguage();
+        if (!storedLang) {
+          await window.api.config.set("language", lang);
         }
+        setSelectedLang(lang);
+        i18n.changeLanguage(lang);
 
         const plugins = (await window.api.config.get(
           "pluginSupport",
