@@ -1,13 +1,6 @@
-import { BookOpen, Sparkles } from "lucide-react";
+import { BookOpen, Tag } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import versionManifestJson from "../../../../version.json";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 type ReleaseManifestEntry = {
   id: string;
@@ -71,10 +64,6 @@ export default function ChangelogPage() {
     releases.find((release) => release.version === appVersion) ||
     releases.find((release) => release.latest) ||
     releases[0];
-  const currentReleaseIsLatest = Boolean(
-    currentRelease && (currentRelease.latest || currentRelease.version === appVersion),
-  );
-
   const currentReleaseText = currentRelease
     ? (t(`releases.${currentRelease.id}`, {
         ns: "changelog",
@@ -84,87 +73,72 @@ export default function ChangelogPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 animate-in fade-in duration-500">
-      <Card className="border-border/70 shadow-sm">
-        <CardHeader className="pb-4">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/50 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300">
-                <Sparkles className="h-3.5 w-3.5 text-amber-600 dark:text-amber-300" />
-                {t("page.title", { ns: "changelog" })}
-              </div>
-              <CardTitle className="text-2xl">
+      {/* Hero version card */}
+      <div className="border border-l-2 border-l-primary/50 bg-card">
+        <div className="px-5 py-3 border-b bg-muted/10 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <div className="h-4 w-[2px] bg-primary/50 shrink-0" />
+            <div>
+              <h1 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
                 {t("page.currentVersionTitle", { ns: "changelog" })}
-              </CardTitle>
-              <CardDescription>
+              </h1>
+              <p className="text-[10px] text-muted-foreground/60 font-mono">
                 {t("page.currentVersionDesc", { ns: "changelog" })}
-              </CardDescription>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 md:justify-end">
-              <span
-                className={
-                  currentReleaseIsLatest
-                    ? "inline-flex items-center rounded-full border border-amber-400/60 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:border-amber-400/35 dark:bg-amber-400/12 dark:text-amber-300"
-                    : "inline-flex items-center rounded-full border border-[#5A433A]/35 bg-[#5A433A]/10 px-2.5 py-1 text-xs font-semibold text-[#5A433A] dark:text-[#C5A99B]"
-                }>
-                v{appVersion}
-              </span>
-              {currentRelease?.date ? (
-                <span className="text-xs text-muted-foreground">
-                  {formatDate(currentRelease.date, i18n.language)}
-                </span>
-              ) : null}
+              </p>
             </div>
           </div>
-        </CardHeader>
-
-        <CardContent className="grid gap-3 pt-0 sm:grid-cols-2">
-          <div className="rounded-lg border border-border/60 bg-muted/25 p-3">
-            <p className="text-xs text-muted-foreground">{appName}</p>
-            <p className="text-sm font-semibold text-foreground">v{appVersion}</p>
-            {currentReleaseText?.title ? (
-              <p className="mt-1 text-xs text-muted-foreground">{currentReleaseText.title}</p>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold text-primary bg-primary/10 border border-primary/25 px-2 py-px uppercase tracking-widest">
+              <Tag className="h-3 w-3" />
+              v{appVersion}
+            </span>
+            {currentRelease?.date ? (
+              <span className="text-[10px] text-muted-foreground font-mono">
+                {formatDate(currentRelease.date, i18n.language)}
+              </span>
             ) : null}
           </div>
-
-          <div className="rounded-lg border border-border/60 bg-muted/25 p-3">
-            <p className="text-xs text-muted-foreground">
+        </div>
+        <div className="grid gap-3 p-4 sm:grid-cols-2">
+          <div className="border border-border/60 bg-muted/20 p-3">
+            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">{appName}</p>
+            <p className="text-sm font-mono font-semibold text-foreground mt-1">v{appVersion}</p>
+            {currentReleaseText?.title ? (
+              <p className="mt-1 text-[10px] font-mono text-muted-foreground">{currentReleaseText.title}</p>
+            ) : null}
+          </div>
+          <div className="border border-border/60 bg-muted/20 p-3">
+            <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
               {t("page.terrariaVersionLabel", { ns: "changelog" })}
             </p>
-            <p className="text-sm font-semibold text-foreground">{terrariaVersion}</p>
+            <p className="text-sm font-mono font-semibold text-foreground mt-1">{terrariaVersion}</p>
             {terrariaRange ? (
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-[10px] font-mono text-muted-foreground">
                 {t("page.supportedRangeLabel", { ns: "changelog" })}: {terrariaRange}
               </p>
             ) : null}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg border bg-muted/40">
-            <BookOpen className="h-4 w-4" />
-          </div>
+        <div className="flex items-center gap-2.5">
+          <BookOpen className="h-3.5 w-3.5 text-muted-foreground/60" />
           <div>
-            <h2 className="text-lg font-semibold tracking-tight">
+            <h2 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
               {t("page.releaseHistoryTitle", { ns: "changelog" })}
             </h2>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-[10px] font-mono text-muted-foreground/60">
               {t("page.subtitle", { ns: "changelog" })}
             </p>
           </div>
         </div>
 
         {releases.length === 0 ? (
-          <Card className="border-dashed">
-            <CardHeader>
-              <CardTitle>{t("page.noEntriesTitle", { ns: "changelog" })}</CardTitle>
-              <CardDescription>
-                {t("page.noEntriesDesc", { ns: "changelog" })}
-              </CardDescription>
-            </CardHeader>
-          </Card>
+          <div className="border border-dashed border-border/60 p-6 text-center">
+            <p className="text-sm font-mono text-muted-foreground">{t("page.noEntriesTitle", { ns: "changelog" })}</p>
+            <p className="text-xs font-mono text-muted-foreground/60 mt-1">{t("page.noEntriesDesc", { ns: "changelog" })}</p>
+          </div>
         ) : (
           <div className="relative space-y-5">
             <div className="absolute left-[14px] top-3 bottom-3 w-px bg-gradient-to-b from-foreground/35 via-border to-transparent" />
@@ -184,47 +158,36 @@ export default function ChangelogPage() {
                   <div
                     className={
                       isLatest
-                        ? "absolute left-[6px] top-6 h-4 w-4 rounded-full border-2 border-background bg-primary shadow-[0_0_0_4px_hsl(var(--background))]"
-                        : "absolute left-[6px] top-6 h-4 w-4 rounded-full border-2 border-background bg-[#5A433A] shadow-[0_0_0_4px_hsl(var(--background))]"
+                        ? "absolute left-[8px] top-6 h-3 w-3 border-2 border-background bg-primary shadow-[0_0_0_3px_hsl(var(--background))]"
+                        : "absolute left-[8px] top-6 h-3 w-3 border-2 border-background bg-muted-foreground/30 shadow-[0_0_0_3px_hsl(var(--background))]"
                     }
                   />
 
-                  <Card className="relative overflow-hidden border-border/70 bg-card shadow-sm">
-                    <div
-                      className={
-                        isLatest
-                          ? "absolute inset-y-0 left-0 w-1 bg-primary"
-                          : "absolute inset-y-0 left-0 w-1 bg-[#5A433A]"
-                      }
-                    />
-                    <CardHeader className="gap-2 pb-2">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="space-y-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <CardTitle className="text-lg tracking-tight">
-                              v{release.version}
-                            </CardTitle>
-                            {isLatest ? (
-                              <span className="inline-flex items-center rounded-full border border-primary/35 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
-                                {t("page.latestBadge", { ns: "changelog" })}
-                              </span>
-                            ) : null}
-                          </div>
-                          <CardDescription>
-                            {formatDate(release.date, i18n.language)}
-                          </CardDescription>
+                  <div className={`relative overflow-hidden border bg-card ${isLatest ? "border-l-2 border-l-primary" : "border-l-2 border-l-muted-foreground/20"}`}>
+                    <div className="px-5 py-3 border-b bg-muted/10 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`text-sm font-mono font-bold ${isLatest ? "text-primary" : "text-foreground/70"}`}>
+                            v{release.version}
+                          </span>
+                          {isLatest ? (
+                            <span className="inline-flex items-center border border-primary/35 bg-primary/10 px-2 py-px text-[10px] font-mono font-bold uppercase tracking-widest text-primary">
+                              {t("page.latestBadge", { ns: "changelog" })}
+                            </span>
+                          ) : null}
                         </div>
                         {releaseText?.title ? (
-                          <p className="text-sm font-medium text-foreground sm:text-right">
-                            {releaseText.title}
-                          </p>
+                          <span className="text-[10px] font-mono text-muted-foreground/60">{releaseText.title}</span>
                         ) : null}
                       </div>
-                    </CardHeader>
+                      <span className="text-[10px] font-mono text-muted-foreground/50 shrink-0">
+                        {formatDate(release.date, i18n.language)}
+                      </span>
+                    </div>
 
-                    <CardContent className="pt-0">
+                    <div className="p-5">
                       {releaseText?.summary ? (
-                        <p className="mb-4 rounded-md border border-border/50 bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+                        <p className="mb-4 border border-border/50 border-l-2 border-l-muted-foreground/30 bg-muted/20 px-3 py-2 text-xs font-mono text-muted-foreground">
                           {releaseText.summary}
                         </p>
                       ) : null}
@@ -233,22 +196,19 @@ export default function ChangelogPage() {
                           {changes.map((change, index) => (
                             <li
                               key={`${release.id}-${index}`}
-                              className={
-                                isLatest
-                                  ? "relative pl-4 text-sm leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-primary/90 before:content-['']"
-                                  : "relative pl-4 text-sm leading-relaxed before:absolute before:left-0 before:top-[0.82em] before:h-1.5 before:w-1.5 before:-translate-y-1/2 before:rounded-full before:bg-[#5A433A]/90 before:content-['']"
-                              }>
+                              className="relative pl-4 text-xs font-mono leading-relaxed text-muted-foreground">
+                              <span className={`absolute left-0 top-[0.7em] h-1.5 w-1.5 -translate-y-1/2 ${isLatest ? "bg-primary/70" : "bg-muted-foreground/30"}`} />
                               <span>{change}</span>
                             </li>
                           ))}
                         </ul>
                       ) : (
-                        <p className="text-sm text-muted-foreground">
-                          {releaseText.summary || "-"}
+                        <p className="text-xs font-mono text-muted-foreground">
+                          {releaseText?.summary || "-"}
                         </p>
                       )}
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 </div>
               );
             })}

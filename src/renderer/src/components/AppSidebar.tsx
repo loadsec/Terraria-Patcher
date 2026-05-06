@@ -7,7 +7,6 @@ import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
@@ -36,54 +35,22 @@ type SidebarNavItem = {
 };
 
 const navItems: SidebarNavItem[] = [
-  {
-    i18nKey: "home",
-    icon: Home,
-    path: "/",
-  },
+  { i18nKey: "home", icon: Home, path: "/" },
 ];
 
 const toolsItems: SidebarNavItem[] = [
-  {
-    i18nKey: "patcher",
-    icon: Wrench,
-    path: "/patcher",
-  },
-  {
-    i18nKey: "pluginsIni",
-    label: "Plugins.ini Editor",
-    icon: FileText,
-    path: "/plugins-ini",
-  },
+  { i18nKey: "patcher", icon: Wrench, path: "/patcher" },
+  { i18nKey: "pluginsIni", label: "Plugins.ini Editor", icon: FileText, path: "/plugins-ini" },
 ];
 
 const systemItems: SidebarNavItem[] = [
-  {
-    i18nKey: "config",
-    icon: Settings,
-    path: "/config",
-  },
-  {
-    i18nKey: "changelog", // Fallback to label if translation missing
-    label: "Changelog",
-    icon: BookOpen,
-    path: "/changelog",
-  },
-  {
-    i18nKey: "about", // Fallback to label if translation missing
-    label: "About",
-    icon: Info,
-    path: "/about",
-  },
+  { i18nKey: "config", icon: Settings, path: "/config" },
+  { i18nKey: "changelog", label: "Changelog", icon: BookOpen, path: "/changelog" },
+  { i18nKey: "about", label: "About", icon: Info, path: "/about" },
 ];
 
 const devItems: SidebarNavItem[] = [
-  {
-    i18nKey: "devTools",
-    label: "Dev Tools",
-    icon: FlaskConical,
-    path: "/dev-tools",
-  },
+  { i18nKey: "devTools", label: "Dev Tools", icon: FlaskConical, path: "/dev-tools" },
 ];
 
 export function AppSidebar() {
@@ -101,30 +68,49 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
-          <img
-            src={terrariaLogo}
-            alt={t("sidebar.logoAlt", "Terraria Logo")}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg object-contain"
-          />
-          <span className="text-sm font-semibold group-data-[collapsible=icon]:hidden">
-            {t("sidebar.title")}
-          </span>
+      {/* ── Header ──────────────────────────────────────── */}
+      <SidebarHeader className="px-3 py-3 border-b border-sidebar-border/60">
+        <div className="flex items-center gap-2.5 group-data-[collapsible=icon]:justify-center">
+          {/* Logo with status dot */}
+          <div className="relative shrink-0">
+            <img
+              src={terrariaLogo}
+              alt={t("sidebar.logoAlt", "Terraria Logo")}
+              className="h-7 w-7 object-contain"
+            />
+            <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary border-2 border-sidebar" />
+          </div>
+          {/* Title — hidden in collapsed icon mode */}
+          <div className="flex flex-col min-w-0 group-data-[collapsible=icon]:hidden">
+            <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground leading-tight truncate">
+              {t("sidebar.title")}
+            </span>
+            <span className="text-[9px] font-mono text-primary/60 tracking-wider uppercase leading-tight">
+              patcher suite
+            </span>
+          </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
-        {/* Home */}
-        <SidebarGroup>
+      {/* ── Navigation ──────────────────────────────────── */}
+      <SidebarContent className="gap-0 pt-2">
+
+        {/* // nav */}
+        <div className="px-3 pb-1 group-data-[collapsible=icon]:hidden">
+          <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-muted-foreground/35 select-none">
+            // nav
+          </span>
+        </div>
+        <SidebarGroup className="px-2 py-0 pb-1">
           <SidebarMenu>
             {navItems.map((item) => (
               <SidebarMenuItem key={item.path}>
                 <SidebarMenuButton
                   isActive={location.pathname === item.path}
                   onClick={() => navigate(item.path)}
-                  tooltip={navLabel(item)}>
-                  <item.icon className="h-4 w-4" />
+                  tooltip={navLabel(item)}
+                  className="h-8 text-xs font-mono">
+                  <item.icon className="h-3.5 w-3.5" />
                   <span>{navLabel(item)}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -132,19 +118,24 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroup>
 
-        <SidebarSeparator />
+        <SidebarSeparator className="mx-3 my-1" />
 
-        {/* Tools */}
-        <SidebarGroup>
-          <SidebarGroupLabel>{t("sidebar.tools")}</SidebarGroupLabel>
+        {/* // tools */}
+        <div className="px-3 pt-2 pb-1 group-data-[collapsible=icon]:hidden">
+          <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-muted-foreground/35 select-none">
+            // {t("sidebar.tools", "tools")}
+          </span>
+        </div>
+        <SidebarGroup className="px-2 py-0 pb-1">
           <SidebarMenu>
             {toolsItems.map((item) => (
               <SidebarMenuItem key={item.path}>
                 <SidebarMenuButton
                   isActive={location.pathname === item.path}
                   onClick={() => navigate(item.path)}
-                  tooltip={navLabel(item)}>
-                  <item.icon className="h-4 w-4" />
+                  tooltip={navLabel(item)}
+                  className="h-8 text-xs font-mono">
+                  <item.icon className="h-3.5 w-3.5" />
                   <span>{navLabel(item)}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -152,19 +143,24 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarGroup>
 
-        <SidebarSeparator />
+        <SidebarSeparator className="mx-3 my-1" />
 
-        {/* System */}
-        <SidebarGroup>
-          <SidebarGroupLabel>{t("sidebar.system")}</SidebarGroupLabel>
+        {/* // system */}
+        <div className="px-3 pt-2 pb-1 group-data-[collapsible=icon]:hidden">
+          <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-muted-foreground/35 select-none">
+            // {t("sidebar.system", "system")}
+          </span>
+        </div>
+        <SidebarGroup className="px-2 py-0 pb-1">
           <SidebarMenu>
             {systemItems.map((item) => (
               <SidebarMenuItem key={item.path}>
                 <SidebarMenuButton
                   isActive={location.pathname === item.path}
                   onClick={() => navigate(item.path)}
-                  tooltip={navLabel(item)}>
-                  <item.icon className="h-4 w-4" />
+                  tooltip={navLabel(item)}
+                  className="h-8 text-xs font-mono">
+                  <item.icon className="h-3.5 w-3.5" />
                   <span>{navLabel(item)}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -174,17 +170,22 @@ export function AppSidebar() {
 
         {isDevMode ? (
           <>
-            <SidebarSeparator />
-            <SidebarGroup>
-              <SidebarGroupLabel>{t("sidebar.developer", "Developer")}</SidebarGroupLabel>
+            <SidebarSeparator className="mx-3 my-1" />
+            <div className="px-3 pt-2 pb-1 group-data-[collapsible=icon]:hidden">
+              <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-amber-500/50 select-none">
+                // {t("sidebar.developer", "dev")}
+              </span>
+            </div>
+            <SidebarGroup className="px-2 py-0 pb-1">
               <SidebarMenu>
                 {devItems.map((item) => (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton
                       isActive={location.pathname === item.path}
                       onClick={() => navigate(item.path)}
-                      tooltip={navLabel(item)}>
-                      <item.icon className="h-4 w-4" />
+                      tooltip={navLabel(item)}
+                      className="h-8 text-xs font-mono">
+                      <item.icon className="h-3.5 w-3.5" />
                       <span>{navLabel(item)}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -195,22 +196,26 @@ export function AppSidebar() {
         ) : null}
       </SidebarContent>
 
-      <SidebarFooter className="p-3">
-        <div className="group-data-[collapsible=icon]:hidden space-y-0.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5">
-          <p className="text-xs font-semibold text-foreground/80 flex items-center gap-1.5">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-            {appLabel}
-            <span className="ml-auto font-mono text-primary">v{appVersion}</span>
-          </p>
-          <p className="text-[11px] text-muted-foreground pl-3">
+      {/* ── Footer — version card ────────────────────────── */}
+      <SidebarFooter className="p-2.5 border-t border-sidebar-border/60">
+        <div className="group-data-[collapsible=icon]:hidden border border-primary/20 bg-primary/5 px-3 py-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-foreground/70 truncate">
+              {appLabel}
+            </span>
+            <span className="shrink-0 text-[10px] font-mono font-bold text-primary">
+              v{appVersion}
+            </span>
+          </div>
+          <p className="mt-0.5 text-[9px] font-mono text-muted-foreground/50 truncate">
             {terrariaRange
-              ? t("sidebar.terrariaVersionWithSupport", {
-                  defaultValue: "Terraria {{version}} ({{range}})",
-                  version: terrariaVersion,
-                  range: terrariaRange,
-                })
-              : `Terraria ${terrariaVersion}`}
+              ? `terraria ${terrariaVersion} (${terrariaRange})`
+              : `terraria ${terrariaVersion}`}
           </p>
+        </div>
+        {/* Collapsed icon mode: just show status dot */}
+        <div className="hidden group-data-[collapsible=icon]:flex justify-center">
+          <span className="h-2 w-2 rounded-full bg-primary" />
         </div>
       </SidebarFooter>
     </Sidebar>

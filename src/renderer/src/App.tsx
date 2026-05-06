@@ -297,10 +297,11 @@ function App(): React.ReactElement {
           <SidebarProvider>
             <AppSidebar />
             <SidebarInset className="flex flex-col h-screen overflow-hidden">
-              <header className="flex h-12 shrink-0 items-center gap-2 border-b bg-sidebar/40 backdrop-blur-sm px-4">
+              <header className="flex h-10 shrink-0 items-center gap-2 border-b bg-sidebar/60 backdrop-blur-sm px-4">
                 <SidebarTrigger className="-ml-1" />
-                <Separator orientation="vertical" className="mr-1 !h-4" />
-                <span className="text-xs font-medium text-muted-foreground mr-auto tracking-wide">
+                <Separator orientation="vertical" className="mr-1 !h-3.5" />
+                <span className="text-[11px] font-mono text-muted-foreground mr-auto tracking-wider flex items-center gap-1.5">
+                  <span className="text-primary/70 select-none">›</span>
                   {t("sidebar.title")}
                 </span>
                 <ThemeToggleButton />

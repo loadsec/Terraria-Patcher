@@ -1040,10 +1040,11 @@ export default function PatcherPage() {
     <div className="h-full min-h-0 overflow-hidden flex flex-col gap-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between shrink-0">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-xl font-bold tracking-tight flex items-center gap-2 font-mono">
+            <span className="text-primary select-none">&gt;_</span>
             {t("patcher.title", "Game Modifications")}
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-1 pl-6 font-mono">
             {t(
               "patcher.description",
               "Configure standalone patches to apply directly to the Terraria executable.",
@@ -1097,10 +1098,10 @@ export default function PatcherPage() {
       <div className="flex-1 flex flex-col md:flex-row gap-6 overflow-hidden">
         {/* Navigation Sidebar */}
         <div className="w-full md:w-64 flex flex-col gap-2 shrink-0">
-          <Card className="shadow-none border-muted bg-muted/20">
-            <CardContent className="p-2 flex flex-col gap-1">
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2 mt-2">
-                {t("patcher.title", "Modifications")}
+          <Card className="shadow-none border-border/50 bg-muted/10">
+            <CardContent className="p-2 flex flex-col gap-0.5">
+              <div className="text-[9px] font-bold text-primary/50 uppercase tracking-widest mb-1.5 px-2 mt-2 font-mono">
+                // {t("patcher.title", "Modifications")}
               </div>
               {tabs.map((tab) => {
                 const Icon = tab.icon;
@@ -1110,21 +1111,21 @@ export default function PatcherPage() {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as Tab)}
                     className={cn(
-                      "flex items-center gap-3 w-full px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200 outline-none",
+                      "flex items-center gap-2.5 w-full px-3 py-2 text-xs font-mono font-medium transition-all duration-200 outline-none",
                       isActive
-                        ? "bg-primary/10 text-primary ring-1 ring-primary/25"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                        ? "bg-primary/10 text-primary border-l-2 border-l-primary pl-2.5"
+                        : "text-muted-foreground hover:bg-muted/60 hover:text-foreground border-l-2 border-l-transparent pl-2.5",
                     )}>
-                    <Icon className="h-4 w-4" />
+                    <Icon className="h-3.5 w-3.5 shrink-0" />
                     {tab.label}
                   </button>
                 );
               })}
 
-              <div className="my-2 border-t border-muted/50" />
+              <div className="my-2 border-t border-border/40" />
 
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-2 mt-1">
-                {t("patcher.external", "External")}
+              <div className="text-[9px] font-bold text-primary/50 uppercase tracking-widest mb-1.5 px-2 mt-1 font-mono">
+                // {t("patcher.external", "External")}
               </div>
               {pluginTabs.map((tab) => {
                 const Icon = tab.icon;
@@ -1134,12 +1135,12 @@ export default function PatcherPage() {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as Tab)}
                     className={cn(
-                      "flex items-center gap-3 w-full px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200 outline-none",
+                      "flex items-center gap-2.5 w-full px-3 py-2 text-xs font-mono font-medium transition-all duration-200 outline-none",
                       isActive
-                        ? "bg-primary/10 text-primary ring-1 ring-primary/25"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                        ? "bg-primary/10 text-primary border-l-2 border-l-primary pl-2.5"
+                        : "text-muted-foreground hover:bg-muted/60 hover:text-foreground border-l-2 border-l-transparent pl-2.5",
                     )}>
-                    <Icon className="h-4 w-4" />
+                    <Icon className="h-3.5 w-3.5 shrink-0" />
                     {tab.label}
                   </button>
                 );
@@ -1147,29 +1148,29 @@ export default function PatcherPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-none border-primary/20 bg-primary/5 mt-auto hidden md:block">
-            <CardContent className="p-3">
-              <p className="text-xs text-muted-foreground leading-relaxed text-center">
-                {t(
-                  "patcher.pathAlert",
-                  "Make sure your Terraria path is correctly set in the Config page before patching.",
-                )}
-              </p>
-            </CardContent>
-          </Card>
+          <div className="mt-auto hidden md:block border border-primary/20 bg-primary/5 p-3">
+            <p className="text-[10px] font-mono text-muted-foreground/60 leading-relaxed">
+              <span className="text-primary/50 select-none">// </span>
+              {t(
+                "patcher.pathAlert",
+                "Make sure your Terraria path is correctly set in the Config page before patching.",
+              )}
+            </p>
+          </div>
         </div>
 
         {/* Dynamic Content Area */}
-        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden bg-card rounded-xl border shadow-sm">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden bg-card border border-l-2 border-l-primary/30">
           {activeTab === "qol" && (
             <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
-              <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold">
-                  {t("patcher.tabs.qol")}
-                </h3>
-                <p className="text-sm text-muted-foreground break-words">
-                  {t("patcher.tabsDescriptions.qol")}
-                </p>
+              <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
+                <div className="h-4 w-[2px] bg-primary/50 shrink-0" />
+                <div>
+                  <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
+                    {t("patcher.tabs.qol")}
+                  </h3>
+                  <p className="text-[10px] text-muted-foreground/60 font-mono">{t("patcher.tabsDescriptions.qol")}</p>
+                </div>
               </div>
               <ScrollArea className="flex-1 p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1183,11 +1184,12 @@ export default function PatcherPage() {
 
           {activeTab === "combat" && (
             <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
-              <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold">{t("patcher.tabs.combat")}</h3>
-                <p className="text-sm text-muted-foreground break-words">
-                  {t("patcher.tabsDescriptions.combat")}
-                </p>
+              <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
+                <div className="h-4 w-[2px] bg-primary/50 shrink-0" />
+                <div>
+                  <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">{t("patcher.tabs.combat")}</h3>
+                  <p className="text-[10px] text-muted-foreground/60 font-mono">{t("patcher.tabsDescriptions.combat")}</p>
+                </div>
               </div>
               <ScrollArea className="flex-1 p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1201,11 +1203,12 @@ export default function PatcherPage() {
 
           {activeTab === "cheats" && (
             <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
-              <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold">{t("patcher.tabs.cheats")}</h3>
-                <p className="text-sm text-muted-foreground break-words">
-                  {t("patcher.tabsDescriptions.cheats")}
-                </p>
+              <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
+                <div className="h-4 w-[2px] bg-primary/50 shrink-0" />
+                <div>
+                  <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">{t("patcher.tabs.cheats")}</h3>
+                  <p className="text-[10px] text-muted-foreground/60 font-mono">{t("patcher.tabsDescriptions.cheats")}</p>
+                </div>
               </div>
               <ScrollArea className="flex-1 p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1219,13 +1222,12 @@ export default function PatcherPage() {
 
           {activeTab === "buffs" && (
             <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
-              <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold">
-                  {t("patcher.tabs.buffs")}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {t("patcher.tabsDescriptions.buffs")}
-                </p>
+              <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
+                <div className="h-4 w-[2px] bg-primary/50 shrink-0" />
+                <div>
+                  <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">{t("patcher.tabs.buffs")}</h3>
+                  <p className="text-[10px] text-muted-foreground/60 font-mono">{t("patcher.tabsDescriptions.buffs")}</p>
+                </div>
               </div>
               <div className="flex-1 p-6 flex flex-col gap-4 min-h-0">
                 {/* Search Bars */}
@@ -1253,8 +1255,8 @@ export default function PatcherPage() {
 
                 {/* Dual Listbox Layout */}
                 <div className="flex flex-1 gap-4 min-h-0">
-                  <div className="flex-1 border rounded-lg flex flex-col overflow-hidden">
-                    <div className="bg-muted px-3 py-2 border-b text-xs font-medium text-muted-foreground tracking-wider uppercase">
+                  <div className="flex-1 border flex flex-col overflow-hidden">
+                    <div className="bg-muted/40 px-3 py-2 border-b text-[10px] font-mono font-bold text-muted-foreground tracking-widest uppercase">
                       {t("patcher.tabs.available")} ({filteredAvailable.length})
                     </div>
                     <ScrollArea className="flex-1">
@@ -1313,8 +1315,8 @@ export default function PatcherPage() {
                     </Button>
                   </div>
 
-                  <div className="flex-1 border rounded-lg flex flex-col overflow-hidden">
-                    <div className="bg-muted px-3 py-2 border-b text-xs font-medium text-primary tracking-wider uppercase flex justify-between">
+                  <div className="flex-1 border border-l-2 border-l-primary/40 flex flex-col overflow-hidden">
+                    <div className="bg-muted/40 px-3 py-2 border-b text-[10px] font-mono font-bold text-primary tracking-widest uppercase flex justify-between">
                       <span>{t("patcher.tabs.buffsActive")}</span>
                       <span>{options.activeBuffs.length} / 22</span>
                     </div>
@@ -1343,13 +1345,12 @@ export default function PatcherPage() {
 
           {activeTab === "healing" && (
             <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
-              <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold">
-                  {t("patcher.tabs.healing")}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {t("patcher.healing.desc")}
-                </p>
+              <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
+                <div className="h-4 w-[2px] bg-primary/50 shrink-0" />
+                <div>
+                  <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">{t("patcher.tabs.healing")}</h3>
+                  <p className="text-[10px] text-muted-foreground/60 font-mono">{t("patcher.healing.desc")}</p>
+                </div>
               </div>
               <div className="p-6 max-w-xl space-y-6">
                 <div className="space-y-3">
@@ -1405,13 +1406,12 @@ export default function PatcherPage() {
 
           {activeTab === "spawning" && (
             <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
-              <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold">
-                  {t("patcher.tabs.spawning")}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {t("patcher.spawning.desc")}
-                </p>
+              <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
+                <div className="h-4 w-[2px] bg-primary/50 shrink-0" />
+                <div>
+                  <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">{t("patcher.tabs.spawning")}</h3>
+                  <p className="text-[10px] text-muted-foreground/60 font-mono">{t("patcher.spawning.desc")}</p>
+                </div>
               </div>
               <div className="p-6 max-w-xl space-y-6">
                 <div className="space-y-4">
@@ -1446,13 +1446,12 @@ export default function PatcherPage() {
 
           {activeTab === "loot" && (
             <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
-              <div className="p-6 border-b">
-                <h3 className="text-lg font-semibold">
-                  {t("patcher.tabs.loot")}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {t("patcher.lootFeature.desc")}
-                </p>
+              <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
+                <div className="h-4 w-[2px] bg-primary/50 shrink-0" />
+                <div>
+                  <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">{t("patcher.tabs.loot")}</h3>
+                  <p className="text-[10px] text-muted-foreground/60 font-mono">{t("patcher.lootFeature.desc")}</p>
+                </div>
               </div>
               <div className="p-6">
                 <div
@@ -1485,17 +1484,11 @@ export default function PatcherPage() {
 
           {activeTab === "plugins" && (
             <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
-              <div className="p-6 border-b flex items-center justify-between">
+              <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
+                <div className="h-4 w-[2px] bg-primary/50 shrink-0" />
                 <div>
-                  <h3 className="text-lg font-semibold">
-                    {t("plugins.title", "Plugins")}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {t(
-                      "plugins.subtitle",
-                      "Browse, enable, and configure plugins",
-                    )}
-                  </p>
+                  <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">{t("plugins.title", "Plugins")}</h3>
+                  <p className="text-[10px] text-muted-foreground/60 font-mono">{t("plugins.subtitle", "Browse, enable, and configure plugins")}</p>
                 </div>
               </div>
               <div
@@ -1531,9 +1524,9 @@ export default function PatcherPage() {
                           <div
                             key={plugin}
                             className={cn(
-                              "flex flex-row items-center space-x-3 p-4 rounded-lg border text-left transition-all",
+                              "flex flex-row items-center space-x-3 p-4 border text-left transition-all",
                               activePlugins.includes(plugin) && pluginSupport
-                                ? "border-primary bg-primary/5"
+                                ? "border-primary/50 border-l-2 border-l-primary bg-primary/5"
                                 : "border-border/50 hover:bg-accent/50",
                               pluginSupport
                                 ? "cursor-pointer"

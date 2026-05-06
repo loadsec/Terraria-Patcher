@@ -1,4 +1,4 @@
-import { Info, Heart, Github, Code2, MonitorSmartphone } from "lucide-react";
+import { Heart, Github, Code2, MonitorSmartphone } from "lucide-react";
 import { useTranslation, Trans } from "react-i18next";
 
 export default function AboutPage() {
@@ -6,30 +6,24 @@ export default function AboutPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-500 pb-8">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <Info className="h-5 w-5" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            {t("about.title")}
-          </h1>
-          <p className="text-sm text-muted-foreground">{t("about.subtitle")}</p>
-        </div>
+      <div>
+        <h1 className="text-xl font-bold tracking-tight flex items-center gap-2 font-mono">
+          <span className="text-primary select-none">&gt;_</span>
+          {t("about.title")}
+        </h1>
+        <p className="text-xs text-muted-foreground mt-1 pl-6 font-mono">{t("about.subtitle")}</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Inspiration Section */}
-        <div className="rounded-xl border bg-card p-6 flex flex-col space-y-4">
-          <div className="flex items-center gap-3 border-b pb-4">
-            <div className="flex p-2 rounded-md bg-rose-500/10 text-rose-500">
-              <Heart className="h-5 w-5" />
-            </div>
-            <h2 className="font-semibold text-lg">
+        <div className="border border-l-[3px] border-l-rose-500/50 bg-card flex flex-col">
+          <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
+            <Heart className="h-3.5 w-3.5 text-rose-500/70 shrink-0" />
+            <h2 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
               {t("about.inspiration.title")}
             </h2>
           </div>
-          <div className="flex-1 text-sm text-muted-foreground space-y-4 leading-relaxed mt-2 text-justify text-pretty">
+          <div className="flex-1 p-6 text-sm text-muted-foreground space-y-4 leading-relaxed text-justify text-pretty">
             <p>
               <Trans i18nKey="about.inspiration.p1">
                 This project is heavily inspired by and based on an existing
@@ -44,8 +38,8 @@ export default function AboutPage() {
                 href="https://github.com/dougbenham/TerrariaPatcher"
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 mt-2 text-primary hover:underline font-medium">
-                <Github className="h-4 w-4" /> dougbenham/TerrariaPatcher
+                className="inline-flex items-center gap-1.5 mt-2 text-primary hover:underline font-medium font-mono text-xs">
+                <Github className="h-3.5 w-3.5" /> dougbenham/TerrariaPatcher
               </a>
             </p>
             <p>{t("about.inspiration.p3")}</p>
@@ -53,14 +47,14 @@ export default function AboutPage() {
         </div>
 
         {/* Our Vision Section */}
-        <div className="rounded-xl border bg-card p-6 flex flex-col space-y-4">
-          <div className="flex items-center gap-3 border-b pb-4">
-            <div className="flex p-2 rounded-md bg-blue-500/10 text-blue-500">
-              <MonitorSmartphone className="h-5 w-5" />
-            </div>
-            <h2 className="font-semibold text-lg">{t("about.vision.title")}</h2>
+        <div className="border border-l-[3px] border-l-blue-500/50 bg-card flex flex-col">
+          <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
+            <MonitorSmartphone className="h-3.5 w-3.5 text-blue-500/70 shrink-0" />
+            <h2 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
+              {t("about.vision.title")}
+            </h2>
           </div>
-          <div className="flex-1 text-sm text-muted-foreground space-y-4 leading-relaxed mt-2 text-justify text-pretty">
+          <div className="flex-1 p-6 text-sm text-muted-foreground space-y-4 leading-relaxed text-justify text-pretty">
             <p>
               <Trans i18nKey="about.vision.p1">
                 While the original Patcher is Windows-only, our goal is to bring
@@ -68,7 +62,7 @@ export default function AboutPage() {
                 up to run on <strong>Windows, Linux, and macOS</strong>.
               </Trans>
             </p>
-            <p className="p-3 rounded-lg bg-muted text-muted-foreground border">
+            <p className="p-3 bg-muted/40 text-muted-foreground border border-l-2 border-l-amber-500/40">
               <Trans i18nKey="about.vision.note">
                 <em>Note:</em> Although the application itself runs across all
                 operating systems seamlessly, the actual Terraria patching
@@ -83,169 +77,55 @@ export default function AboutPage() {
                 href="https://github.com/loadsec/Terraria-Patcher"
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 mt-2 text-primary hover:underline font-medium">
-                <Github className="h-4 w-4" /> loadsec/Terraria-Patcher
+                className="inline-flex items-center gap-1.5 mt-2 text-primary hover:underline font-medium font-mono text-xs">
+                <Github className="h-3.5 w-3.5" /> loadsec/Terraria-Patcher
               </a>
             </p>
           </div>
         </div>
 
         {/* Technology Stack Section */}
-        <div className="rounded-xl border bg-card p-6 flex flex-col md:col-span-2">
-          <div className="flex items-center gap-3 border-b pb-4 mb-4">
-            <div className="flex p-2 rounded-md bg-primary/10 text-primary">
-              <Code2 className="h-5 w-5" />
+        <div className="border border-l-[3px] border-l-primary/50 bg-card flex flex-col md:col-span-2">
+          <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
+            <Code2 className="h-3.5 w-3.5 text-primary/70 shrink-0" />
+            <div>
+              <h2 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
+                {t("about.stack.title")}
+              </h2>
+              <p className="text-[10px] text-muted-foreground/60 font-mono">{t("about.stack.desc")}</p>
             </div>
-            <h2 className="font-semibold text-lg">{t("about.stack.title")}</h2>
           </div>
-          <p className="text-sm text-muted-foreground mb-6">
-            {t("about.stack.desc")}
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-            <a
-              href="https://electronjs.org/"
-              target="_blank"
-              rel="noreferrer"
-              className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-center">
-              <span className="font-medium group-hover:text-primary transition-colors">
-                Electron
-              </span>
-              <span className="text-xs text-muted-foreground mt-1">
-                {t("about.stack.electron")}
-              </span>
-            </a>
-            <a
-              href="https://react.dev/"
-              target="_blank"
-              rel="noreferrer"
-              className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-center">
-              <span className="font-medium group-hover:text-primary transition-colors">
-                React
-              </span>
-              <span className="text-xs text-muted-foreground mt-1">
-                {t("about.stack.react")}
-              </span>
-            </a>
-            <a
-              href="https://vitejs.dev/"
-              target="_blank"
-              rel="noreferrer"
-              className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-center">
-              <span className="font-medium group-hover:text-primary transition-colors">
-                Vite
-              </span>
-              <span className="text-xs text-muted-foreground mt-1">
-                {t("about.stack.vite")}
-              </span>
-            </a>
-            <a
-              href="https://www.typescriptlang.org/"
-              target="_blank"
-              rel="noreferrer"
-              className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-center">
-              <span className="font-medium group-hover:text-primary transition-colors">
-                TypeScript
-              </span>
-              <span className="text-xs text-muted-foreground mt-1">
-                {t("about.stack.typescript")}
-              </span>
-            </a>
-            <a
-              href="https://ui.shadcn.com/"
-              target="_blank"
-              rel="noreferrer"
-              className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-center">
-              <span className="font-medium group-hover:text-primary transition-colors">
-                shadcn/ui
-              </span>
-              <span className="text-xs text-muted-foreground mt-1">
-                {t("about.stack.shadcn")}
-              </span>
-            </a>
-            <a
-              href="https://dotnet.microsoft.com/en-us/download/dotnet/10.0"
-              target="_blank"
-              rel="noreferrer"
-              className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-center">
-              <span className="font-medium group-hover:text-primary transition-colors">
-                .NET 10
-              </span>
-              <span className="text-xs text-muted-foreground mt-1">
-                {t("about.stack.dotnetBridge", "Self-contained patcher bridge")}
-              </span>
-            </a>
-            <a
-              href="https://www.nuget.org/packages/Mono.Cecil"
-              target="_blank"
-              rel="noreferrer"
-              className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-center">
-              <span className="font-medium group-hover:text-primary transition-colors">
-                Mono.Cecil
-              </span>
-              <span className="text-xs text-muted-foreground mt-1">
-                {t("about.stack.monoCecil")}
-              </span>
-            </a>
-            <a
-              href="https://github.com/sindresorhus/electron-store"
-              target="_blank"
-              rel="noreferrer"
-              className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-center">
-              <span className="font-medium group-hover:text-primary transition-colors">
-                electron-store
-              </span>
-              <span className="text-xs text-muted-foreground mt-1">
-                {t("about.stack.electronStore")}
-              </span>
-            </a>
-            <a
-              href="https://github.com/jprichardson/node-fs-extra"
-              target="_blank"
-              rel="noreferrer"
-              className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-center">
-              <span className="font-medium group-hover:text-primary transition-colors">
-                fs-extra
-              </span>
-              <span className="text-xs text-muted-foreground mt-1">
-                {t("about.stack.fsExtra")}
-              </span>
-            </a>
-            <a
-              href="https://www.i18next.com/"
-              target="_blank"
-              rel="noreferrer"
-              className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-center">
-              <span className="font-medium group-hover:text-primary transition-colors">
-                i18next
-              </span>
-              <span className="text-xs text-muted-foreground mt-1">
-                {t("about.stack.i18next")}
-              </span>
-            </a>
-            <a
-              href="https://magicui.design/"
-              target="_blank"
-              rel="noreferrer"
-              className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-center">
-              <span className="font-medium group-hover:text-primary transition-colors">
-                MagicUI
-              </span>
-              <span className="text-xs text-muted-foreground mt-1">
-                {t("about.stack.magicui")}
-              </span>
-            </a>
-            <a
-              href="https://www.animate-ui.com/"
-              target="_blank"
-              rel="noreferrer"
-              className="group flex flex-col items-center justify-center p-4 rounded-lg border bg-background hover:bg-muted/50 transition-colors text-center">
-              <span className="font-medium group-hover:text-primary transition-colors">
-                Animate UI
-              </span>
-              <span className="text-xs text-muted-foreground mt-1">
-                {t("about.stack.animateui")}
-              </span>
-            </a>
+          <div className="p-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+              {[
+                { href: "https://electronjs.org/", name: "Electron", desc: t("about.stack.electron") },
+                { href: "https://react.dev/", name: "React", desc: t("about.stack.react") },
+                { href: "https://vitejs.dev/", name: "Vite", desc: t("about.stack.vite") },
+                { href: "https://www.typescriptlang.org/", name: "TypeScript", desc: t("about.stack.typescript") },
+                { href: "https://ui.shadcn.com/", name: "shadcn/ui", desc: t("about.stack.shadcn") },
+                { href: "https://dotnet.microsoft.com/en-us/download/dotnet/10.0", name: ".NET 10", desc: t("about.stack.dotnetBridge", "Self-contained patcher bridge") },
+                { href: "https://www.nuget.org/packages/Mono.Cecil", name: "Mono.Cecil", desc: t("about.stack.monoCecil") },
+                { href: "https://github.com/sindresorhus/electron-store", name: "electron-store", desc: t("about.stack.electronStore") },
+                { href: "https://github.com/jprichardson/node-fs-extra", name: "fs-extra", desc: t("about.stack.fsExtra") },
+                { href: "https://www.i18next.com/", name: "i18next", desc: t("about.stack.i18next") },
+                { href: "https://magicui.design/", name: "MagicUI", desc: t("about.stack.magicui") },
+                { href: "https://www.animate-ui.com/", name: "Animate UI", desc: t("about.stack.animateui") },
+              ].map((tech) => (
+                <a
+                  key={tech.name}
+                  href={tech.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group flex flex-col items-center justify-center p-4 border bg-background hover:bg-muted/50 hover:border-primary/30 transition-colors text-center">
+                  <span className="text-xs font-mono font-semibold group-hover:text-primary transition-colors">
+                    {tech.name}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground mt-1 font-mono leading-tight">
+                    {tech.desc}
+                  </span>
+                </a>
+              ))}
+            </div>
           </div>
         </div>
       </div>

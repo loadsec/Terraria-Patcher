@@ -1,5 +1,4 @@
 import {
-  Settings,
   Search,
   Check,
   Save,
@@ -795,22 +794,18 @@ export default function ConfigPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-500">
       <div className="flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <Settings className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              {t("config.title")}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {t("config.subtitle")}
-            </p>
-          </div>
+        <div>
+          <h1 className="text-xl font-bold tracking-tight flex items-center gap-2 font-mono">
+            <span className="text-primary select-none">&gt;_</span>
+            {t("config.title")}
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1 pl-6 font-mono">
+            {t("config.subtitle")}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           {saveMessage && (
-            <span className="text-sm text-primary animate-in fade-in duration-300">
+            <span className="text-xs text-primary font-mono animate-in fade-in duration-300">
               {saveMessage}
             </span>
           )}
@@ -823,23 +818,23 @@ export default function ConfigPage() {
 
       <div className="flex flex-col gap-6">
         {/* Updates */}
-        <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
-          <div className="flex flex-col space-y-1.5 p-6 border-b bg-muted/20">
-            <h3 className="font-semibold leading-none tracking-tight">
-              {t("config.updates.title", "App Updates")}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {t(
-                "config.updates.desc",
-                "Check for new releases, download updates and install them without leaving the app.",
-              )}
-            </p>
+        <div className="border border-l-2 border-l-primary/30 bg-card text-card-foreground">
+          <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
+            <div className="h-4 w-[2px] bg-primary/50 shrink-0" />
+            <div>
+              <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
+                {t("config.updates.title", "App Updates")}
+              </h3>
+              <p className="text-[10px] text-muted-foreground/60 font-mono">
+                {t("config.updates.desc", "Check for new releases, download updates and install them without leaving the app.")}
+              </p>
+            </div>
           </div>
           <div className="p-6 space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+              <div className="border border-border/60 bg-muted/20 p-4">
                 <div className="flex items-start gap-3">
-                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center bg-primary/10 text-primary border border-primary/20">
                     <PackageCheck className="h-4 w-4" />
                   </span>
                   <div className="min-w-0 space-y-1">
@@ -860,9 +855,9 @@ export default function ConfigPage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+              <div className="border border-border/60 bg-muted/20 p-4">
                 <div className="flex items-start gap-3">
-                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center bg-primary/10 text-primary border border-primary/20">
                     <Tag className="h-4 w-4" />
                   </span>
                   <div className="min-w-0 space-y-1">
@@ -890,7 +885,7 @@ export default function ConfigPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-border/60 bg-background/60 p-3 space-y-2">
+            <div className="border border-border/60 bg-background/60 p-3 space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <span className={updaterStatusBadgeClass}>
@@ -1020,22 +1015,22 @@ export default function ConfigPage() {
         </div>
 
         {dotnetPrereqs && (
-          <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
-            <div className="flex flex-col space-y-1.5 p-6 border-b bg-muted/20">
-              <h3 className="font-semibold leading-none tracking-tight">
-                {t("config.prereqs.title", ".NET Runtime / SDK Prerequisites")}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {t(
-                  "config.prereqs.desc",
-                  "Check whether .NET 10 Runtime / SDK are available on your system. Terraria Patcher uses them for the C# bridge.",
-                )}
-              </p>
+          <div className="border border-l-2 border-l-primary/30 bg-card text-card-foreground">
+            <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
+              <div className="h-4 w-[2px] bg-primary/50 shrink-0" />
+              <div>
+                <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
+                  {t("config.prereqs.title", ".NET Runtime / SDK Prerequisites")}
+                </h3>
+                <p className="text-[10px] text-muted-foreground/60 font-mono">
+                  {t("config.prereqs.desc", "Check whether .NET 10 Runtime / SDK are available on your system. Terraria Patcher uses them for the C# bridge.")}
+                </p>
+              </div>
             </div>
             <div className="p-6 space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
-                  <p className="text-xs text-muted-foreground">
+                <div className="border border-border/60 bg-muted/20 p-3">
+                  <p className="text-xs text-muted-foreground font-mono">
                     {t("config.prereqs.runtimeStatus", "Runtime (.NET 10+)")}
                   </p>
                   <p
@@ -1070,8 +1065,8 @@ export default function ConfigPage() {
                   )}
                 </div>
 
-                <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
-                  <p className="text-xs text-muted-foreground">
+                <div className="border border-border/60 bg-muted/20 p-3">
+                  <p className="text-xs text-muted-foreground font-mono">
                     {t("config.prereqs.devPackStatus", ".NET SDK (contributors)")}
                   </p>
                   <p
@@ -1181,18 +1176,18 @@ export default function ConfigPage() {
           </div>
         )}
 
-        {/* Language Preferences */}
-        <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
-          <div className="flex flex-col space-y-1.5 p-6 border-b bg-muted/20">
-            <h3 className="font-semibold leading-none tracking-tight">
-              {t("config.profile.title", "Settings Profile")}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {t(
-                "config.profile.desc",
-                "Export or import your patch selections and app settings as a JSON file.",
-              )}
-            </p>
+        {/* Settings Profile */}
+        <div className="border border-l-2 border-l-primary/30 bg-card text-card-foreground">
+          <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
+            <div className="h-4 w-[2px] bg-primary/50 shrink-0" />
+            <div>
+              <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
+                {t("config.profile.title", "Settings Profile")}
+              </h3>
+              <p className="text-[10px] text-muted-foreground/60 font-mono">
+                {t("config.profile.desc", "Export or import your patch selections and app settings as a JSON file.")}
+              </p>
+            </div>
           </div>
           <div className="p-6 space-y-4">
             <p className="text-sm text-muted-foreground">
@@ -1252,14 +1247,17 @@ export default function ConfigPage() {
         </div>
 
         {/* Language Preferences */}
-        <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
-          <div className="flex flex-col space-y-1.5 p-6 border-b bg-muted/20">
-            <h3 className="font-semibold leading-none tracking-tight">
-              {t("config.language.title")}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {t("config.language.desc")}
-            </p>
+        <div className="border border-l-2 border-l-primary/30 bg-card text-card-foreground">
+          <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
+            <div className="h-4 w-[2px] bg-primary/50 shrink-0" />
+            <div>
+              <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
+                {t("config.language.title")}
+              </h3>
+              <p className="text-[10px] text-muted-foreground/60 font-mono">
+                {t("config.language.desc")}
+              </p>
+            </div>
           </div>
           <div className="p-6">
             <div className="flex flex-col gap-4">
@@ -1321,14 +1319,17 @@ export default function ConfigPage() {
         </div>
 
         {/* Game Directory Card */}
-        <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
-          <div className="flex flex-col space-y-1.5 p-6 border-b bg-muted/20">
-            <h3 className="font-semibold leading-none tracking-tight">
-              {t("config.gameDirectory.title")}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {t("config.gameDirectory.desc")}
-            </p>
+        <div className="border border-l-2 border-l-primary/30 bg-card text-card-foreground">
+          <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
+            <div className="h-4 w-[2px] bg-primary/50 shrink-0" />
+            <div>
+              <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
+                {t("config.gameDirectory.title")}
+              </h3>
+              <p className="text-[10px] text-muted-foreground/60 font-mono">
+                {t("config.gameDirectory.desc")}
+              </p>
+            </div>
           </div>
           <div className="p-6">
             <div className="flex flex-col gap-3">
@@ -1384,14 +1385,17 @@ export default function ConfigPage() {
         </div>
 
         {/* App Preferences */}
-        <div className="rounded-xl border bg-card text-card-foreground shadow-sm">
-          <div className="flex flex-col space-y-1.5 p-6 border-b bg-muted/20">
-            <h3 className="font-semibold leading-none tracking-tight">
-              {t("config.appPreferences.title")}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {t("config.appPreferences.desc")}
-            </p>
+        <div className="border border-l-2 border-l-primary/30 bg-card text-card-foreground">
+          <div className="px-5 py-3 border-b bg-muted/10 flex items-center gap-2.5">
+            <div className="h-4 w-[2px] bg-primary/50 shrink-0" />
+            <div>
+              <h3 className="text-[11px] font-mono font-bold uppercase tracking-widest text-foreground/80">
+                {t("config.appPreferences.title")}
+              </h3>
+              <p className="text-[10px] text-muted-foreground/60 font-mono">
+                {t("config.appPreferences.desc")}
+              </p>
+            </div>
           </div>
           <div className="p-6">
             <div className="flex items-start space-x-3 group">
