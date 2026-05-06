@@ -4,16 +4,12 @@ import { useTranslation } from "react-i18next";
 import {
   ArrowRight,
   BookOpen,
-  CalendarDays,
   FileText,
-  FolderSearch,
   Info,
   PackageCheck,
-  ShieldCheck,
   Settings,
   Shield,
   Wrench,
-  Terminal,
   Zap,
   AlertTriangle,
 } from "lucide-react";
@@ -154,7 +150,7 @@ export default function HomePage() {
 
         {/* Header bar */}
         <div className="flex items-center gap-3 border-b bg-muted/30 px-5 py-2.5">
-          <Terminal className="h-3.5 w-3.5 text-primary shrink-0" />
+          <Zap className="h-3.5 w-3.5 text-primary shrink-0" />
           <span className="font-mono text-[11px] text-muted-foreground flex-1 truncate">
             {appName} <span className="text-primary/60">—</span> v{appVersion}
           </span>
@@ -187,7 +183,7 @@ export default function HomePage() {
                 <span className="font-mono text-primary select-none mr-2">&gt;_</span>
                 {t("home.hero.title", "Patch, configure, and manage Terraria")}
               </h1>
-              <p className="mt-1.5 pl-8 text-sm text-muted-foreground leading-relaxed max-w-2xl">
+              <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed max-w-2xl">
                 {t(
                   "home.hero.description",
                   "IL patching, plugin sync, Plugins.ini editing, config profiles and update checks — from one desktop interface.",
@@ -336,7 +332,7 @@ export default function HomePage() {
               <BookOpen className="h-3.5 w-3.5" />
               {t("home.cards.build.changelogBtn", "Changelog")}
             </Button>
-            <Button size="sm" variant="ghost" className="gap-1.5 text-xs flex-1" onClick={() => navigate("/about")}>
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs flex-1" onClick={() => navigate("/about")}>
               <Info className="h-3.5 w-3.5" />
               {t("home.cards.build.aboutBtn", "About")}
             </Button>
@@ -552,29 +548,29 @@ function WorkflowStep({
   onAction?: () => void;
 }) {
   return (
-    <div className="relative border border-border/60 bg-card p-3 overflow-hidden">
+    <div className="relative border border-border/60 bg-card p-3 overflow-hidden flex flex-col">
       {/* Step number watermark */}
       <span className="absolute -right-1 -top-1 font-mono text-4xl font-black text-primary/5 select-none leading-none">
         {n}
       </span>
-      <div className="relative flex items-start gap-2.5">
+      <div className="relative flex items-start gap-2.5 flex-1">
         <span className="mt-px shrink-0 font-mono text-[10px] font-bold text-primary/60 select-none">
           {String(n).padStart(2, "0")}
         </span>
         <div className="min-w-0 flex-1">
           <p className="font-mono text-xs font-bold text-foreground leading-snug">{title}</p>
           {desc ? <p className="mt-0.5 font-mono text-[10px] text-muted-foreground leading-snug">{desc}</p> : null}
-          {actionLabel && onAction ? (
-            <button
-              type="button"
-              onClick={onAction}
-              className="mt-1.5 inline-flex items-center gap-1 font-mono text-[10px] font-bold text-primary hover:underline uppercase tracking-wider">
-              {actionLabel}
-              <ArrowRight className="h-3 w-3" />
-            </button>
-          ) : null}
         </div>
       </div>
+      {actionLabel && onAction ? (
+        <button
+          type="button"
+          onClick={onAction}
+          className="mt-3 self-start inline-flex items-center gap-1 font-mono text-[10px] font-bold text-primary hover:underline uppercase tracking-wider">
+          {actionLabel}
+          <ArrowRight className="h-3 w-3" />
+        </button>
+      ) : null}
     </div>
   );
 }
