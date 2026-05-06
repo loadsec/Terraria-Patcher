@@ -1,219 +1,223 @@
-# 🔧 Terraria Patcher
+<div align="center">
 
-> A modern, cross-platform desktop application for patching and customizing your Terraria installation.  
-> Apply quality-of-life improvements, manage community plugins, and fine-tune game settings — all through a clean and intuitive UI.
+# Terraria Patcher
 
-<br />
+**A modern, cross-platform desktop tool for patching and customizing Terraria.**  
+Apply IL-level game modifications, manage community plugins, and fine-tune your setup — all from a single, clean interface.
 
-[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blue?style=flat-square)](https://github.com)
-[![Electron](https://img.shields.io/badge/Electron-39-47848F?style=flat-square&logo=electron&logoColor=white)](https://www.electronjs.org/)
-[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=white)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](./LICENSE)
+[![Release](https://img.shields.io/github/v/release/loadsec/Terraria-Patcher?style=flat-square&label=release&color=10b981)](https://github.com/loadsec/Terraria-Patcher/releases/latest)
+[![Platform](https://img.shields.io/badge/app-Windows%20%7C%20Linux%20%7C%20macOS-10b981?style=flat-square)](https://github.com/loadsec/Terraria-Patcher/releases)
+[![Patching](https://img.shields.io/badge/patching-Windows%20%7C%20Linux-10b981?style=flat-square)](#platform-support)
+[![Terraria](https://img.shields.io/badge/Terraria-1.4.5.x-blue?style=flat-square)](https://store.steampowered.com/app/105600/Terraria/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow?style=flat-square)](./LICENSE)
 
----
-
-## ✨ Features
-
-### 🎮 Game Modifications
-
-Apply standalone patches directly to the Terraria executable:
-
-| Category                    | Patches Available                                                                                      |
-| --------------------------- | ------------------------------------------------------------------------------------------------------ |
-| 🌟 **Quality of Life**      | Display Time, Functional Social Slots, Max Crafting Range, Pylon Everywhere, Remove Angler Daily Limit |
-| ⚔️ **Combat & Debuffs**     | Remove Rod of Discord Debuff, Remove Potion Sickness, Remove Mana Costs, Remove Drowning               |
-| 🃏 **Overpowered / Cheats** | One Hit Kill, Infinite Ammo, Infinite Wings, Infinite Cloud Jumps                                      |
-| ✨ **Persistent Buffs**     | Permanently activate any buff for your character                                                       |
-| 💊 **Healing Rates**        | Tune Vampire Knives & Spectre Armor life steal percentages                                             |
-| 👾 **Spawning Tweaks**      | Adjust Voodoo Demon spawn rate                                                                         |
-| 🎁 **Loot & Bags**          | Force Treasure Bags to always drop every possible item                                                 |
-
-### 🔌 Plugin System
-
-- Browse and manage community plugins in a dedicated tab
-- Enable or disable each plugin individually
-- **Auto-sync** support — apply plugin changes automatically
-
-### ⚙️ Configuration
-
-- Set your Terraria executable path
-- Enable third-party plugin loading from `\Plugins\*.cs`
-- Language selector with search support
-- Auto-save settings on change
-
-### 🌐 Internationalization
-
-- 🇺🇸 English
-- 🇧🇷 Português Brasileiro
+</div>
 
 ---
 
-## 🖥️ Tech Stack
+## Platform Support
 
-| Technology                                                              | Usage                                  |
-| ----------------------------------------------------------------------- | -------------------------------------- |
-| [Electron](https://www.electronjs.org/)                                 | Desktop application framework          |
-| [React 19](https://react.dev/)                                          | UI library                             |
-| [TypeScript](https://www.typescriptlang.org/)                           | Type safety across the entire codebase |
-| [electron-vite](https://electron-vite.org/) + [Vite](https://vite.dev/) | Fast build tooling & HMR               |
-| [Tailwind CSS v4](https://tailwindcss.com/)                             | Utility-first styling                  |
-| [shadcn/ui](https://ui.shadcn.com/)                                     | Component system built on Radix UI     |
-| [react-i18next](https://react.i18next.com/)                             | Internationalization                   |
-| [react-router-dom](https://reactrouter.com/)                            | Client-side routing                    |
-| [lucide-react](https://lucide.dev/)                                     | Icon library                           |
+| Feature | Windows | Linux | macOS |
+|---|:---:|:---:|:---:|
+| App runs | ✅ | ✅ | ✅ |
+| IL patching (Terraria.exe) | ✅ | ✅ | ⏳ |
+| Plugin system | ✅ | ✅ | ⏳ |
+| Plugins.ini editor | ✅ | ✅ | ✅ |
+| Auto-updates | ✅ | ✅ | ✅ |
+
+> **macOS patching** — the app installs and runs on macOS, but IL patching and the plugin system are not yet supported. macOS Terraria uses a different executable structure that requires dedicated testing on real hardware. Contributions are welcome.
 
 ---
 
-## 🚀 Getting Started
+## Features
 
-### Prerequisites (General)
+### Game Modifications
 
-- [Node.js](https://nodejs.org/) `>= 18`
-- [pnpm](https://pnpm.io/) `>= 8`
-- [.NET 10 Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (required for patching features on Windows/Linux/macOS)
+Patches are applied directly to the Terraria executable via IL injection using Mono.Cecil. A backup is created before every patch so you can restore at any time.
 
-### Linux (Ubuntu/Debian): End Users vs Contributors
+| Category | Available Patches |
+|---|---|
+| **Quality of Life** | Display Clock, Functional Social Slots, Max Crafting Range, Pylons Everywhere, Remove Angler Daily Limit |
+| **Combat & Debuffs** | Remove Rod of Discord Debuff, Remove Potion Sickness, Remove Mana Costs, Remove Drowning Damage |
+| **Overpowered / Cheats** | One Hit Kill, Infinite Ammo, Infinite Wings, Infinite Cloud Jumps |
+| **Persistent Buffs** | Permanently activate any in-game buff |
+| **Healing Rates** | Tune Vampire Knives & Spectre Armor life steal percentages |
+| **Spawn Tweaks** | Adjust Voodoo Demon spawn rate |
+| **Loot & Bags** | Force Treasure Bags to always drop every possible item |
 
-#### End Users (install app and patch only)
+### Plugin System
 
-- No compiler toolchain is required just to use the app and apply patches.
-- Install the **.NET 10 Runtime** if the app reports that patching features are unavailable.
-- On Linux FNA builds, plugin `.cs` compilation at game runtime requires `mono-devel` (only if you use the plugin system with source plugins).
+- Browse and enable community plugins from a dedicated interface
+- Individual enable/disable control per plugin
+- Auto-sync: plugin files and the PluginLoader are written to your Terraria directory automatically when enabled
+- Supports both XNA (Windows) and FNA (Linux) Terraria builds
 
-#### Contributors / Development (running from source)
+### Plugins.ini Editor
 
-On Linux, `electron-edge-js` is compiled during install (`node-gyp`), so you need a native build toolchain available.
+A typed, in-app editor for the `Plugins.ini` configuration file generated by the plugin loader. Supports boolean, number, text, and hotkey field types with save and per-key delete actions.
 
-Install the required system packages before running `pnpm install` / `npm install`:
+### Configuration & Updates
 
-```bash
-sudo apt-get update
-sudo apt-get install -y build-essential python3 pkg-config
+- Set and validate your Terraria executable path
+- Language selector with search (English / Português Brasileiro)
+- Automatic language detection on first launch
+- Built-in update checker with background download support (via `electron-updater`)
+- .NET runtime prerequisite detection with direct download links
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Desktop runtime | [Electron](https://www.electronjs.org/) |
+| UI framework | [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/) |
+| Build tooling | [electron-vite](https://electron-vite.org/) + [Vite](https://vitejs.dev/) |
+| Styling | [Tailwind CSS v4](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/) |
+| Routing | [react-router-dom](https://reactrouter.com/) |
+| i18n | [react-i18next](https://react.i18next.com/) |
+| Settings persistence | [electron-store](https://github.com/sindresorhus/electron-store) |
+| Auto-updates | [electron-updater](https://www.electron.build/auto-update) |
+| Patching bridge | .NET 10 C# subprocess (stdin/stdout JSON-RPC) |
+| IL manipulation | [Mono.Cecil](https://www.mono-project.com/docs/tools+libraries/libraries/Mono.Cecil/) |
+
+---
+
+## Architecture
+
+```
+React UI (renderer process)
+  └─ window.api.* — IPC exposed via preload
+       └─ Electron main process (src/main/index.ts)
+            └─ C# bridge subprocess — JSON over stdin/stdout
+                 └─ Mono.Cecil → patches Terraria.exe on disk
 ```
 
-If you see an error like `Error: not found: make`, it usually means `build-essential` is missing.
+The C# bridge is a self-contained .NET 10 binary bundled with the app. The main process spawns it on demand, sends JSON commands, and reads JSON responses — no native Node addons required.
 
-Install Mono compiler tools if you want to test FNA plugin `.cs` runtime compilation locally:
+---
 
-```bash
-sudo apt-get install -y mono-devel
-```
+## Getting Started
 
-If you are running Electron in a VM (or hit Linux sandbox issues during development), use:
+### Prerequisites
 
-```bash
-pnpm dev -- --no-sandbox
-```
+| Requirement | Version | Notes |
+|---|---|---|
+| Node.js | ≥ 18 | |
+| pnpm | ≥ 8 | `npm install -g pnpm` |
+| .NET 10 Runtime | ≥ 10.0 | Required for patching. [Download](https://dotnet.microsoft.com/download/dotnet/10.0) |
+| .NET 10 SDK | ≥ 10.0 | Only needed if you want to build the C# bridge from source |
 
-### .NET Runtime / SDK (Cross-Platform)
-
-The C# bridge used by patching features now targets **.NET 10** (`net10.0`) for cross-platform support.
-
-- End users: install the **.NET 10 Runtime** (or SDK) if patching features report a missing .NET runtime
-- Contributors: install the **.NET 10 SDK** to build/modify the C# bridge
-
-Official downloads:
-
-- https://dotnet.microsoft.com/download/dotnet/10.0
-
-### Installation
+### Clone & Install
 
 ```bash
-git clone https://github.com/your-username/terraria-patcher.git
-cd terraria-patcher
+git clone https://github.com/loadsec/Terraria-Patcher.git
+cd Terraria-Patcher
 pnpm install
 ```
 
-### Development
+### Run in Development
 
 ```bash
 pnpm dev
 ```
 
-### C# Bridge (Contributor Notes)
+> On Linux, if you encounter sandbox issues inside a VM or container, use:
+> ```bash
+> pnpm dev -- --no-sandbox
+> ```
 
-This project uses a C# patching bridge (`edge-js` + `Mono.Cecil`) located in `src/main/bridge`.
-
-- The C# source code is the canonical implementation for patching logic.
-- Prebuilt bridge binaries may be kept in the repository for convenience, so the app can run without requiring every contributor to build the bridge first.
-- If you change any file inside `src/main/bridge` (`.cs` / `.csproj`), rebuild the bridge before testing:
+### Build for Distribution
 
 ```bash
+pnpm build           # Current platform
+pnpm build:win       # Windows — NSIS installer
+pnpm build:linux     # Linux — AppImage
+pnpm build:mac       # macOS — DMG (app only; patching not yet supported)
+```
+
+---
+
+## Building the C# Bridge
+
+The patching logic lives in `src/main/bridge/` and compiles to a self-contained binary placed in `resources/patcher-bridge/`.
+
+Prebuilt binaries are included in the repository so you can run the app without compiling the bridge yourself. Only rebuild if you change the C# source.
+
+```bash
+# Rebuild the bridge for the current platform
+pnpm build:bridge
+
+# Or manually:
 cd src/main/bridge
 dotnet build -c Release
 ```
 
-- The Electron main process loads the compiled bridge from:
-  - `src/main/bridge/bin/Release/TerrariaPatcherBridge.dll`
-- The bridge runtime files generated by `dotnet build` are also required:
-  - `src/main/bridge/bin/Release/TerrariaPatcherBridge.runtimeconfig.json`
-  - `src/main/bridge/bin/Release/TerrariaPatcherBridge.deps.json`
+---
 
-### FNA Plugin Loader (Linux/macOS Terraria)
+## Plugin Loaders
 
-The FNA plugin loader (`resources/plugins/PluginLoader.FNA.dll`) should be built as a Mono-compatible assembly (for the Terraria/FNA runtime).
+The plugin loader is a small assembly injected into Terraria's directory to enable runtime C# plugin loading. There are two variants:
 
-Set `FNA_LIB_DIR` to the Terraria FNA managed files folder (must contain `FNA.dll` and `Terraria.dll` or `Terraria.exe`), then build:
+| Variant | Target | Build Command |
+|---|---|---|
+| XNA | Windows (Steam/XNA) | Included prebuilt |
+| FNA | Linux/macOS (Steam Runtime / FNA) | `pnpm build:plugin-loader-fna` |
+
+To build the FNA variant, point `FNA_LIB_DIR` at your Terraria managed files folder (must contain `FNA.dll` and `Terraria.exe`):
 
 ```bash
 export FNA_LIB_DIR="/path/to/Terraria"
-pnpm run build:plugin-loader-fna
+pnpm build:plugin-loader-fna
 ```
 
-This copies the compiled loader to:
-
-- `resources/plugins/PluginLoader.FNA.dll`
-
-Runtime note (for plugin `.cs` compilation in FNA builds):
-
-- Install Mono compiler tools (`mcs`), e.g. `mono-devel` / `mono-complete`
-- `build:plugin-loader-fna` uses `msbuild` (Mono/VS Build Tools) to keep the output compatible with Terraria's runtime
-
-### Build
-
-```bash
-pnpm build           # Current platform
-pnpm build:win       # Windows (.exe)
-pnpm build:mac       # macOS (.dmg)
-pnpm build:linux     # Linux (.AppImage)
-```
+> Runtime `.cs` plugin compilation on Linux FNA builds requires `mono-devel` (`sudo apt install mono-devel`).
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
-terraria-patcher/
+Terraria-Patcher/
 ├── src/
-│   ├── main/               # Electron main process
-│   ├── preload/            # Electron preload scripts
-│   └── renderer/           # React frontend
-│       └── src/
-│           ├── components/ # Shared UI components
-│           ├── pages/      # App pages (Patcher, Config, About...)
-│           ├── locales/    # i18n translation files (en, pt-BR)
-│           └── i18n.ts     # i18n configuration
-├── build/                  # Electron Builder resources
-└── resources/              # App icons and static assets
+│   ├── main/                    # Electron main process + all IPC handlers
+│   │   └── bridge/              # C# patching bridge (.NET 10, Mono.Cecil)
+│   ├── preload/                 # Context bridge (window.api)
+│   └── renderer/src/
+│       ├── pages/               # App pages
+│       ├── components/          # Shared UI components
+│       ├── locales/             # i18n files (en, pt-BR)
+│       └── i18n.ts
+├── resources/
+│   ├── patcher-bridge/          # Prebuilt C# bridge binaries (win/linux/mac)
+│   └── plugins/                 # Prebuilt plugin loader assemblies
+└── version.json                 # App version + Terraria target + release manifest
 ```
 
 ---
 
-## 🙏 Credits
+## Inspiration & Credits
 
-This project is heavily inspired by the original **[Terraria Patcher](https://github.com/DougBenham/TerrariaPatcher)** created by **Doug Benham** — an incredible developer who laid the foundation for IL-based Terraria patching on Windows.
+This project is heavily inspired by the original **[Terraria Patcher](https://github.com/dougbenham/TerrariaPatcher)** by **[Doug Benham](https://github.com/dougbenham)** — the developer who first demonstrated how to apply IL patches to Terraria on Windows using Mono.Cecil. His work laid the entire foundation this tool builds upon.
 
-Our goal is to build on that foundation with a modern UI and native cross-platform support.
-
-> ⚠️ **Note:** The app supports patching on Windows and Linux. macOS support remains a cross-platform target, but may still require additional validation depending on the Terraria distribution/runtime setup.
+Our goal is to extend that foundation with a modern cross-platform interface, a plugin management system, and an open, community-driven approach to Terraria modding.
 
 ---
 
-## 📄 License
+## Contributing
+
+Pull requests are welcome. For major changes, please open an issue first to discuss what you'd like to change.
+
+If you have access to a macOS machine with Terraria installed and want to help bring macOS patching support, please open an issue — that contribution would be very welcome.
+
+---
+
+## License
 
 Released under the [MIT License](./LICENSE).
 
 ---
 
-<p align="center">Made with ❤️ for the Terraria community</p>
+<div align="center">
+  Made with ❤️ for the Terraria community
+</div>
