@@ -315,6 +315,7 @@
         "pathConfigured": "Configured",
         "pathMissing": "Not configured",
         "pathHint": "Set the Terraria.exe path in Config before patching.",
+        "targetRange": "range: {{range}}",
         "runtimeLabel": ".NET runtime",
         "runtimeHint": ".NET 10 Runtime / SDK",
         "runtimeHintNonWindows": "Cross-platform check"

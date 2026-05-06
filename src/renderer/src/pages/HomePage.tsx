@@ -196,12 +196,14 @@ export default function HomePage() {
               <StatCard
                 label={t("home.hero.metrics.targetVersion", "Terraria")}
                 value={terrariaVersion}
-                sub={`range: ${terrariaRange}`}
+                sub={t("home.hero.metrics.targetRange", "range: {{range}}", { range: terrariaRange })}
+                tone="info"
               />
               <StatCard
                 label={t("home.hero.metrics.releaseDate", "Release")}
                 value={latestReleaseDate || "—"}
                 sub={latestRelease?.version ? `v${latestRelease.version}` : "—"}
+                tone="info"
               />
               <StatCard
                 label={t("home.hero.metrics.terrariaPath", "Game path")}
@@ -238,7 +240,7 @@ export default function HomePage() {
         {/* Quick Access — 1 col */}
         <div className="flex flex-col gap-1.5">
           <SectionHeader icon={<ArrowRight className="h-3.5 w-3.5" />} title={t("home.shortcuts.title", "Quick Access")} />
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 flex-1">
             <NavTile
               icon={<Wrench className="h-4 w-4" />}
               title={t("home.shortcuts.patcher", "Patcher")}
@@ -269,7 +271,7 @@ export default function HomePage() {
         {/* System Status — 1 col */}
         <div className="flex flex-col gap-1.5">
           <SectionHeader icon={<Shield className="h-3.5 w-3.5" />} title={t("home.status.title", "System Status")} />
-          <div className="flex flex-col divide-y divide-border/50 border border-border/60 bg-card overflow-hidden">
+          <div className="flex flex-col divide-y divide-border/50 border border-border/60 bg-card overflow-hidden flex-1">
             <StatusRow
               label={t("home.status.terrariaPath", "Terraria path")}
               value={terrariaPathConfigured ? t("home.status.configured") : t("home.status.notConfigured")}
@@ -321,11 +323,10 @@ export default function HomePage() {
         {/* Build info — 1 col */}
         <div className="flex flex-col gap-1.5">
           <SectionHeader icon={<PackageCheck className="h-3.5 w-3.5" />} title={t("home.cards.build.title", "Current Build")} />
-          <div className="flex flex-col divide-y divide-border/50 border border-border/60 bg-card overflow-hidden">
+          <div className="flex flex-col divide-y divide-border/50 border border-border/60 bg-card overflow-hidden flex-1">
             <InfoRow label={t("home.cards.build.appVersion")} value={`v${appVersion}`} />
             <InfoRow label={t("home.cards.build.terrariaTarget")} value={`${terrariaVersion} (${terrariaRange})`} />
             <InfoRow label={t("home.cards.build.releaseDate")} value={latestReleaseDate || "—"} />
-            <InfoRow label={t("home.cards.build.appName")} value={appName} />
           </div>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" className="gap-1.5 text-xs flex-1" onClick={() => navigate("/changelog")}>
@@ -438,7 +439,7 @@ function StatCard({
   label: string;
   value: string;
   sub?: string;
-  tone?: "success" | "warning";
+  tone?: "success" | "warning" | "info";
 }) {
   return (
     <div className={cn(
@@ -446,12 +447,17 @@ function StatCard({
     )}>
       <div className={cn(
         "absolute top-0 left-0 right-0 h-px",
-        tone === "success" ? "bg-primary/60" : tone === "warning" ? "bg-amber-500/60" : "bg-border/30",
+        tone === "success" ? "bg-primary/60"
+        : tone === "warning" ? "bg-amber-500/60"
+        : tone === "info" ? "bg-sky-500/50"
+        : "bg-border/30",
       )} />
       <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1 truncate">{label}</p>
       <p className={cn(
         "font-mono text-xs font-bold leading-tight truncate",
-        tone === "success" ? "text-primary" : tone === "warning" ? "text-amber-500" : "text-foreground",
+        tone === "success" ? "text-primary"
+        : tone === "warning" ? "text-amber-500"
+        : "text-foreground",
       )}>
         {value}
       </p>
@@ -472,7 +478,7 @@ function StatusRow({
   hint?: string;
 }) {
   return (
-    <div className="flex items-center gap-2.5 px-3 py-2">
+    <div className="flex items-center gap-2.5 px-3 py-2 flex-1">
       <div className={cn(
         "shrink-0 h-1.5 w-1.5 rounded-full",
         tone === "success" && "bg-primary",
@@ -499,7 +505,7 @@ function StatusRow({
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 px-3 py-2">
+    <div className="flex items-center justify-between gap-4 px-3 py-2 flex-1">
       <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground shrink-0">{label}</span>
       <span className="font-mono text-xs font-semibold text-foreground truncate text-right">{value}</span>
     </div>
@@ -566,7 +572,7 @@ function WorkflowStep({
         <button
           type="button"
           onClick={onAction}
-          className="mt-3 self-start inline-flex items-center gap-1 font-mono text-[10px] font-bold text-primary hover:underline uppercase tracking-wider">
+          className="mt-3 self-end inline-flex items-center gap-1 font-mono text-[10px] font-bold text-primary hover:underline uppercase tracking-wider">
           {actionLabel}
           <ArrowRight className="h-3 w-3" />
         </button>

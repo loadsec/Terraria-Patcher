@@ -315,6 +315,7 @@
         "pathConfigured": "Configurado",
         "pathMissing": "Não configurado",
         "pathHint": "Defina o caminho do Terraria.exe na Config antes de aplicar patches.",
+        "targetRange": "range: {{range}}",
         "runtimeLabel": "Runtime .NET",
         "runtimeHint": ".NET 10 Runtime / SDK",
         "runtimeHintNonWindows": "Verificação multiplataforma"
