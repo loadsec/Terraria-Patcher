@@ -156,7 +156,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: prepare
     env:
-      MONO_REQUIRED_VERSION: "6."
+      MONO_REQUIRED_VERSION: "6.12."
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -184,23 +184,14 @@ jobs:
       - name: Install Mono toolchain (Linux)
         shell: bash
         run: |
-          source /etc/os-release
-          CODENAME="${UBUNTU_CODENAME:-$VERSION_CODENAME}"
-          if [[ -z "$CODENAME" ]]; then
-            echo "Unable to detect Ubuntu codename for Mono repository setup."
-            exit 1
-          fi
-
-          sudo apt-get update
-          sudo apt-get install -y ca-certificates gnupg dirmngr apt-transport-https
-          sudo mkdir -p /usr/share/keyrings
+          sudo apt-get install -y ca-certificates gnupg
           sudo gpg --homedir /tmp --no-default-keyring \
-            --keyring /usr/share/keyrings/mono-official-archive-keyring.gpg \
+            --keyring gnupg-ring:/usr/share/keyrings/mono-official-archive-keyring.gpg \
             --keyserver hkp://keyserver.ubuntu.com:80 \
             --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
-          echo "deb [signed-by=/usr/share/keyrings/mono-official-archive-keyring.gpg] https://download.mono-project.com/repo/ubuntu stable-${CODENAME} main" \
+          sudo chmod +r /usr/share/keyrings/mono-official-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/mono-official-archive-keyring.gpg] https://download.mono-project.com/repo/ubuntu stable-focal main" \
             | sudo tee /etc/apt/sources.list.d/mono-official-stable.list
-
           sudo apt-get update
           sudo apt-get install -y mono-devel
           mono --version
