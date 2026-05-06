@@ -643,7 +643,7 @@ export default function PatcherPage() {
         setPatchError(
           verifyResult.key
             ? t(verifyResult.key, verifyResult.message!)
-            : verifyResult.message || "Executable already patched error",
+            : verifyResult.message || t("patcher.errors.unexpected", "Unexpected error"),
         );
         return;
       }
@@ -725,7 +725,7 @@ export default function PatcherPage() {
         if (!result.success) {
           setPatchStage("error");
           setPatchError(
-            result.key ? t(result.key, result.args) : "Restore failed",
+            result.key ? t(result.key, result.args) : t("patcher.messages.restoreFailed", { error: result.message || "" }),
           );
           return;
         }
@@ -758,7 +758,7 @@ export default function PatcherPage() {
           setPatchError(
             backupResult.key
               ? t(backupResult.key, backupResult.args)
-              : "Backup failed",
+              : t("patcher.messages.backupFailed", { error: backupResult.message || "" }),
           );
           return;
         }
@@ -832,12 +832,12 @@ export default function PatcherPage() {
         setPatchStage("done");
         setPatchMessage({
           type: "success",
-          text: result.key ? t(result.key, result.args) : "Success",
+          text: result.key ? t(result.key, result.args) : t("patcher.messages.success"),
         });
       } else {
         setPatchStage("error");
         setPatchError(
-          result.key ? t(result.key, result.args) : "Unknown patch error",
+          result.key ? t(result.key, result.args) : t("patcher.errors.unknownPatch"),
         );
       }
     } catch (err) {

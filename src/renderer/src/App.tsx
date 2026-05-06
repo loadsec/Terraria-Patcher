@@ -214,7 +214,7 @@ function HeaderUpdateNotice() {
             <AlertTitle className="line-clamp-none flex flex-wrap items-center gap-2 text-sm">
               <span>{title}</span>
               {updaterState.latestVersion ? (
-                <span className="inline-flex items-center rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                <span className="inline-flex items-center rounded-none border border-primary/25 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
                   v{updaterState.latestVersion}
                 </span>
               ) : null}

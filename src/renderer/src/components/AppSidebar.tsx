@@ -86,7 +86,7 @@ export function AppSidebar() {
               {t("sidebar.title")}
             </span>
             <span className="text-[9px] font-mono text-primary/60 tracking-wider uppercase leading-tight">
-              patcher suite
+              {t("sidebar.subtitle", "patcher suite")}
             </span>
           </div>
         </div>
@@ -209,8 +209,8 @@ export function AppSidebar() {
           </div>
           <p className="mt-0.5 text-[9px] font-mono text-muted-foreground truncate">
             {terrariaRange
-              ? `terraria ${terrariaVersion} (${terrariaRange})`
-              : `terraria ${terrariaVersion}`}
+              ? t("sidebar.terrariaVersionWithSupport", { version: terrariaVersion, range: terrariaRange })
+              : t("sidebar.terrariaVersionOnly", "terraria {{version}}", { version: terrariaVersion })}
           </p>
         </div>
         {/* Collapsed icon mode: just show status dot */}

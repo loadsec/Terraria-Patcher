@@ -16,10 +16,15 @@
     "appVersionLabel": "Terraria Patch",
     "terrariaVersionLabel": "Terraria",
     "terrariaSupportLabel": "Compatível",
-    "terrariaVersionWithSupport": "Terraria: {{version}} ({{range}})"
+    "terrariaVersionWithSupport": "Terraria: {{version}} ({{range}})",
+    "terrariaVersionOnly": "terraria {{version}}",
+    "subtitle": "patcher suite"
   },
   "header": {
     "toggleTheme": "Alternar Tema",
+    "themeLight": "Claro",
+    "themeSystem": "Sistema",
+    "themeDark": "Escuro",
     "toggleLanguage": "Mudar Idioma",
     "updateAvailable": "Atualização Disponível",
     "updateDownloading": "Baixando {{percent}}%",
@@ -183,7 +188,8 @@
       "unexpected": "Erro inesperado: ",
       "noPath": "Nenhum caminho para o Terraria foi configurado. Vá para Configurações para defini-lo.",
       "doublePatch": "Tanto o Terraria.exe quanto o backup JÁ ESTÃO MODIFICADOS. Por favor, verifique a integridade dos arquivos do jogo na Steam para restaurar uma versão limpa antes de aplicar o patch novamente!",
-      "pluginsFnaUnsupported": "O suporte a plugins ainda não é compatível com builds FNA (builds nativos de Terraria no Linux/macOS). Desative o Suporte a Plugins e aplique os outros patches, ou use um plugin loader compatível com FNA."
+      "pluginsFnaUnsupported": "O suporte a plugins ainda não é compatível com builds FNA (builds nativos de Terraria no Linux/macOS). Desative o Suporte a Plugins e aplique os outros patches, ou use um plugin loader compatível com FNA.",
+      "unknownPatch": "Erro de patch desconhecido"
     },
     "tabs": {
       "qol": "Qualidade de Vida",
@@ -460,7 +466,8 @@
       "i18next": "Internacionalização",
       "shadcn": "Sistema de Componentes",
       "magicui": "VFX e Animações",
-      "animateui": "Componentes de Movimento"
+      "animateui": "Componentes de Movimento",
+      "dotnetBridge": "Bridge de patcher autocontida"
     }
   },
   "changelog": {
@@ -637,6 +644,8 @@
       "optionalMissing": "Não detectado (opcional para usuários normais)",
       "notDetected": "Não detectado",
       "releaseValues": "Versão principal detectada: {{detected}} • Necessário: {{required}}",
+      "detectedVersion": "Versão detectada: {{version}}",
+      "sdkDetectedVersion": "SDK detectado: {{version}}",
       "recommendation": "Recomendado: baixe primeiro o instalador Runtime pela Microsoft. Se estiver indisponível, use a página de downloads do .NET.",
       "refreshBtn": "Atualizar Status",
       "microsoftBtn": "Abrir Microsoft (página .NET)",

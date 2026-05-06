@@ -38,9 +38,9 @@ import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import appInfo from "../../../../version.json";
 
-const AVAILABLE_LANGUAGES = [
-  { id: "en", label: "English" },
-  { id: "pt-BR", label: "Português Brasileiro" },
+const AVAILABLE_LANGUAGES: Array<{ id: string; label: string; tKey: string }> = [
+  { id: "en", label: "English", tKey: "config.language.en" },
+  { id: "pt-BR", label: "Português Brasileiro", tKey: "config.language.pt" },
 ];
 
 function detectSystemLanguage(): string {
@@ -309,7 +309,7 @@ export default function ConfigPage() {
   }, []);
 
   const filteredLanguages = AVAILABLE_LANGUAGES.filter((lang) =>
-    lang.label.toLowerCase().includes(searchQuery.toLowerCase()),
+    t(lang.tKey, lang.label).toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const handleBrowse = async () => {
@@ -725,7 +725,7 @@ export default function ConfigPage() {
             : "warning"
           : "neutral";
   const updaterStatusBadgeClass = cn(
-    "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold border",
+    "inline-flex items-center rounded-none px-2 py-0.5 text-xs font-semibold border",
     updaterStatusTone === "success" &&
       "border-primary/30 bg-primary/10 text-primary",
     updaterStatusTone === "warning" &&
@@ -1240,7 +1240,7 @@ export default function ConfigPage() {
                       ? "bg-primary/10 text-primary"
                       : "hover:bg-muted/10 text-muted-foreground hover:text-foreground",
                   )}>
-                  <span className="font-mono text-xs">{lang.label}</span>
+                  <span className="font-mono text-xs">{t(lang.tKey, lang.label)}</span>
                   {selectedLang === lang.id && (
                     <Check className="h-3.5 w-3.5 shrink-0" />
                   )}
