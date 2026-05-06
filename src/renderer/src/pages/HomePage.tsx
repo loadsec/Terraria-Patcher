@@ -189,8 +189,8 @@ export default function HomePage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 animate-in fade-in duration-500">
-      <section className="relative overflow-hidden rounded-2xl border bg-card shadow-sm">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.12),transparent_55%),radial-gradient(circle_at_bottom_left,rgba(34,197,94,0.08),transparent_45%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.2),transparent_55%),radial-gradient(circle_at_bottom_left,rgba(34,197,94,0.12),transparent_45%)]" />
+      <section className="relative overflow-hidden rounded-xl border bg-card shadow-sm">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,oklch(0.73_0.22_158_/_0.12),transparent_60%),radial-gradient(ellipse_at_bottom_left,oklch(0.66_0.18_202_/_0.08),transparent_50%)] dark:bg-[radial-gradient(ellipse_at_top_right,oklch(0.73_0.22_158_/_0.18),transparent_60%),radial-gradient(ellipse_at_bottom_left,oklch(0.59_0.14_248_/_0.10),transparent_50%)]" />
         <div className="relative p-5 lg:p-6">
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
@@ -265,7 +265,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+      <div className="grid items-start gap-4 lg:grid-cols-2">
         <PanelCard
           compact
           titleIcon={<Wrench className="h-4 w-4" />}
@@ -540,39 +540,28 @@ function PanelCard({
     <section
       className={cn(
         "relative overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm",
-        tone === "warning" &&
-          "border-border",
+        tone === "warning" && "border-border",
         className,
       )}>
       {tone === "warning" ? (
         <div className="absolute inset-y-0 left-0 w-1 bg-amber-500/70 dark:bg-amber-400/60" />
       ) : null}
-      <div
-        className={cn(
-          "border-b bg-muted/20",
-          compact ? "p-3" : "p-4",
-        )}>
-        <div className="flex items-start gap-2">
+      <div className={cn("border-b bg-muted/15", compact ? "px-3.5 py-2.5" : "p-4")}>
+        <div className="flex items-center gap-2.5">
           {titleIcon ? (
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border/50 bg-background/60 text-muted-foreground">
+            <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background/70 text-primary">
               {titleIcon}
             </span>
           ) : null}
-          <div className="min-w-0">
-            <h2 className="font-semibold leading-none tracking-tight">{title}</h2>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-sm font-semibold leading-none tracking-tight">{title}</h2>
             {subtitle ? (
-              <p
-                className={cn(
-                  "text-muted-foreground",
-                  compact ? "mt-1 text-xs" : "mt-1.5 text-sm",
-                )}>
-                {subtitle}
-              </p>
+              <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{subtitle}</p>
             ) : null}
           </div>
         </div>
       </div>
-      <div className={cn(compact ? "p-3" : "p-4")}>{children}</div>
+      <div className={cn(compact ? "p-3.5" : "p-4")}>{children}</div>
     </section>
   );
 }
@@ -591,24 +580,22 @@ function MetricTile({
   emphasize?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-background/70 p-2.5 backdrop-blur-sm">
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-muted/60 text-foreground">
+    <div className="rounded-lg border border-border/60 bg-background/70 p-3 backdrop-blur-sm">
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
           {icon}
         </span>
-        <span>{label}</span>
+        <span className="truncate">{label}</span>
       </div>
       <p
         className={cn(
-          "mt-1.5 text-sm font-semibold",
-          emphasize && "text-emerald-600 dark:text-emerald-400",
+          "mt-2 text-sm font-semibold leading-none",
+          emphasize ? "text-primary" : "text-foreground",
         )}>
         {value}
       </p>
       {subValue ? (
-        <p className="mt-0.5 truncate text-xs text-muted-foreground">
-          {subValue}
-        </p>
+        <p className="mt-1 truncate text-[11px] text-muted-foreground">{subValue}</p>
       ) : null}
     </div>
   );
@@ -626,25 +613,25 @@ function StatusRow({
   hint?: string;
 }) {
   return (
-    <div className="rounded-lg border border-border/50 bg-background/60 p-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-sm text-muted-foreground">{label}</span>
+    <div className="rounded-lg border border-border/50 bg-background/60 px-3 py-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs text-muted-foreground truncate">{label}</span>
         <span
           className={cn(
-            "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
+            "inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px] font-medium",
             tone === "success" &&
-              "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+              "border-primary/30 bg-primary/10 text-primary",
             tone === "warning" &&
-              "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+              "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-300",
             tone === "danger" &&
-              "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300",
+              "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-300",
             tone === "neutral" &&
               "border-border/60 bg-muted/30 text-muted-foreground",
           )}>
           {value}
         </span>
       </div>
-      {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
+      {hint ? <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p> : null}
     </div>
   );
 }
@@ -664,17 +651,15 @@ function ShortcutButton({
     <button
       type="button"
       onClick={onClick}
-      className="group rounded-lg border border-border/60 bg-background/60 p-2.5 text-left transition-colors hover:border-primary/25 hover:bg-muted/30">
-      <div className="flex items-center gap-2">
-        <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary">
-          {icon}
-        </span>
-        <div className="min-w-0">
-          <div className="text-sm font-medium leading-tight">{title}</div>
-          <div className="line-clamp-1 text-xs text-muted-foreground">{desc}</div>
-        </div>
-        <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+      className="group flex items-center gap-3 rounded-lg border border-border/60 bg-background/60 px-3 py-2.5 text-left transition-colors hover:border-primary/30 hover:bg-muted/30 w-full">
+      <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-medium leading-tight">{title}</div>
+        <div className="line-clamp-1 text-xs text-muted-foreground">{desc}</div>
       </div>
+      <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
     </button>
   );
 }
@@ -693,25 +678,23 @@ function MiniStep({
   onAction?: () => void;
 }) {
   return (
-    <div className="rounded-lg border border-border/50 bg-background/60 p-2.5">
-      <div className="flex items-start gap-2">
-        <span className="mt-0.5 inline-flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">
+    <div className="rounded-lg border border-border/50 bg-background/60 p-3">
+      <div className="flex items-start gap-2.5">
+        <span className="mt-px inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
           {n}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium leading-tight">{title}</p>
+          <p className="text-sm font-medium leading-snug">{title}</p>
           {desc ? (
-            <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
-              {desc}
-            </p>
+            <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{desc}</p>
           ) : null}
           {actionLabel && onAction ? (
             <button
               type="button"
               onClick={onAction}
-              className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline">
+              className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline">
               {actionLabel}
-              <ArrowRight className="h-3.5 w-3.5" />
+              <ArrowRight className="h-3 w-3" />
             </button>
           ) : null}
         </div>
@@ -730,13 +713,13 @@ function CompactRow({
   value: string;
 }) {
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-border/50 bg-background/60 px-2.5 py-2">
-      <span className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
+    <div className="flex items-center gap-2.5 rounded-lg border border-border/50 bg-background/60 px-3 py-2">
+      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
         {icon}
       </span>
-      <div className="min-w-0">
-        <div className="text-xs text-muted-foreground">{label}</div>
-        <div className="truncate text-sm font-medium leading-tight">{value}</div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[11px] text-muted-foreground">{label}</div>
+        <div className="truncate text-sm font-medium leading-snug">{value}</div>
       </div>
     </div>
   );

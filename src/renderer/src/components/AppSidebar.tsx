@@ -195,19 +195,21 @@ export function AppSidebar() {
         ) : null}
       </SidebarContent>
 
-      <SidebarFooter className="p-4">
-        <div className="group-data-[collapsible=icon]:hidden mt-4 space-y-1 rounded-lg border border-border/60 bg-muted/30 p-3">
-          <p className="text-xs font-medium text-foreground/90">
-            {appLabel}: <span className="text-primary">v{appVersion}</span>
+      <SidebarFooter className="p-3">
+        <div className="group-data-[collapsible=icon]:hidden space-y-0.5 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2.5">
+          <p className="text-xs font-semibold text-foreground/80 flex items-center gap-1.5">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+            {appLabel}
+            <span className="ml-auto font-mono text-primary">v{appVersion}</span>
           </p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[11px] text-muted-foreground pl-3">
             {terrariaRange
               ? t("sidebar.terrariaVersionWithSupport", {
-                  defaultValue: "Terraria: {{version}} ({{range}})",
+                  defaultValue: "Terraria {{version}} ({{range}})",
                   version: terrariaVersion,
                   range: terrariaRange,
                 })
-              : `${t("sidebar.terrariaVersionLabel", "Terraria")}: ${terrariaVersion}`}
+              : `Terraria ${terrariaVersion}`}
           </p>
         </div>
       </SidebarFooter>

@@ -1006,28 +1006,35 @@ export default function PatcherPage() {
       label: string;
       description: string;
     };
-  }) => (
-    <div className="flex items-start space-x-3 p-4 border rounded-lg bg-muted/30">
-      <Checkbox
-        id={setting.id}
-        checked={options[setting.id] as boolean}
-        onCheckedChange={(checked) =>
-          handleSettingChange(setting.id, checked === true)
-        }
-        className="mt-1"
-      />
-      <div className="space-y-1.5 leading-none">
-        <Label
-          htmlFor={setting.id}
-          className="text-sm font-medium cursor-pointer">
-          {setting.label}
-        </Label>
-        <p className="text-xs text-muted-foreground leading-relaxed pr-2">
-          {setting.description}
-        </p>
+  }) => {
+    const checked = options[setting.id] as boolean;
+    return (
+      <div
+        className={cn(
+          "flex items-start gap-3 p-3.5 border rounded-lg transition-colors cursor-pointer",
+          checked
+            ? "border-primary/30 bg-primary/5"
+            : "border-border/60 bg-card/50 hover:bg-muted/30",
+        )}
+        onClick={() => handleSettingChange(setting.id, !checked)}>
+        <Checkbox
+          id={setting.id}
+          checked={checked}
+          onCheckedChange={(v) => handleSettingChange(setting.id, v === true)}
+          onClick={(e) => e.stopPropagation()}
+          className="mt-0.5 shrink-0"
+        />
+        <div className="space-y-1 leading-none min-w-0">
+          <Label htmlFor={setting.id} className="text-sm font-medium cursor-pointer">
+            {setting.label}
+          </Label>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {setting.description}
+          </p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="h-full min-h-0 overflow-hidden flex flex-col gap-6 animate-in fade-in duration-500">
@@ -1049,7 +1056,7 @@ export default function PatcherPage() {
               className={cn(
                 "text-sm max-w-xs truncate animate-in fade-in duration-300",
                 patchMessage.type === "success"
-                  ? "text-emerald-500"
+                  ? "text-primary"
                   : "text-destructive",
               )}>
               {patchMessage.text}
@@ -1105,8 +1112,8 @@ export default function PatcherPage() {
                     className={cn(
                       "flex items-center gap-3 w-full px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200 outline-none",
                       isActive
-                        ? "bg-foreground shadow-sm text-background"
-                        : "text-muted-foreground hover:bg-foreground hover:text-background",
+                        ? "bg-primary/10 text-primary ring-1 ring-primary/25"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
                     )}>
                     <Icon className="h-4 w-4" />
                     {tab.label}
@@ -1129,8 +1136,8 @@ export default function PatcherPage() {
                     className={cn(
                       "flex items-center gap-3 w-full px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200 outline-none",
                       isActive
-                        ? "bg-foreground shadow-sm text-background"
-                        : "text-muted-foreground hover:bg-foreground hover:text-background",
+                        ? "bg-primary/10 text-primary ring-1 ring-primary/25"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
                     )}>
                     <Icon className="h-4 w-4" />
                     {tab.label}
@@ -1140,8 +1147,8 @@ export default function PatcherPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-none border-muted bg-muted/20 mt-auto hidden md:block">
-            <CardContent className="p-4">
+          <Card className="shadow-none border-primary/20 bg-primary/5 mt-auto hidden md:block">
+            <CardContent className="p-3">
               <p className="text-xs text-muted-foreground leading-relaxed text-center">
                 {t(
                   "patcher.pathAlert",
@@ -1160,7 +1167,7 @@ export default function PatcherPage() {
                 <h3 className="text-lg font-semibold">
                   {t("patcher.tabs.qol")}
                 </h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap break-all">
+                <p className="text-sm text-muted-foreground break-words">
                   {t("patcher.tabsDescriptions.qol")}
                 </p>
               </div>
@@ -1178,7 +1185,7 @@ export default function PatcherPage() {
             <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
               <div className="p-6 border-b">
                 <h3 className="text-lg font-semibold">{t("patcher.tabs.combat")}</h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap break-all">
+                <p className="text-sm text-muted-foreground break-words">
                   {t("patcher.tabsDescriptions.combat")}
                 </p>
               </div>
@@ -1196,7 +1203,7 @@ export default function PatcherPage() {
             <div className="flex flex-col flex-1 min-h-0 animate-in slide-in-from-right-4 duration-300">
               <div className="p-6 border-b">
                 <h3 className="text-lg font-semibold">{t("patcher.tabs.cheats")}</h3>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap break-all">
+                <p className="text-sm text-muted-foreground break-words">
                   {t("patcher.tabsDescriptions.cheats")}
                 </p>
               </div>
@@ -1448,19 +1455,23 @@ export default function PatcherPage() {
                 </p>
               </div>
               <div className="p-6">
-                <div className="flex items-start space-x-3 p-4 border rounded-lg bg-muted/30">
+                <div
+                  className={cn(
+                    "flex items-start gap-3 p-3.5 border rounded-lg cursor-pointer transition-colors",
+                    options.bossBagsLoot
+                      ? "border-primary/30 bg-primary/5"
+                      : "border-border/60 bg-card/50 hover:bg-muted/30",
+                  )}
+                  onClick={() => setOption("bossBagsLoot", !options.bossBagsLoot)}>
                   <Checkbox
                     id="boss-bags-loot"
                     checked={options.bossBagsLoot}
-                    onCheckedChange={(checked) =>
-                      setOption("bossBagsLoot", checked === true)
-                    }
-                    className="mt-1"
+                    onCheckedChange={(checked) => setOption("bossBagsLoot", checked === true)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="mt-0.5 shrink-0"
                   />
-                  <div className="space-y-1 leading-none">
-                    <Label
-                      htmlFor="boss-bags-loot"
-                      className="text-base font-medium cursor-pointer">
+                  <div className="space-y-1 leading-none min-w-0">
+                    <Label htmlFor="boss-bags-loot" className="text-sm font-medium cursor-pointer">
                       {t("patcher.lootFeature.treasureBags")}
                     </Label>
                     <p className="text-sm text-muted-foreground">
@@ -1558,7 +1569,7 @@ export default function PatcherPage() {
                               </span>
                             </div>
                             {activePlugins.includes(plugin) && (
-                              <CheckCircle2 className="h-5 w-5 text-emerald-500 animate-in zoom-in duration-200" />
+                              <CheckCircle2 className="h-5 w-5 text-primary animate-in zoom-in duration-200" />
                             )}
                           </div>
                         ))}
@@ -1645,13 +1656,13 @@ export default function PatcherPage() {
 
             {patchStage === "restoreSuccess" && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-emerald-500">
+                <div className="flex items-center gap-2 text-primary">
                   <Sparkles className="h-5 w-5" />
                   <p className="font-medium">
                     {t("patcher.modal.restoreSuccessTitle", "Backup restored")}
                   </p>
                 </div>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap break-all">
+                <p className="text-sm text-muted-foreground break-words">
                   {patchMessage?.text ||
                     t(
                       "patcher.modal.restoreSuccessDesc",
@@ -1671,13 +1682,13 @@ export default function PatcherPage() {
 
             {patchStage === "backupSuccess" && (
               <div className="space-y-4">
-                <div className="flex items-center gap-2 text-emerald-500">
+                <div className="flex items-center gap-2 text-primary">
                   <Sparkles className="h-5 w-5" />
                   <p className="font-medium">
                     {t("patcher.modal.backupSuccessTitle", "Backup created")}
                   </p>
                 </div>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap break-all">
+                <p className="text-sm text-muted-foreground break-words">
                   {patchMessage?.text ||
                     t(
                       "patcher.modal.backupSuccessDesc",
@@ -1704,13 +1715,13 @@ export default function PatcherPage() {
 
             {patchStage === "done" && (
               <div className="space-y-3">
-                <div className="flex items-center gap-2 text-emerald-500">
+                <div className="flex items-center gap-2 text-primary">
                   <Sparkles className="h-5 w-5" />
                   <p className="font-medium">
                     {t("patcher.modal.successTitle", "Success!")}
                   </p>
                 </div>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap break-all">
+                <p className="text-sm text-muted-foreground break-words">
                   {patchMessage?.text ||
                     t(
                       "patcher.modal.successDesc",
