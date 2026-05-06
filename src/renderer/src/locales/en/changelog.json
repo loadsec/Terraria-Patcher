@@ -12,6 +12,23 @@
     "noEntriesDesc": "Add release entries to version.json and translations to changelog.json."
   },
   "releases": {
+    "v2_0_0": {
+      "title": "Full UI Redesign",
+      "summary": "Complete visual overhaul of the entire interface. All pages now share a unified design language — consistent layouts, typography, color system, and component patterns throughout the application.",
+      "changes": [
+        "Redesigned all pages (Home, Patcher, Config, Plugins.ini Editor, Changelog, About, Dev Tools) with a unified layout system.",
+        "Adopted a terminal/hacker-inspired aesthetic with a Zinc + Emerald color palette, JetBrains Mono font, and zero border-radius throughout.",
+        "Standardized page headers, section cards, status rows, and info rows across the entire app.",
+        "Improved text contrast and readability by removing excessive opacity modifiers on body text.",
+        "Replaced inconsistent badge styles with a unified square badge design aligned to the active preset.",
+        "Introduced a three-button theme switcher (Light / System / Dark) replacing the previous toggle.",
+        "Added automatic language detection on first launch based on the system locale.",
+        "Redesigned the Home page with a hero section, Quick Access, System Status, Build Info, and a Recommended Workflow panel.",
+        "Home page stat cards now use contextual accent colors: blue for informational values, green for OK states, amber for warnings.",
+        "Workflow step action links repositioned to the bottom-right of each card for visual consistency.",
+        "Dev Tools page redesigned to match the rest of the app, removing the old generic card layout."
+      ]
+    },
     "v1_2_1": {
       "title": "Linux Plugin Fixes + Dependency Updates",
       "summary": "Fixes Linux/Steam Runtime plugin loading, updates dependencies within the current stable ranges, and prepares the 1.2.1 release without returning to the old Edge runtime.",

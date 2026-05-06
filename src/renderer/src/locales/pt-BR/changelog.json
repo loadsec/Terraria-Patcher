@@ -12,6 +12,23 @@
     "noEntriesDesc": "Adicione versões no version.json e traduções no changelog.json."
   },
   "releases": {
+    "v2_0_0": {
+      "title": "Redesign Completo da Interface",
+      "summary": "Reformulação visual completa de toda a interface. Todas as páginas agora compartilham uma linguagem de design unificada — layouts consistentes, tipografia, sistema de cores e padrões de componentes em toda a aplicação.",
+      "changes": [
+        "Redesign de todas as páginas (Início, Patcher, Configurações, Editor do Plugins.ini, Changelog, Sobre, Ferramentas Dev) com um sistema de layout unificado.",
+        "Adotada uma estética terminal/hacker com paleta Zinc + Esmeralda, fonte JetBrains Mono e border-radius zero em todo o app.",
+        "Padronização de cabeçalhos de página, cards de seção, linhas de status e linhas de informação em toda a aplicação.",
+        "Melhor contraste e legibilidade nos textos, removendo modificadores de opacidade excessivos.",
+        "Substituição de badges inconsistentes por um design quadrado unificado alinhado ao preset ativo.",
+        "Introdução de seletor de tema com três botões (Claro / Sistema / Escuro) no lugar do toggle anterior.",
+        "Detecção automática do idioma na primeira inicialização com base no locale do sistema.",
+        "Página Início redesenhada com seção hero, Acesso Rápido, Status do Sistema, Informações do Build e painel de Fluxo Recomendado.",
+        "Cards de métricas da página Início com cores de destaque contextuais: azul para valores informativos, verde para estado OK, âmbar para avisos.",
+        "Links de ação das etapas do Fluxo Recomendado reposicionados para o canto inferior direito de cada card.",
+        "Página de Ferramentas Dev redesenhada para corresponder ao restante do app, removendo o layout genérico de cards anterior."
+      ]
+    },
     "v1_2_1": {
       "title": "Correções de Plugins no Linux + Dependências Atualizadas",
       "summary": "Corrige o carregamento dos plugins no Linux/Steam Runtime, atualiza dependências dentro das versões estáveis atuais e prepara a release 1.2.1 sem retornar ao runtime Edge antigo.",

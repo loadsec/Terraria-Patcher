@@ -27,10 +27,9 @@ export default function AboutPage() {
           <div className="flex-1 p-5 text-sm text-muted-foreground space-y-3 leading-relaxed">
             <p>
               <Trans i18nKey="about.inspiration.p1">
-                This project is heavily inspired by and based on an existing
-                project also called{" "}
-                <strong className="text-foreground font-semibold">Terraria Patcher</strong>,
-                created by the wonderful developer Doug Benham.
+                {"This project is heavily inspired by and based on an existing project also called "}
+                <strong className="text-foreground font-semibold">{"Terraria Patcher"}</strong>
+                {", created by the wonderful developer Doug Benham."}
               </Trans>
             </p>
             <p>{t("about.inspiration.p2")}</p>
@@ -57,10 +56,9 @@ export default function AboutPage() {
           <div className="flex-1 p-5 text-sm text-muted-foreground space-y-3 leading-relaxed">
             <p>
               <Trans i18nKey="about.vision.p1">
-                While the original Patcher is Windows-only, our goal is to bring
-                this tool to everyone. Our platform is designed from the ground
-                up to run on{" "}
-                <strong className="text-foreground font-semibold">Windows, Linux, and macOS</strong>.
+                {"While the original Patcher is Windows-only, our goal is to bring this tool to everyone. Our platform is designed from the ground up to run on "}
+                <strong className="text-foreground font-semibold">{"Windows, Linux, and macOS"}</strong>
+                {"."}
               </Trans>
             </p>
             <div className="border border-l-2 border-l-amber-500/50 bg-muted/20 px-3 py-2 text-sm text-muted-foreground leading-relaxed">

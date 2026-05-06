@@ -1,8 +1,8 @@
 {
-  "version": "1.2.1",
+  "version": "2.0.0",
   "app": {
     "name": "Terraria Patch",
-    "version": "1.2.1"
+    "version": "2.0.0"
   },
   "terraria": {
     "version": "1.4.5.6",
@@ -10,10 +10,16 @@
   },
   "releases": [
     {
+      "id": "v2_0_0",
+      "version": "2.0.0",
+      "date": "2026-05-06",
+      "latest": true
+    },
+    {
       "id": "v1_2_1",
       "version": "1.2.1",
       "date": "2026-04-29",
-      "latest": true
+      "latest": false
     },
     {
       "id": "v1_2_0",
