@@ -129,11 +129,11 @@
     },
     "mac": {
       "artifactName": "Terraria-Patcher-${version}-${arch}.${ext}",
-      "signIgnore": ["patcher-resources"],
       "target": [
         "dmg"
       ]
     },
+    "afterPack": "./scripts/afterpack-fix-permissions.mjs",
     "linux": {
       "artifactName": "Terraria-Patcher-${version}-${arch}.${ext}",
       "target": [
