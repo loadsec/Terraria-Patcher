@@ -133,7 +133,7 @@
         "dmg"
       ]
     },
-    "afterPack": "./scripts/afterpack-fix-permissions.mjs",
+    "afterPack": "./scripts/afterpack-fix-permissions.js",
     "linux": {
       "artifactName": "Terraria-Patcher-${version}-${arch}.${ext}",
       "target": [
