@@ -340,10 +340,6 @@ jobs:
       - name: Build app bundle
         run: pnpm exec electron-vite build
 
-      - name: Fix Mono bundle permissions (macOS)
-        shell: bash
-        run: find resources/plugins/.PluginLoaderTools -type f -exec chmod u+rw {} +
-
       - name: Package app (macOS)
         run: pnpm exec electron-builder --mac --publish never
 
