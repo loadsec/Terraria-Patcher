@@ -129,6 +129,9 @@
     },
     "mac": {
       "artifactName": "Terraria-Patcher-${version}-${arch}.${ext}",
+      "signIgnore": [
+        "/patcher-resources/plugins/\\.PluginLoaderTools(/|$)"
+      ],
       "target": [
         "dmg"
       ]
