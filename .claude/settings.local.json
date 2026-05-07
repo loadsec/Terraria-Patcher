@@ -22,7 +22,9 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
-      "Bash(git tag *)"
+      "Bash(git tag *)",
+      "PowerShell(Get-ChildItem \"$env:APPDATA\\\\terraria-patcher\" -Recurse -ErrorAction SilentlyContinue | Format-List FullName)",
+      "PowerShell(Start-Process \"C:\\\\Users\\\\Louan\\\\AppData\\\\Local\\\\Programs\\\\terraria-patcher\\\\Terraria Patcher.exe\")"
     ]
   }
 }
