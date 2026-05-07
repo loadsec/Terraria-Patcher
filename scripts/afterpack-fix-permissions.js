@@ -29,9 +29,12 @@ module.exports = async function afterPack(context) {
     return;
   }
 
+  // chmod -R u+rwX fixes both files (u+rw) and directories (u+rwx via capital X).
+  // Using find -type f missed files inside dirs that lacked execute permission;
+  // chmod -R handles the full tree regardless of intermediate directory modes.
   const result = spawnSync(
-    "find",
-    [monoDir, "-type", "f", "-exec", "chmod", "u+rw", "{}", "+"],
+    "chmod",
+    ["-R", "u+rwX", monoDir],
     { encoding: "utf8", shell: false }
   );
 

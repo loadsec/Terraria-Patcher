@@ -396,15 +396,18 @@ function main() {
   // files with 444 (read-only) permissions. electron-builder codesign on macOS
   // needs write access to sign files inside the .app bundle.
   if (process.platform !== "win32") {
+    // chmod -R u+rwX fixes files (u+rw) AND directories (u+rwx via capital X).
+    // Using find -type f can silently miss files inside dirs that lack execute
+    // permission; chmod -R traverses the full tree regardless of dir modes.
     const chmodResult = spawnSync(
-      "find",
-      [outputToolsDir, "-type", "f", "-exec", "chmod", "u+rw", "{}", "+"],
+      "chmod",
+      ["-R", "u+rwX", outputToolsDir],
       { encoding: "utf8", windowsHide: true, shell: false }
     );
     if (chmodResult.status !== 0) {
       console.warn("[prepare-mono] chmod warning:", chmodResult.stderr || chmodResult.stdout);
     } else {
-      console.log("[prepare-mono] Applied u+rw permissions to all bundled files");
+      console.log("[prepare-mono] Applied u+rwX permissions to all bundled files and directories");
     }
   }
 
