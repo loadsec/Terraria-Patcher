@@ -129,7 +129,7 @@
     },
     "mac": {
       "artifactName": "Terraria-Patcher-${version}-${arch}.${ext}",
-      "identity": null,
+      "signIgnore": ["patcher-resources"],
       "target": [
         "dmg"
       ]
