@@ -16,6 +16,23 @@ Apply IL-level game modifications, manage community plugins, and fine-tune your 
 
 ---
 
+## Screenshots
+
+<div align="center">
+
+**Home**
+![Home](docs/screenshots/home.png)
+
+**Patcher**
+![Patcher](docs/screenshots/patcher.png)
+
+**Plugins.ini Editor**
+![Plugins.ini Editor](docs/screenshots/plugins-ini-editor.png)
+
+</div>
+
+---
+
 ## Platform Support
 
 | Feature | Windows | Linux | macOS |
