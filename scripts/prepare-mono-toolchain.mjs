@@ -390,6 +390,24 @@ function main() {
 
   ensureMcsExeExists();
   verifyBundledLinuxCompilerWorks();
+
+  // Ensure all bundled files are user-readable and user-writable.
+  // System Mono (e.g. /Library/Frameworks/Mono.framework on macOS) ships many
+  // files with 444 (read-only) permissions. electron-builder codesign on macOS
+  // needs write access to sign files inside the .app bundle.
+  if (process.platform !== "win32") {
+    const chmodResult = spawnSync(
+      "find",
+      [outputToolsDir, "-type", "f", "-exec", "chmod", "u+rw", "{}", "+"],
+      { encoding: "utf8", windowsHide: true, shell: false }
+    );
+    if (chmodResult.status !== 0) {
+      console.warn("[prepare-mono] chmod warning:", chmodResult.stderr || chmodResult.stdout);
+    } else {
+      console.log("[prepare-mono] Applied u+rw permissions to all bundled files");
+    }
+  }
+
   console.log(`[prepare-mono] Toolchain prepared at: ${outputToolsDir}`);
 }
 
