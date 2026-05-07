@@ -6,6 +6,7 @@
 Apply IL-level game modifications, manage community plugins, and fine-tune your setup — all from a single, clean interface.
 
 [![Release](https://img.shields.io/github/v/release/loadsec/Terraria-Patcher?style=flat-square&label=release&color=10b981)](https://github.com/loadsec/Terraria-Patcher/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/loadsec/Terraria-Patcher/total?style=flat-square&label=downloads&color=10b981)](https://github.com/loadsec/Terraria-Patcher/releases)
 [![Platform](https://img.shields.io/badge/app-Windows%20%7C%20Linux%20%7C%20macOS-10b981?style=flat-square)](https://github.com/loadsec/Terraria-Patcher/releases)
 [![Patching](https://img.shields.io/badge/patching-Windows%20%7C%20Linux-10b981?style=flat-square)](#platform-support)
 [![Terraria](https://img.shields.io/badge/Terraria-1.4.5.x-blue?style=flat-square)](https://store.steampowered.com/app/105600/Terraria/)
